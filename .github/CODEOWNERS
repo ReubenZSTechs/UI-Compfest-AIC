@@ -1,0 +1,28 @@
+# CODEOWNERS
+# These owners are automatically requested for review when a PR
+# touches matching files. Replace usernames with your team's.
+# Order matters: later rules override earlier ones.
+
+# Default owner for everything not matched below
+*                       @chrisustomusboimau
+
+# Backend
+/backend/               @ReubenZSTechs @chrisustomusboimau
+
+# Frontend
+/frontend/              @ReubenZSTechs @LCoder-FILE
+
+# Infrastructure / Docker / CI
+/.github/               @chrisustomusboimau
+/deployment/            @ReubenZSTechs @chrisustomusboimau
+docker-compose*.yml     @ReubenZSTechs @chrisustomusboimau
+
+# Docs
+/docs/                  @ReubenZSTechs @chrisustomusboimau @LCoder-FILE @Theseus-n
+README.md               @ReubenZSTechs @chrisustomusboimau @LCoder-FILE @Theseus-n
+
+# Model Training
+/training/              @ReubenZSTechs @chrisustomusboimau @LCoder-FILE
+
+# Application Testing
+/tests/                 @chrisustomusboimau @ReubenZSTechs
