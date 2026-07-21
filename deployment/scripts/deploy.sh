@@ -5,7 +5,7 @@ set -e
 echo "Deploying system..."
 
 docker-compose pull
-docker-compose build
-docker-compose up -d
+docker-compose build --no_cache
+docker-compose up
 
 echo "Deployment complete."
