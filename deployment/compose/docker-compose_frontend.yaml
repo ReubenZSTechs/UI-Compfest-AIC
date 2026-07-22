@@ -1,0 +1,9 @@
+services:
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/frontend.Dockerfile
+    container_name: frontend-server
+    ports:
+      - "8080:80"

@@ -1,0 +1,75 @@
+services:
+
+  LLM:
+    image: vllm/vllm-openai:latest
+    container_name: llm-server
+    runtime: nvidia
+    volumes:
+      - ../../model_cache:/root/.cache/huggingface
+      - ../../models:/models
+    ports:
+      - "15000:15000"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - HF_HUB_OFFLINE=1
+      - VLLM_LOGGING_LEVEL=INFO
+      - VLLM_ATTENTION_BACKEND=FLASH_ATTN
+    command: >
+      --model /models/models--nvidia--Llama-3.1-8B-Instruct-NVFP4
+      --quantization modelopt_fp4
+      --hf-overrides '{"tie_word_embeddings": false}'
+      --served-model-name LLM
+      --max-model-len 32768
+      --gpu-memory-utilization 0.6
+      --port 15000
+    depends_on:
+      embedding:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1800s
+    restart: unless-stopped
+
+  
+  embedding:
+    image: vllm/vllm-openai:latest
+    container_name: embedding-server
+    runtime: nvidia
+    volumes:
+      - ../../model_cache:/root/.cache/huggingface
+      - ../../models:/models
+    ports:
+      - "15001:15001"
+    environment:
+      - HF_HUB_OFFLINE=1
+      - VLLM_LOGGING_LEVEL=INFO
+    command: >
+      --model /models/models--BAAI--bge-m3
+      --served_model_name embedding
+      --max_model_len 8192
+      --gpu-memory-utilization 0.3
+      --port 15001
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
+    restart: unless-stopped
