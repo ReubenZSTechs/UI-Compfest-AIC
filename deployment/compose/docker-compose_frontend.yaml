@@ -4,6 +4,21 @@ services:
     build:
       context: ../../
       dockerfile: deployment/docker/frontend.Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:15000}
     container_name: frontend-server
     ports:
       - "8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+
+networks:
+  default:
+    name: khotbah-net
+    external: true
