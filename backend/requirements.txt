@@ -1,52 +1,24 @@
-# =========================================================
-# API SERVER
-# =========================================================
-fastapi
-uvicorn[standard]
-pydantic
+# --- Web framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20   # required for file upload endpoints (digital_twin_ingestion)
 
-# =========================================================
-# AI / LLM
-# =========================================================
-torch
-transformers
-accelerate
-sentence-transformers
-ollama
+# --- Settings & validation ---
+pydantic==2.10.4
+pydantic-settings==2.7.0
 
-# =========================================================
-# RAG / VECTOR DATABASE
-# =========================================================
-chromadb
-langchain
-langchain-core
-langchain-community
-langchain-huggingface
-langchain-chroma
-# faiss-cpu
+# --- Database ---
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0             # async driver, dipakai app runtime (db/session.py)
+psycopg2-binary==2.9.10     # sync driver, dipakai Alembic migration (env.py)
+alembic==1.14.0
 
-# =========================================================
-# DATA PROCESSING
-# =========================================================
-numpy
-pandas
-scikit-learn
-scipy
-tqdm
+# --- Auth (dipakai app/core/security.py nanti) ---
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
 
-# =========================================================
-# CONFIG / UTILS
-# =========================================================
-pyyaml
-python-dotenv
-requests
-httpx
-# aiohttp
-
-# =========================================================
-# TOKENIZER SUPPORT
-# =========================================================
-sentencepiece
-protobuf
-tiktoken
-einops
+# --- Test tooling ---
+pytest==8.3.4
+pytest-asyncio==0.25.0
+httpx==0.28.1                # dipakai fastapi.testclient
+aiosqlite==0.20.0            # DB in-memory untuk tests/unit

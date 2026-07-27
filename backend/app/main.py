@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.config import settings
-from app.core.logging import setup_logging
+from app.core.logging_config import setup_logging
 from app.core.exceptions import register_exception_handlers
 from app.core.middleware import register_middlewares
 from app.api.v1.router import api_router
