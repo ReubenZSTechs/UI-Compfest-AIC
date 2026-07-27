@@ -1,7 +1,7 @@
 services:
 
   LLM:
-    image: vllm/vllm-openai:latest
+    image: vllm/vllm-openai:v0.26.0
     container_name: llm-server
     runtime: nvidia
     volumes:
@@ -20,7 +20,8 @@ services:
       --hf-overrides '{"tie_word_embeddings": false}'
       --served-model-name LLM
       --max-model-len 32768
-      --gpu-memory-utilization 0.6
+      --kv-cache-dtype turboquant_4bit_nc
+      --gpu-memory-utilization 0.75
       --port 15000
     depends_on:
       embedding:
@@ -42,7 +43,7 @@ services:
 
   
   embedding:
-    image: vllm/vllm-openai:latest
+    image: vllm/vllm-openai:v0.26.0
     container_name: embedding-server
     runtime: nvidia
     volumes:
@@ -57,7 +58,7 @@ services:
       --model /models/models--BAAI--bge-m3
       --served_model_name embedding
       --max_model_len 8192
-      --gpu-memory-utilization 0.3
+      --gpu-memory-utilization 0.15
       --port 15001
     deploy:
       resources:

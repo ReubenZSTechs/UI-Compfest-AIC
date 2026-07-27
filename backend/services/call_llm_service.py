@@ -18,7 +18,6 @@ CONFIG = {
     'MODEL_BRIDGE':{
         'llm': 'http://localhost:15000/v1',
         'embedding': 'http://localhost:15001/v1',
-        'reranker': 'http://localhost:15002/v1'
     }
 }
 
