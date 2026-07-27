@@ -1,12 +1,10 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from transformers import AutoTokenizer, AutoModelForTokenClassification
 from openai import OpenAI
 
 import yaml
 import logging
-import os
 
 from backend.app.core.decorators.log_llm_calls import log_llm_calls, log_output_call
 
@@ -17,8 +15,7 @@ logger = logging.getLogger(__name__)
 CONFIG = {
     'MODEL_BRIDGE':{
         'llm': 'http://localhost:15000/v1',
-        'embedding': 'http://localhost:15001/v1',
-        'reranker': 'http://localhost:15002/v1'
+        'embedding': 'http://localhost:15001/v1'
     }
 }
 
@@ -60,7 +57,7 @@ class Agent:
             print(f"Missing key in yaml configuration:\n\n{e.args[0]}")
             raise
 
-        self.bridge_url = CONFIG['MODEL_BRIDGE'].get(self.agent_id['model_type'], None)
+        self.bridge_url = CONFIG['MODEL_BRIDGE'].get(self.agent_id['model_type'], None).lower()
 
         if not self.bridge_url:
             raise ValueError(f"No vLLM container url bridge available for {self.agent_id['role']}")
@@ -90,6 +87,7 @@ class Agent:
             'max_tokens': self.agent_generation_config['max_tokens'], # TODO Remove max_tokens when agent context manager is built
             'temperature': self.agent_generation_config.get('temperature', 0.1),
             'top_p': self.agent_generation_config.get('top_p', 0.9),
+            'min_p': self.agent_generation_config.get("min_p", 0.1),
             'frequency_penalty': self.agent_generation_config.get("frequency_penalty", 1.0)
         }
 
