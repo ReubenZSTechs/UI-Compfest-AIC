@@ -35,6 +35,8 @@ AI FORMAT WORKSPACE/
 └── README.md
 ```
 
+
+
 ---
 
 # 1. Folder Structure Explanation
