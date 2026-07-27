@@ -8,7 +8,7 @@ import yaml
 import logging
 import os
 
-from backend.core.decorators.log_llm_calls import log_llm_calls, log_output_call
+from backend.app.core.decorators.log_llm_calls import log_llm_calls, log_output_call
 
 logger = logging.getLogger(__name__)
 
