@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# deployment/scripts/manage-backend.sh
-COMPOSE_FILE="./deployment/compose/docker-compose_backend.yaml"
+# Lokasi file: deployment/scripts/manage-backend.sh
+COMPOSE_FILE="./deployment/compose/docker-compose.backend.yaml"
 ENV_FILE="./backend/.env"
 
+# Memeriksa apakah pengguna memasukkan argumen (up, down, restart, build, logs, ps)
 if [ "$1" == "up" ]; then
     echo "Starting compose for backend"
     docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
