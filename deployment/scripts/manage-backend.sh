@@ -7,7 +7,7 @@ ENV_FILE="./backend/.env"
 # Memeriksa apakah pengguna memasukkan argumen (up, down, restart, build, logs, ps)
 if [ "$1" == "up" ]; then
     echo "Starting compose for backend"
-    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up
 
 elif [ "$1" == "down" ]; then
     echo "Stopping compose for backend"
