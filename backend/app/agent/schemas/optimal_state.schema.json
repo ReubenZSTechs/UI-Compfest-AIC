@@ -1,0 +1,118 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta_description", "recommended_scenario_id", "scenario_narratives"],
+  "properties": {
+    "meta_description": { "type": "string" },
+    "recommended_scenario_id": { "type": "string" },
+    "scenario_narratives": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "title",
+          "description",
+          "insight",
+          "assumption_flag",
+          "flow_note",
+          "rl_reasoning",
+          "residual_bottleneck_explanation",
+          "move_reasons",
+          "asset_upgrade_reasons",
+          "new_hire_purposes",
+          "new_cross_compatibility_evaluations"
+        ],
+        "properties": {
+          "scenario_id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "insight": { "type": "string" },
+          "assumption_flag": { "type": ["string", "null"] },
+          "flow_note": { "type": "string" },
+          "rl_reasoning": { "type": "string" },
+          "residual_bottleneck_explanation": { "type": ["string", "null"] },
+          "move_reasons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["move_id", "worker_id", "reason"],
+              "properties": {
+                "move_id": { "type": "string" },
+                "worker_id": { "type": "string" },
+                "reason": { "type": "string" }
+              }
+            }
+          },
+          "asset_upgrade_reasons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["asset_id", "new_asset_name", "reason"],
+              "properties": {
+                "asset_id": { "type": "string" },
+                "new_asset_name": { "type": "string" },
+                "reason": { "type": "string" }
+              }
+            }
+          },
+          "new_hire_purposes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["worker_id", "name", "purpose"],
+              "properties": {
+                "worker_id": { "type": "string" },
+                "name": { "type": "string" },
+                "purpose": { "type": "string" }
+              }
+            }
+          },
+          "new_cross_compatibility_evaluations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "worker_id",
+                "job_id",
+                "asset_id",
+                "evaluations",
+                "llm_reasoning"
+              ],
+              "properties": {
+                "worker_id": { "type": "string" },
+                "job_id": { "type": "string" },
+                "asset_id": { "type": "string" },
+                "evaluations": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "overall_compatibility_score",
+                    "throughput_multiplier",
+                    "error_multiplier",
+                    "fatigue_accumulation_rate",
+                    "stress_sensitivity_factor"
+                  ],
+                  "properties": {
+                    "overall_compatibility_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "throughput_multiplier": { "type": "number", "minimum": 0.8, "maximum": 1.2 },
+                    "error_multiplier": { "type": "number", "minimum": 0.4, "maximum": 1.5 },
+                    "fatigue_accumulation_rate": { "type": "number", "minimum": 0.3, "maximum": 1.5 },
+                    "stress_sensitivity_factor": { "type": "number", "minimum": 0.4, "maximum": 1 }
+                  }
+                },
+                "llm_reasoning": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

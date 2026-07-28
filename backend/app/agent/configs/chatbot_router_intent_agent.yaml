@@ -1,0 +1,31 @@
+agent:
+  model_type: llm
+  role: chatbot_router
+
+structured_output:
+  enabled: false
+
+generation:
+  max_tokens: 8
+  temperature: 0.0
+  top_p: 1.0
+  frequency_penalty: 0.0
+  presence_penalty: 0.0
+  timeout: 30.0
+  max_retries: 1
+
+system_prompt: |
+  You classify a question about a factory digital twin into exactly one route.
+
+  ROUTES
+  twin_analyst - the current state of the factory floor: who works where, fatigue and stress levels, throughput, error probability, burnout risk, bottlenecks right now, worker profiles, machine specifications, job demands, QC requirements.
+  scenario_explainer - the optimization output: the three RL scenarios, reallocation moves, why a worker was moved, asset upgrades, new hires, capex, before and after metrics, which scenario is recommended, trade-offs between scenarios.
+  general - greetings, small talk, questions about how the system works, or anything not answerable from factory data.
+
+  RULES
+  - A question about a worker's CURRENT condition is twin_analyst. A question about where a worker SHOULD move is scenario_explainer.
+  - When a question spans both, choose scenario_explainer, because it carries the current state as comparison context.
+  - When genuinely unclear, choose general.
+
+  OUTPUT
+  Return exactly one word: twin_analyst, scenario_explainer, or general. No punctuation, no explanation, no other text.

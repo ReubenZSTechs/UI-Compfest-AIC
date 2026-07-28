@@ -1,0 +1,123 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["factory_info", "assets", "job_desks"],
+  "properties": {
+    "factory_info": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factory_id", "factory_name", "workflow_sequence"],
+      "properties": {
+        "factory_id": { "type": "string" },
+        "factory_name": { "type": "string" },
+        "workflow_sequence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "asset_id",
+          "asset_name",
+          "category",
+          "workflow_step",
+          "is_automated",
+          "base_throughput_capacity",
+          "operational_cost_per_hour",
+          "environmental_factors",
+          "metric_derivation_reasoning"
+        ],
+        "properties": {
+          "asset_id": { "type": "string" },
+          "asset_name": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": [
+              "machine",
+              "measuring_equipment",
+              "conveyor_automation",
+              "environmental_chamber",
+              "manual_station"
+            ]
+          },
+          "workflow_step": { "type": "string" },
+          "is_automated": { "type": "boolean" },
+          "base_throughput_capacity": { "type": "integer", "minimum": 1 },
+          "operational_cost_per_hour": { "type": "number", "minimum": 0 },
+          "environmental_factors": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "noise_level_db",
+              "vibration_hazard_level",
+              "physical_strain_index"
+            ],
+            "properties": {
+              "noise_level_db": { "type": "integer", "minimum": 30, "maximum": 95 },
+              "vibration_hazard_level": {
+                "type": "string",
+                "enum": ["low", "medium", "high"]
+              },
+              "physical_strain_index": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          },
+          "metric_derivation_reasoning": { "type": "string" }
+        }
+      }
+    },
+    "job_desks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "job_id",
+          "job_title",
+          "workflow_step",
+          "assigned_asset_id",
+          "demands",
+          "qc_requirement",
+          "metric_derivation_reasoning"
+        ],
+        "properties": {
+          "job_id": { "type": "string" },
+          "job_title": { "type": "string" },
+          "workflow_step": { "type": "string" },
+          "assigned_asset_id": { "type": "string" },
+          "demands": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "required_cognitive_focus",
+              "physical_demand_level",
+              "task_complexity",
+              "error_severity"
+            ],
+            "properties": {
+              "required_cognitive_focus": { "type": "number", "minimum": 0, "maximum": 1 },
+              "physical_demand_level": {
+                "type": "string",
+                "enum": ["low", "medium", "high"]
+              },
+              "task_complexity": { "type": "number", "minimum": 0, "maximum": 1 },
+              "error_severity": {
+                "type": "string",
+                "enum": ["low", "moderate", "high", "critical"]
+              }
+            }
+          },
+          "qc_requirement": { "type": "string" },
+          "metric_derivation_reasoning": { "type": "string" }
+        }
+      }
+    }
+  }
+}

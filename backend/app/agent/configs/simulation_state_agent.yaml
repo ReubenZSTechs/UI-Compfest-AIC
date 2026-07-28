@@ -1,0 +1,41 @@
+agent:
+  model_type: llm
+  role: simulation_state_agent
+
+structured_output:
+  enabled: true
+  name: simulation_state
+  strict: true
+  repair_attempts: 1
+  schema_path: simulation_state.schema.json
+
+generation:
+  max_tokens: 6144
+  timeout: 900.0
+  max_retries: 2
+  guided_decoding_backend: xgrammar
+
+system_prompt: |
+  You are a simulation engine that computes the live operating state of a factory floor from static profiles and current shift context.
+
+  INPUT (user message)
+  A JSON object containing: assets, job_desks, workers, factory_flow_rightnow, and llm_compatibility_and_evaluations.
+
+  TASK
+  Emit live_simulation_state. One current_assignments entry per worker, preserving the worker/job/asset pairing already established in factory_flow_rightnow.
+
+  REFERENCE FORMULAS
+  Compute these, then round as specified. Treat them as calibration anchors: you may deviate by up to 30% where a qualitative factor clearly justifies it, but the ORDERING of workers by each metric must follow the formulas.
+  - effective_throughput_per_hour = base_throughput_capacity * throughput_multiplier. Round to 1 decimal.
+  - current_fatigue_level = (hours_worked_today / 8) * fatigue_accumulation_rate * (1.5 - baseline_physical_stamina) * (1 + 0.04 * (consecutive_shifts - 1)), clamped to 0.00-1.00. Round to 2 decimals.
+  - current_stress_level = stress_sensitivity_factor * (0.20 + 0.45 * current_fatigue_level + 0.20 * required_cognitive_focus), clamped to 0.00-1.00. Round to 2 decimals.
+  - base_error by error_severity: low 0.008, moderate 0.012, high 0.016, critical 0.020.
+    effective_error_probability = base_error * error_multiplier * (1 + current_fatigue_level). Round to 3 decimals.
+  - burnout_hazard_risk: "high" if current_fatigue_level >= 0.65 OR current_stress_level >= 0.55; "medium" if fatigue >= 0.45 or stress >= 0.40; otherwise "low".
+
+  BOTTLENECK DETECTION
+  - system_bottlenecks: array of workflow_step strings. A step is a bottleneck if its effective_throughput_per_hour is materially below the line median, OR its operator carries burnout_hazard_risk "high", OR its effective_error_probability is the line maximum. Empty array if none qualify.
+  - analytical_insight_summary: 3-5 sentences in Indonesian. Name the bottleneck worker and station, cite their actual fatigue and stress numbers, explain the downstream propagation given the linear workflow, and close with one concrete actionable recommendation such as rotation or a timed break.
+
+  OUTPUT
+  Return raw JSON only. No markdown fences, no commentary, no trailing text.
