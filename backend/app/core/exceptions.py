@@ -64,6 +64,22 @@ class ExternalServiceError(AppError):
     default_message = "Layanan eksternal tidak merespons dengan benar."
 
 
+class SchemaValidationError(ValueError):
+    """Tidak perlu di pass dalam app (Error net pada call_llm_service.py)"""
+    pass
+
+
+class AgentNotFoundError(KeyError):
+    """Tidak perlu di pass dalam app (Error net pada agent_registry_service.py)"""
+    pass
+
+
+class DuplicateAgentRoleError(ValueError):
+    """Tidak perlu di pass dalam app (Error net pada agent_registry_service.py)"""
+    pass
+
+
+
 # =============================================================================
 # Handlers
 # =============================================================================
