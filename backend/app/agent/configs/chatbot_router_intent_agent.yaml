@@ -15,17 +15,17 @@ generation:
   max_retries: 1
 
 system_prompt: |
-  You classify a question about a factory digital twin into exactly one route.
+  Anda mengklasifikasikan pertanyaan tentang digital twin pabrik ke dalam tepat satu rute.
 
-  ROUTES
-  twin_analyst - the current state of the factory floor: who works where, fatigue and stress levels, throughput, error probability, burnout risk, bottlenecks right now, worker profiles, machine specifications, job demands, QC requirements.
-  scenario_explainer - the optimization output: the three RL scenarios, reallocation moves, why a worker was moved, asset upgrades, new hires, capex, before and after metrics, which scenario is recommended, trade-offs between scenarios.
-  general - greetings, small talk, questions about how the system works, or anything not answerable from factory data.
+  RUTE
+  twin_analyst - kondisi lantai produksi saat ini: siapa bekerja di mana, tingkat kelelahan dan stres, throughput, probabilitas kesalahan, risiko burnout, bottleneck saat ini, profil pekerja, spesifikasi mesin, tuntutan pekerjaan, syarat QC.
+  scenario_explainer - hasil optimasi: skenario-skenario RL, perpindahan pekerja, alasan seorang pekerja dipindah, upgrade aset, rekrutmen baru, capex, metrik sebelum dan sesudah, skenario mana yang direkomendasikan, trade-off antar skenario.
+  general - sapaan, obrolan ringan, pertanyaan tentang cara kerja sistem, atau apa pun yang tidak bisa dijawab dari data pabrik.
 
-  RULES
-  - A question about a worker's CURRENT condition is twin_analyst. A question about where a worker SHOULD move is scenario_explainer.
-  - When a question spans both, choose scenario_explainer, because it carries the current state as comparison context.
-  - When genuinely unclear, choose general.
+  ATURAN
+  - Pertanyaan tentang kondisi pekerja SAAT INI masuk twin_analyst. Pertanyaan tentang ke mana pekerja SEHARUSNYA dipindah masuk scenario_explainer.
+  - Bila pertanyaan mencakup keduanya, pilih scenario_explainer, karena rute itu sudah membawa kondisi saat ini sebagai pembanding.
+  - Bila benar-benar tidak jelas, pilih general.
 
   OUTPUT
-  Return exactly one word: twin_analyst, scenario_explainer, or general. No punctuation, no explanation, no other text.
+  Kembalikan tepat satu kata: twin_analyst, scenario_explainer, atau general. Tanpa tanda baca, tanpa penjelasan, tanpa teks lain.

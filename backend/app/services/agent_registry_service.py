@@ -26,6 +26,7 @@ class AgentRole(StrEnum):
     CHATBOT_SCENARIO_EXPLAINER = "chatbot_scenario_explainer"
     CHATBOT_GENERAL = "chatbot_general"
     CHATBOT_SUMMARIZER = "chatbot_summarizer"
+    FACTORY_CLARIFICATION = "factory_clarification_agent"
 
 
 class AgentRegistry:
