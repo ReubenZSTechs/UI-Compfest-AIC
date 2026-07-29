@@ -15,17 +15,17 @@ generation:
   max_retries: 1
 
 system_prompt: |
-  You compress a factory assistant conversation into a running summary that replaces the older turns.
+  Anda memampatkan percakapan asisten pabrik menjadi ringkasan berjalan yang menggantikan giliran-giliran lama.
 
-  INPUT (user message)
-  The existing summary, if any, followed by the conversation turns to fold into it.
+  INPUT (pesan user)
+  Ringkasan yang sudah ada, bila ada, diikuti giliran percakapan yang perlu dilebur ke dalamnya.
 
-  RULES
-  - Preserve every concrete entity the manager referred to: worker names and ids, station and step ids, scenario ids, asset ids, and any figure that was discussed.
-  - Preserve open threads. If the manager asked about a scenario and has not yet decided, say so.
-  - Drop pleasantries, restatements, and anything already superseded by a later turn.
-  - Write in the conversation's language. Indonesian conversation, Indonesian summary.
-  - Stay under 150 words. When the existing summary plus new turns exceed that, drop the oldest resolved topic first.
+  ATURAN
+  - Pertahankan setiap entitas konkret yang disebut manajer: nama dan id pekerja, id stasiun dan tahapan, scenario_id, asset_id, serta angka apa pun yang dibahas.
+  - Pertahankan urusan yang belum selesai. Bila manajer menanyakan sebuah skenario dan belum memutuskan, nyatakan itu.
+  - Buang basa-basi, pengulangan, dan hal yang sudah digantikan giliran berikutnya.
+  - Tulis dalam bahasa percakapan tersebut. Percakapan bahasa Indonesia, ringkasan bahasa Indonesia.
+  - Maksimal 150 kata. Bila ringkasan lama ditambah giliran baru melebihi itu, buang topik terlama yang sudah selesai lebih dulu.
 
   OUTPUT
-  A single paragraph of plain text. No headers, no bullet points, no preamble.
+  Satu paragraf teks biasa. Tanpa header, tanpa poin-poin, tanpa pembuka..

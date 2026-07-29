@@ -1,19 +1,39 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["factory_info", "assets", "job_desks"],
+  "required": ["factory_info", "assets", "job_descriptions"],
   "properties": {
     "factory_info": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["factory_id", "factory_name", "workflow_sequence"],
+      "required": ["factory_id", "factory_name", "process_type", "declared_worker_count", "layout_description", "workflow_sequence", "parallel_groups"],
       "properties": {
         "factory_id": { "type": "string" },
         "factory_name": { "type": "string" },
+        "process_type": { "type": "string", "enum": ["serial", "parallel"] },
+        "declared_worker_count": { "type": "integer", "minimum": 1 },
+        "layout_description": { "type": "string" },
         "workflow_sequence": {
           "type": "array",
           "minItems": 1,
           "items": { "type": "string" }
+        },
+        "parallel_groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["group_id", "steps", "reasoning"],
+            "properties": {
+              "group_id": { "type": "string" },
+              "steps": {
+                "type": "array",
+                "minItems": 2,
+                "items": { "type": "string" }
+              },
+              "reasoning": { "type": "string" }
+            }
+          }
         }
       }
     },
@@ -29,6 +49,7 @@
           "category",
           "workflow_step",
           "is_automated",
+          "units_available",
           "base_throughput_capacity",
           "operational_cost_per_hour",
           "environmental_factors",
@@ -49,6 +70,7 @@
           },
           "workflow_step": { "type": "string" },
           "is_automated": { "type": "boolean" },
+          "units_available": { "type": "integer", "minimum": 0 },
           "base_throughput_capacity": { "type": "integer", "minimum": 1 },
           "operational_cost_per_hour": { "type": "number", "minimum": 0 },
           "environmental_factors": {
@@ -72,7 +94,7 @@
         }
       }
     },
-    "job_desks": {
+    "job_descriptions": {
       "type": "array",
       "minItems": 1,
       "items": {
@@ -83,6 +105,7 @@
           "job_title",
           "workflow_step",
           "assigned_asset_id",
+          "assigned_worker_name",
           "demands",
           "qc_requirement",
           "metric_derivation_reasoning"
@@ -92,6 +115,7 @@
           "job_title": { "type": "string" },
           "workflow_step": { "type": "string" },
           "assigned_asset_id": { "type": "string" },
+          "assigned_worker_name": { "type": "array", "items": { "type": "string" }},
           "demands": {
             "type": "object",
             "additionalProperties": false,
