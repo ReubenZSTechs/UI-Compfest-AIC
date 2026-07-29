@@ -1,0 +1,94 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: var(--twin-font-sans);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--twin-border);
+}
+
+.eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--twin-accent-automated);
+  font-family: var(--twin-font-mono);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--twin-text-primary);
+  margin: 0.15rem 0 0.35rem;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--twin-text-muted);
+  margin: 0;
+  max-width: 60ch;
+}
+
+.uploadGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.parseButton {
+  font-family: var(--twin-font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--twin-bg);
+  background: var(--twin-accent-automated);
+  border: none;
+  border-radius: 4px;
+  padding: 0.65rem 1.4rem;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.parseButton:disabled {
+  background: var(--twin-surface-raised);
+  color: var(--twin-text-faint);
+  cursor: not-allowed;
+}
+
+.parseButton:not(:disabled):hover {
+  background: color-mix(in srgb, var(--twin-accent-automated) 85%, white);
+}
+
+.resetButton {
+  font-family: var(--twin-font-mono);
+  font-size: 0.72rem;
+  color: var(--twin-text-muted);
+  background: transparent;
+  border: 1px solid var(--twin-border);
+  border-radius: 4px;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.resetButton:hover {
+  color: var(--twin-text-primary);
+  border-color: var(--twin-border-hover);
+}

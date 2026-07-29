@@ -1,0 +1,106 @@
+/* features/simulation/components/SimulationControls.module.css */
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.primaryButton {
+  border: none;
+  border-radius: 8px;
+  background: var(--sim-teal);
+  padding: 0.5rem 1rem;
+  font-family: var(--sim-font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0a0e13;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.primaryButton:hover {
+  background: #5ee6d2;
+}
+
+.primaryButton:focus-visible {
+  outline: 2px solid var(--sim-teal);
+  outline-offset: 2px;
+}
+
+.pauseButton {
+  border: 1px solid rgba(245, 182, 76, 0.5);
+  border-radius: 8px;
+  background: transparent;
+  padding: 0.5rem 1rem;
+  font-family: var(--sim-font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sim-amber);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pauseButton:hover {
+  background: var(--sim-amber-bg);
+}
+
+.resetButton {
+  border: 1px solid var(--sim-border);
+  border-radius: 8px;
+  background: transparent;
+  padding: 0.5rem 1rem;
+  font-family: var(--sim-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sim-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.resetButton:hover:not(:disabled) {
+  border-color: var(--sim-border-strong);
+  color: var(--sim-text-primary);
+}
+
+.resetButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.statusReadout {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--sim-font-mono);
+  font-size: 0.75rem;
+  color: var(--sim-text-muted);
+}
+
+.statusDot {
+  height: 6px;
+  width: 6px;
+  border-radius: 999px;
+  background: var(--sim-text-muted);
+}
+
+.statusDotRunning {
+  background: var(--sim-teal);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.statusDotPaused {
+  background: var(--sim-amber);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusDotRunning {
+    animation: none;
+  }
+}
