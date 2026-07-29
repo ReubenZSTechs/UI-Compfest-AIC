@@ -123,14 +123,14 @@ class FactoryCompletenessChecker:
         info = self.twin.get("factory_info") or {}
         sequence = info.get("workflow_sequence") or []
         assets = self.twin.get("assets") or []
-        job_desks = self.twin.get("job_desks") or []
+        job_descriptions = self.twin.get("job_descriptions") or []
 
         asset_steps = set()
         for asset in assets:
             asset_steps.add(asset.get("workflow_step"))
 
         job_steps = set()
-        for job in job_desks:
+        for job in job_descriptions:
             job_steps.add(job.get("workflow_step"))
 
         for step in sequence:
@@ -144,7 +144,7 @@ class FactoryCompletenessChecker:
 
             if step not in job_steps:
                 self._add(
-                    path=f"job_desks[workflow_step={step}]",
+                    path=f"job_descriptions[workflow_step={step}]",
                     severity=GapSeverity.BLOCKING,
                     message=f"Tahapan {step} tidak punya job desk.",
                     question=f"Apa deskripsi pekerjaan operator pada tahapan {step}?",
@@ -202,22 +202,22 @@ class FactoryCompletenessChecker:
                     )
                     break
 
-    def check_job_desks(self) -> None:
+    def check_job_descriptions(self) -> None:
         assets = self.twin.get("assets") or []
-        job_desks = self.twin.get("job_desks") or []
+        job_descriptions = self.twin.get("job_descriptions") or []
 
         known_asset_ids = set()
         for asset in assets:
             known_asset_ids.add(asset.get("asset_id"))
 
-        for job in job_desks:
+        for job in job_descriptions:
             job_id = job.get("job_id", "tanpa-id")
             title = job.get("job_title", job_id)
             assigned_asset = job.get("assigned_asset_id")
 
             if assigned_asset not in known_asset_ids:
                 self._add(
-                    path=f"job_desks.{job_id}.assigned_asset_id",
+                    path=f"job_descriptions.{job_id}.assigned_asset_id",
                     severity=GapSeverity.BLOCKING,
                     message=f"assigned_asset_id '{assigned_asset}' tidak cocok dengan aset mana pun.",
                     question=f"Alat mana yang dipakai pada pekerjaan {title}?",
@@ -225,7 +225,7 @@ class FactoryCompletenessChecker:
 
             if self._is_blank(job.get("assigned_worker_names")):
                 self._add(
-                    path=f"job_desks.{job_id}.assigned_worker_names",
+                    path=f"job_descriptions.{job_id}.assigned_worker_names",
                     severity=GapSeverity.WARNING,
                     message="Belum ada pekerja yang ditugaskan.",
                     question=f"Siapa pekerja yang bertugas pada {title}?",
@@ -240,7 +240,7 @@ class FactoryCompletenessChecker:
             ):
                 if self._is_blank(demands.get(key)):
                     self._add(
-                        path=f"job_desks.{job_id}.demands.{key}",
+                        path=f"job_descriptions.{job_id}.demands.{key}",
                         severity=GapSeverity.WARNING,
                         message=f"Tuntutan kerja {key} kosong.",
                         question=f"Seberapa berat tuntutan fokus dan fisik pada pekerjaan {title}?",
@@ -255,7 +255,7 @@ class FactoryCompletenessChecker:
             return
 
         assigned_names = set()
-        for job in self.twin.get("job_desks") or []:
+        for job in self.twin.get("job_descriptions") or []:
             for name in job.get("assigned_worker_names") or []:
                 assigned_names.add(name.strip().lower())
 
@@ -265,7 +265,7 @@ class FactoryCompletenessChecker:
         if len(assigned_names) < declared:
             missing = declared - len(assigned_names)
             self._add(
-                path="job_desks.assigned_worker_names",
+                path="job_descriptions.assigned_worker_names",
                 severity=GapSeverity.WARNING,
                 message=(
                     f"Jumlah pekerja dideklarasikan {declared} "
@@ -280,7 +280,7 @@ class FactoryCompletenessChecker:
         self.check_factory_info()
         self.check_step_coverage()
         self.check_assets()
-        self.check_job_desks()
+        self.check_job_descriptions()
         self.check_worker_count_consistency()
 
         blocking = 0

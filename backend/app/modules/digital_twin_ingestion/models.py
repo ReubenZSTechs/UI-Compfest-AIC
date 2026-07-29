@@ -4,7 +4,7 @@ SQLAlchemy models untuk domain Digital Twin Ingestion.
 
 Catatan desain:
 - Satu `IngestionJob` merepresentasikan satu pipeline run: upload -> ... -> committed.
-- Payload yang secara alami "dokumen" (list asset, list job_desks, list workers,
+- Payload yang secara alami "dokumen" (list asset, list job_descriptions, list workers,
   compatibility matrix, dsb.) disimpan sebagai JSON/JSONB alih-alih dinormalisasi
   penuh ke banyak tabel, karena:
     1. Bentuknya persis mengikuti Pydantic schema di schemas.py (DigitalTwinDraft,
@@ -199,7 +199,7 @@ class DigitalTwinDraftRecord(Base):
     """
     Persist bentuk penuh schemas.DigitalTwinDraft.
 
-    assets / job_desks / workers / llm_compatibility_and_evaluations disimpan
+    assets / job_descriptions / workers / llm_compatibility_and_evaluations disimpan
     sebagai JSON list-of-dict yang match langsung dengan DraftAsset / DraftJobDesk
     / DraftWorker / CompatibilityEntry — di-serialize/deserialize di repository
     layer, bukan di sini, supaya model tetap tipis dan bebas dari dependency
@@ -217,7 +217,7 @@ class DigitalTwinDraftRecord(Base):
 
     factory_info: Mapped[dict] = mapped_column(JSONType, nullable=False)
     assets: Mapped[list[dict]] = mapped_column(JSONType, default=list, nullable=False)
-    job_desks: Mapped[list[dict]] = mapped_column(JSONType, default=list, nullable=False)
+    job_descriptions: Mapped[list[dict]] = mapped_column(JSONType, default=list, nullable=False)
     workers: Mapped[list[dict]] = mapped_column(JSONType, default=list, nullable=False)
     llm_compatibility_and_evaluations: Mapped[list[dict]] = mapped_column(
         JSONType, default=list, nullable=False

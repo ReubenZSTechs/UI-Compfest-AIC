@@ -10,7 +10,6 @@ def log_node_call(node_name: str):
         def wrapper(*args, **kwargs):
             status = "success"
             result = None
-            usage = None
 
             start_time = perf_counter()
 
@@ -33,7 +32,7 @@ def log_node_call(node_name: str):
                 }
 
                 if status == "success":
-                    with open("backend/core/logging/node_call_logs.jsonl", "a", encoding='utf-8') as f:
+                    with open("backend/app/core/logging/node_call_logs.jsonl", "a", encoding='utf-8') as f:
                         f.write(json.dumps(data_payload) + "\n")
         
         return wrapper

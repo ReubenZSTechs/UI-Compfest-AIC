@@ -26,9 +26,9 @@ JSON berfungsi sebagai Single Source of Truth yang menghubungkan LLM (Text Parse
    * Pengaruh Usia & Demografi: Pekerja senior ($>45$ thn) lebih presisi (*error rate* rendah), namun akumulasi kelelahan fisik terjadi lebih cepat.
    * Beban Tugas & Lingkungan: Memperhitungkan kompleksitas alat, beban fokus kognitif (NASA-TLX), indeks beban fisik (RULA/REBA), kebisingan ($dB$), dan kelelahan berulang.
    * Hukum Yerkes-Dodson (Stres vs Performa): Stres tingkat sedang meningkatkan fokus (*eustress*), namun stres berlebih akibat antrean barang melampaui batas (*distress*) meruntuhkan kinerja dan memicu kecelakaan.
-3. **Pemisahan Hardware (assets) & Workflow Task (job_desks)**:
+3. **Pemisahan Hardware (assets) & Workflow Task (job_descriptions)**:
    * assets: Karakteristik fisik alat/mesin (kebisingan, getaran, kapasitas dasar).
-   * job_desks: Tuntutan kualitatif tugas (fokus kognitif, bahaya kesalahan).Explanability / Analytical Reasoningng**: Menyediakan penjelasan kualitatif LLM (metric_derivation_reasoning dan llm_reasoning) di balik setiap angka.
+   * job_descriptions: Tuntutan kualitatif tugas (fokus kognitif, bahaya kesalahan).Explanability / Analytical Reasoningng**: Menyediakan penjelasan kualitatif LLM (metric_derivation_reasoning dan llm_reasoning) di balik setiap angka.
 
 ---
 
@@ -81,7 +81,7 @@ JSON berfungsi sebagai Single Source of Truth yang menghubungkan LLM (Text Parse
         "vibration_hazard_level": "medium",
         "physical_strain_index": 0.40
       },
-      "metric_derivation_reasoning": "Mixer menghasilkan kebisingan & getaran menengah selama proses pengadukan adonan. QC pada tahap ini ketat (homogenitas, elastisitas adonan), sehingga fokus kognitif operator dinilai tinggi di job_desks."
+      "metric_derivation_reasoning": "Mixer menghasilkan kebisingan & getaran menengah selama proses pengadukan adonan. QC pada tahap ini ketat (homogenitas, elastisitas adonan), sehingga fokus kognitif operator dinilai tinggi di job_descriptions."
     },
     {
       "asset_id": "ast-03",
@@ -204,7 +204,7 @@ JSON berfungsi sebagai Single Source of Truth yang menghubungkan LLM (Text Parse
       "metric_derivation_reasoning": "Meski disebut 'Packaging Machine', kolom Otomatisasi bertanda '—' pada tabel sumber, artinya mesin dioperasikan/dijalankan manual oleh operator, bukan berjalan otomatis penuh."
     }
   ],
-  "job_desks": [
+  "job_descriptions": [
     {
       "job_id": "job-01",
       "job_title": "Operator Weighing",

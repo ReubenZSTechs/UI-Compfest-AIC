@@ -3,7 +3,7 @@
 Pydantic schemas untuk domain RL Optimization.
 
 Mengikuti struktur factory_workflow_digital_twin.json:
-- DigitalTwin        : factory_info, assets, job_desks, workers, compatibility matrix
+- DigitalTwin        : factory_info, assets, job_descriptions, workers, compatibility matrix
 - LiveSimulationState: factory_flow_rightnow + calculated_realtime_metrics
 - OptimizationResult : hasil_optimisasi_skenario_optimal (Pareto-optimal scenarios)
 
@@ -66,7 +66,7 @@ class OptimizationJobStatusEnum(str, Enum):
     failed = "failed"
 
 
-# 1. DIGITAL TWIN — factory_info, assets, job_desks, workers
+# 1. DIGITAL TWIN — factory_info, assets, job_descriptions, workers
 
 class FactoryInfo(BaseModel):
     factory_id: str
@@ -158,7 +158,7 @@ class DigitalTwin(BaseModel):
 
     factory_info: FactoryInfo
     assets: list[Asset]
-    job_desks: list[JobDesk]
+    job_descriptions: list[JobDesk]
     workers: list[Worker]
     llm_compatibility_and_evaluations: list[CompatibilityEntry]
 
@@ -174,7 +174,7 @@ class DigitalTwinUpsertRequest(BaseModel):
 
     factory_info: FactoryInfo
     assets: list[Asset]
-    job_desks: list[JobDesk]
+    job_descriptions: list[JobDesk]
     workers: list[Worker]
     llm_compatibility_and_evaluations: list[CompatibilityEntry] = Field(
         default_factory=list,

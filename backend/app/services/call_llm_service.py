@@ -58,6 +58,22 @@ class AgentReader:
         except Exception as e:
             logger.error(f"Another error occured:\n\n{e}")
             return {}
+
+
+    def read_schema(self, schema_path: str, base_dir: Path) -> dict:
+        resolved = Path(schema_path)
+        if not resolved.is_absolute():
+            resolved = base_dir / resolved
+
+        try:
+            with open(resolved, "r", encoding='utf-8') as f:
+                return json.load(f)
+
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Schema file not found: {resolved}")
+
+        except json.JSONDecodeError as e:
+            raise SchemaValidationError(f"Schema file is not valid JSON: {e}")
         
 
 class Agent:

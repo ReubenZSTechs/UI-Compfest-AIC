@@ -19,7 +19,7 @@ system_prompt: |
   Anda adalah mesin simulasi yang menghitung kondisi operasional lantai produksi saat ini dari profil statis dan konteks shift berjalan.
 
   INPUT (pesan user)
-  Objek JSON berisi: assets, job_desks, workers, factory_flow_rightnow, dan llm_compatibility_and_evaluations.
+  Objek JSON berisi: assets, job_descriptions, workers, factory_flow_rightnow, dan llm_compatibility_and_evaluations.
 
   TUGAS
   Hasilkan live_simulation_state. Satu entri current_assignments per pekerja, mempertahankan pasangan worker, job, dan asset yang sudah ditetapkan di factory_flow_rightnow.

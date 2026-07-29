@@ -27,7 +27,7 @@ def log_llm_calls(func):
 
             data_payload = {
                 "input_prompt": user_prompt,
-                "model_name": self.model_config['agent']['base_model'],
+                "model_name": self.model_name,
                 "status": status
             }
 
@@ -48,7 +48,7 @@ def log_llm_calls(func):
                 data_payload['model_latency'] = latency
                 data_payload['output'] = result
 
-                with open("backend/core/logging/llm_call_logs.jsonl", "a", encoding='utf-8') as f:
+                with open("backend/app/core/logging/llm_call_logs.jsonl", "a", encoding='utf-8') as f:
                     f.write(json.dumps(data_payload) + "\n")
 
     return wrapper

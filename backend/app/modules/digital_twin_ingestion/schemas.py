@@ -192,7 +192,7 @@ class DigitalTwinDraft(BaseModel):
     status: IngestionStatus
     factory_info: FactoryInfo
     assets: list[DraftAsset]
-    job_desks: list[DraftJobDesk]
+    job_descriptions: list[DraftJobDesk]
     workers: list[DraftWorker]
     llm_compatibility_and_evaluations: list[CompatibilityEntry] = Field(
         default_factory=list,

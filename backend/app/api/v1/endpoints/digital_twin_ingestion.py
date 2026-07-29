@@ -81,7 +81,7 @@ async def get_ingestion_draft(
     db=Depends(get_db),
 ):
     """
-    Draft berisi assets, job_desks, workers (hasil merge tabel + CV),
+    Draft berisi assets, job_descriptions, workers (hasil merge tabel + CV),
     beserta flag confidence/ambiguity yang perlu direview manusia
     (mis. CV tidak match nama karyawan di tabel jobdesk).
     """

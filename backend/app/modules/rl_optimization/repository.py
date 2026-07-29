@@ -39,7 +39,7 @@ async def get_digital_twin(db: AsyncSession, factory_id: str) -> Optional[models
         .where(models.Factory.factory_id == factory_id)
         .options(
             selectinload(models.Factory.assets),
-            selectinload(models.Factory.job_desks),
+            selectinload(models.Factory.job_descriptions),
             selectinload(models.Factory.workers),
         )
     )
@@ -74,12 +74,12 @@ async def replace_assets(db: AsyncSession, factory_id: str, assets_data: list[di
     return new_assets
 
 
-async def replace_job_desks(db: AsyncSession, factory_id: str, job_desks_data: list[dict]) -> list[models.JobDesk]:
+async def replace_job_descriptions(db: AsyncSession, factory_id: str, job_descriptions_data: list[dict]) -> list[models.JobDesk]:
     await db.execute(delete(models.JobDesk).where(models.JobDesk.factory_id == factory_id))
-    new_job_desks = [models.JobDesk(factory_id=factory_id, **data) for data in job_desks_data]
-    db.add_all(new_job_desks)
+    new_job_descriptions = [models.JobDesk(factory_id=factory_id, **data) for data in job_descriptions_data]
+    db.add_all(new_job_descriptions)
     await db.flush()
-    return new_job_desks
+    return new_job_descriptions
 
 
 async def replace_workers(db: AsyncSession, factory_id: str, workers_data: list[dict]) -> list[models.Worker]:
