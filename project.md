@@ -405,6 +405,26 @@ JSON berfungsi sebagai Single Source of Truth yang menghubungkan LLM (Text Parse
       { "worker_id": "wrk-10", "assigned_job_id": "job-10", "assigned_asset_id": "ast-10", "calculated_realtime_metrics": { "current_fatigue_level": 0.10, "current_stress_level": 0.14, "effective_throughput_per_hour": 204.0, "effective_error_probability": 0.010, "burnout_hazard_risk": "low" } }
     ],
     "system_bottlenecks": ["step_07_baking"],
+    "simulation_summary": {
+      "total_output_units": 2155.0,
+      "target_output_units": 2500.0,
+      "production_achievement_percentage": 86.2,
+      "total_operational_cost_idr": 14500000.0,
+      "cost_per_unit_idr": 6728.54,
+      "efficiency_score": 78.5
+    },
+    "step_breakdown": [
+      { "step_id": "step_01", "step_name": "Preparation", "status": "normal", "output_generated": 300.0, "operational_cost_idr": 1200000.0 },
+      { "step_id": "step_02", "step_name": "Mixing", "status": "normal", "output_generated": 280.0, "operational_cost_idr": 1300000.0 },
+      { "step_id": "step_03", "step_name": "Molding", "status": "normal", "output_generated": 270.0, "operational_cost_idr": 1150000.0 },
+      { "step_id": "step_04", "step_name": "Fermentation", "status": "normal", "output_generated": 260.0, "operational_cost_idr": 1400000.0 },
+      { "step_id": "step_05", "step_name": "Shaping", "status": "normal", "output_generated": 250.0, "operational_cost_idr": 1250000.0 },
+      { "step_id": "step_06", "step_name": "Proofing", "status": "normal", "output_generated": 235.0, "operational_cost_idr": 1350000.0 },
+      { "step_id": "step_07_baking", "step_name": "Baking Process", "status": "bottleneck", "output_generated": 200.0, "operational_cost_idr": 2500000.0 },
+      { "step_id": "step_08", "step_name": "Cooling", "status": "normal", "output_generated": 195.0, "operational_cost_idr": 1100000.0 },
+      { "step_id": "step_09", "step_name": "Sorting", "status": "normal", "output_generated": 190.0, "operational_cost_idr": 1050000.0 },
+      { "step_id": "step_10", "step_name": "Packaging", "status": "normal", "output_generated": 185.0, "operational_cost_idr": 1100000.0 }
+    ],
     "analytical_insight_summary": "Baking (wrk-07/Bambang) adalah bottleneck utama lini saat ini: fatigue 0.72 dan stress 0.58 mendekati ambang distress (Yerkes-Dodson), dengan burnout_hazard_risk 'high' setelah 5.0 jam kerja dan 5 shift berturut-turut. Karena baking adalah gerbang wajib sebelum cooling-sorting-packaging, keterlambatan atau penurunan performa di sini akan merambat ke seluruh downstream. Rekomendasi: rotasi/istirahat 15 menit untuk wrk-07 dalam waktu dekat untuk mencegah lonjakan error_probability, sejalan dengan pola yang sudah teridentifikasi pada dokumen acuan sebelumnya (kasus Budi di Job-01)."
   }
 }

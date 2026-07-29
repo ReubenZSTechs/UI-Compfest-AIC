@@ -1,0 +1,169 @@
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--twin-border);
+  border-radius: 6px;
+  background: var(--twin-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--twin-font-sans);
+  min-width: 720px;
+}
+
+.th {
+  text-align: left;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--twin-text-muted);
+  font-weight: 500;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--twin-border);
+  background: var(--twin-bg);
+  white-space: nowrap;
+}
+
+.row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.row:not(:last-child) .td {
+  border-bottom: 1px solid var(--twin-border);
+}
+
+.row:hover {
+  background: var(--twin-surface-raised);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--twin-accent-automated);
+  outline-offset: -2px;
+}
+
+.rowSelected {
+  background: var(--twin-surface-raised);
+  box-shadow: inset 3px 0 0 var(--twin-accent-manual);
+}
+
+.td {
+  padding: 0.65rem 0.85rem;
+  vertical-align: top;
+  font-size: 0.8rem;
+  color: var(--twin-text-primary);
+}
+
+/* Job title cell */
+.jobTitleCell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 140px;
+}
+
+.jobTitle {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.jobId {
+  font-family: var(--twin-font-mono);
+  font-size: 0.68rem;
+  color: var(--twin-text-faint);
+}
+
+/* Step tag — konsisten dengan AssetCard */
+.stepTag {
+  font-family: var(--twin-font-mono);
+  font-size: 0.7rem;
+  color: var(--twin-text-muted);
+  background: var(--twin-bg);
+  border: 1px solid var(--twin-border);
+  border-radius: 3px;
+  padding: 0.15rem 0.4rem;
+  white-space: nowrap;
+}
+
+/* Badges */
+.demandBadge,
+.severityBadge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-family: var(--twin-font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.badge-safe {
+  color: var(--twin-accent-safe);
+}
+.badge-warning {
+  color: var(--twin-accent-warning);
+}
+.badge-danger {
+  color: var(--twin-accent-danger);
+}
+
+/* Dual mini-bar readout (signature element tabel ini) */
+.dualBar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 130px;
+}
+
+.miniBarItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.miniBarLabel {
+  font-size: 0.62rem;
+  color: var(--twin-text-faint);
+  width: 62px;
+  flex-shrink: 0;
+}
+
+.miniBarTrack {
+  flex: 1;
+  height: 4px;
+  background: var(--twin-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.miniBarFill {
+  height: 100%;
+  background: var(--twin-accent-automated);
+  border-radius: 2px;
+}
+
+/* QC text */
+.qcText {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--twin-text-muted);
+  font-size: 0.76rem;
+  max-width: 240px;
+  line-height: 1.4;
+}
+
+/* Empty state */
+.emptyState {
+  padding: 2rem;
+  text-align: center;
+  color: var(--twin-text-faint);
+  font-size: 0.85rem;
+  border: 1px dashed var(--twin-border);
+  border-radius: 6px;
+}
