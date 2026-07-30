@@ -3,7 +3,7 @@
 Endpoint untuk domain RL Optimization.
 
 Mencakup:
-- Digital Twin snapshot (factory_info, assets, job_desks, workers)
+- Digital Twin snapshot (factory_info, assets, job_descriptions, workers)
 - Live simulation state (kondisi lantai produksi real-time)
 - Trigger & monitoring proses training/inference RL (Maskable PPO)
 - Hasil skenario optimasi (Pareto-optimal scenarios)
@@ -25,7 +25,7 @@ router = APIRouter()
 @router.get(
     "/digital-twin",
     response_model=schemas.DigitalTwinResponse,
-    summary="Ambil snapshot lengkap Digital Twin (factory_info, assets, job_desks, workers)",
+    summary="Ambil snapshot lengkap Digital Twin (factory_info, assets, job_descriptions, workers)",
 )
 async def get_digital_twin(
     factory_id: str,
@@ -35,7 +35,7 @@ async def get_digital_twin(
     Mengambil struktur Digital Twin terkini untuk satu factory:
     - factory_info (workflow_sequence)
     - assets (karakteristik hardware)
-    - job_desks (tuntutan kualitatif tugas)
+    - job_descriptions (tuntutan kualitatif tugas)
     - workers (demografi & shift context)
     - llm_compatibility_and_evaluations (matriks kompatibilitas N x M)
     """
@@ -59,7 +59,7 @@ async def upsert_digital_twin(
 ):
     """
     Dipakai saat LLM Text Parser menghasilkan JSON digital twin baru
-    (mis. ada perubahan assets/job_desks dari dokumen sumber).
+    (mis. ada perubahan assets/job_descriptions dari dokumen sumber).
     """
     return await service.upsert_digital_twin(db, payload=payload)
 

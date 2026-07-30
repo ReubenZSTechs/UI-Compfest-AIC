@@ -74,3 +74,8 @@ services:
       retries: 5
       start_period: 300s
     restart: unless-stopped
+
+
+networks:
+  default:
+    name: compfest-net

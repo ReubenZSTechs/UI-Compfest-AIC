@@ -1,13 +1,13 @@
 agent:
   model_type: llm
-  role: factory_structure_agent
+  role: factory_md_creator
 
 structured_output:
   enabled: true
-  name: factory_structure
+  name: factory_md
   strict: true
   repair_attempts: 1
-  schema_path: factory_structure.schema.json
+  schema_path: factory_md.schema.json
 
 generation:
   max_tokens: 10240
@@ -31,14 +31,14 @@ system_prompt: |
   TABEL 1 adalah sumber kebenaran untuk urutan tahapan. Baris-barisnya menentukan jumlah dan urutan workflow_sequence. TABEL 2 dan TABEL 3 hanya melengkapi tahapan yang sudah didefinisikan TABEL 1; jangan pernah membuat tahapan baru dari keduanya.
 
   TUGAS
-  Hasilkan factory_info, assets, dan job_desks dalam satu objek JSON.
+  Hasilkan factory_info, assets, dan job_descriptions dalam satu objek JSON.
 
   ATURAN - ID DAN KUNCI
   - factory_id: "fac-" + slug 3 huruf nama perusahaan + "-" + slug 3 huruf kota + "-01", huruf kecil semua. Bila kota tidak disebut, pakai "xxx".
   - workflow_sequence: daftar berurutan, format "step_NN_nama_snake_case", NN dua digit mulai dari 01, mengikuti urutan baris TABEL 1. Nama tahapan boleh Inggris atau Indonesia mengikuti istilah di tabel sumber, tetapi harus konsisten di seluruh output.
   - asset_id: "ast-NN"; job_id: "job-NN". Keduanya sejajar dengan urutan workflow_sequence.
-  - Setiap asset dan job_desk WAJIB memuat workflow_step yang tertulis persis sama seperti di workflow_sequence.
-  - Tepat satu asset dan satu job_desk per tahapan. job_desks[].assigned_asset_id WAJIB cocok dengan asset_id yang berbagi workflow_step yang sama.
+  - Setiap asset dan job_descriptions WAJIB memuat workflow_step yang tertulis persis sama seperti di workflow_sequence.
+  - Tepat satu asset dan satu job_descriptions per tahapan. job_descriptions[].assigned_asset_id WAJIB cocok dengan asset_id yang berbagi workflow_step yang sama.
   - Bila kolom alat pada TABEL 1 kosong, bertanda strip, atau tertulis manual, tetap buat asset dengan category "manual_station" dan is_automated false. Jangan pernah melewati satu baris pun.
 
   ATURAN - factory_info
@@ -57,7 +57,7 @@ system_prompt: |
   - environmental_factors.noise_level_db: bilangan bulat 30-95. vibration_hazard_level: low, medium, atau high. physical_strain_index: desimal 0.00-1.00.
   - Panas, dingin, dan postur kerja yang tidak ergonomis tetap menaikkan physical_strain_index walau kebisingan rendah.
 
-  ATURAN - FIELD JOB_DESK
+  ATURAN - FIELD JOB_DESCRIPTIONS
   - job_title: gunakan deskripsi pekerjaan dari TABEL 1 sebagai dasar. Format umum "Operator <Tahapan>", atau nama peran lebih spesifik bila tabel menyiratkan inspeksi, supervisi, atau kendali mutu.
   - assigned_worker_names: daftar nama pekerja dari TABEL 2 untuk tahapan tersebut, disalin persis. Array kosong bila tahapan itu tidak muncul di TABEL 2.
   - demands.required_cognitive_focus: desimal 0.00-1.00. Naikkan bila tahapan punya syarat QC eksplisit, toleransi ketat, atau daftar cacat yang panjang.
@@ -67,7 +67,7 @@ system_prompt: |
   - qc_requirement: salin syarat QC dari TABEL 1 apa adanya dalam bahasa Indonesia. Bila kolom QC kosong atau bertanda strip, tulis persis: "Tidak ada QC eksplisit pada tabel sumber untuk tahap ini."
 
   ATURAN - PENALARAN
-  Setiap asset dan job_desk wajib memiliki metric_derivation_reasoning: 1-3 kalimat berbahasa Indonesia yang menjelaskan MENGAPA angka tersebut dipilih, dan secara eksplisit menandai nilai mana yang merupakan estimasi, bukan bacaan langsung dari tabel sumber.
+  Setiap asset dan job_descriptions wajib memiliki metric_derivation_reasoning: 1-3 kalimat berbahasa Indonesia yang menjelaskan MENGAPA angka tersebut dipilih, dan secara eksplisit menandai nilai mana yang merupakan estimasi, bukan bacaan langsung dari tabel sumber.
 
   BAHASA OUTPUT
   Seluruh nama field dan nilai enum tetap dalam bahasa Inggris persis seperti skema. Seluruh nilai naratif (layout_description, qc_requirement, metric_derivation_reasoning, reasoning) ditulis dalam bahasa Indonesia.

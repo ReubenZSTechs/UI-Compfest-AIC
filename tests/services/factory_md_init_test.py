@@ -281,7 +281,7 @@ def tab_structure():
     columns = st.columns(4)
     columns[0].metric("Tahapan", len(info.get("workflow_sequence", [])))
     columns[1].metric("Aset", len(twin.get("assets", [])))
-    columns[2].metric("Job desk", len(twin.get("job_desks", [])))
+    columns[2].metric("Job desk", len(twin.get("job_descriptions", [])))
     columns[3].metric("Jenis proses", info.get("process_type", "-"))
 
     asset_rows = []
@@ -303,7 +303,7 @@ def tab_structure():
         st.dataframe(pd.DataFrame(asset_rows), use_container_width=True)
 
     job_rows = []
-    for job in twin.get("job_desks", []):
+    for job in twin.get("job_descriptions", []):
         demands = job.get("demands", {})
         job_rows.append(
             {
@@ -446,7 +446,7 @@ def tab_downstream():
         payload = {
             "factory_info": twin.get("factory_info"),
             "assets": twin.get("assets"),
-            "job_desks": twin.get("job_desks"),
+            "job_descriptions": twin.get("job_descriptions"),
             "workers": workers.get("workers"),
         }
 
@@ -477,7 +477,7 @@ def tab_downstream():
     if st.button("Jalankan simulation_state_agent"):
         payload = {
             "assets": twin.get("assets"),
-            "job_desks": twin.get("job_desks"),
+            "job_descriptions": twin.get("job_descriptions"),
             "workers": workers.get("workers"),
             "factory_flow_rightnow": floor.get("factory_flow_rightnow"),
             "llm_compatibility_and_evaluations": floor.get("llm_compatibility_and_evaluations"),

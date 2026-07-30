@@ -55,7 +55,7 @@ class Factory(Base, TimestampMixin):
     )
 
     assets: Mapped[list["Asset"]] = relationship(back_populates="factory", cascade="all, delete-orphan")
-    job_desks: Mapped[list["JobDesk"]] = relationship(back_populates="factory", cascade="all, delete-orphan")
+    job_descriptions: Mapped[list["JobDesk"]] = relationship(back_populates="factory", cascade="all, delete-orphan")
     workers: Mapped[list["Worker"]] = relationship(back_populates="factory", cascade="all, delete-orphan")
 
 
@@ -77,11 +77,11 @@ class Asset(Base, TimestampMixin):
     metric_derivation_reasoning: Mapped[str] = mapped_column(Text, nullable=False)
 
     factory: Mapped["Factory"] = relationship(back_populates="assets")
-    job_desks: Mapped[list["JobDesk"]] = relationship(back_populates="asset")
+    job_descriptions: Mapped[list["JobDesk"]] = relationship(back_populates="asset")
 
 
 class JobDesk(Base, TimestampMixin):
-    __tablename__ = "job_desks"
+    __tablename__ = "job_descriptions"
 
     job_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), index=True)
@@ -95,8 +95,8 @@ class JobDesk(Base, TimestampMixin):
     qc_requirement: Mapped[str] = mapped_column(Text, nullable=False)
     metric_derivation_reasoning: Mapped[str] = mapped_column(Text, nullable=False)
 
-    factory: Mapped["Factory"] = relationship(back_populates="job_desks")
-    asset: Mapped["Asset"] = relationship(back_populates="job_desks")
+    factory: Mapped["Factory"] = relationship(back_populates="job_descriptions")
+    asset: Mapped["Asset"] = relationship(back_populates="job_descriptions")
 
 
 class Worker(Base, TimestampMixin):
@@ -128,7 +128,7 @@ class CompatibilityEvaluation(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), index=True)
     worker_id: Mapped[str] = mapped_column(ForeignKey("workers.worker_id", ondelete="CASCADE"), index=True)
-    job_id: Mapped[str] = mapped_column(ForeignKey("job_desks.job_id", ondelete="CASCADE"), index=True)
+    job_id: Mapped[str] = mapped_column(ForeignKey("job_descriptions.job_id", ondelete="CASCADE"), index=True)
     asset_id: Mapped[str] = mapped_column(ForeignKey("assets.asset_id", ondelete="CASCADE"), index=True)
 
     evaluations: Mapped[dict] = mapped_column(

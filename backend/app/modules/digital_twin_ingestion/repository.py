@@ -253,7 +253,7 @@ async def upsert_draft(
         factory_id=factory_id,
         factory_info=draft.factory_info.model_dump(mode="json"),
         assets=[a.model_dump(mode="json") for a in draft.assets],
-        job_desks=[j.model_dump(mode="json") for j in draft.job_desks],
+        job_descriptions=[j.model_dump(mode="json") for j in draft.job_descriptions],
         workers=[w.model_dump(mode="json") for w in draft.workers],
         llm_compatibility_and_evaluations=[
             c.model_dump(mode="json") for c in draft.llm_compatibility_and_evaluations
