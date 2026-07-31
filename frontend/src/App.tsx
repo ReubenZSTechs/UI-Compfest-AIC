@@ -1,7 +1,11 @@
-import { DocumentParserPage } from "@/pages/Documentparserpage";
+import { RouterProvider } from "react-router-dom";
+import { AppProviders } from "@/app/providers/AppProviders";
+import { router } from "@/app/router/routes";
 
-function App() {
-  return <DocumentParserPage />;
+export default function App() {
+  return (
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
+  );
 }
-
-export default App;

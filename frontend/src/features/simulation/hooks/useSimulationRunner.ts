@@ -1,16 +1,17 @@
 // features/simulation/hooks/useSimulationRunner.ts
+
 import { useEffect, useRef } from 'react';
 import { fetchLiveSimulationState } from '../api/simulationApi.mock';
 import { useSimulationStore } from '../store/simulationStore';
 import type { SimulationResponse } from '../types/simulation.types';
 
-const TICK_INTERVAL_MS = 2500;
+// Kecepatan normal (1x) = 1 tick per 1000 ms
+const BASE_TICK_INTERVAL_MS = 1000;
 
-/** Mount once near the flowchart. While status === 'running' it polls for a new
- * snapshot every TICK_INTERVAL_MS and writes it into the store. Pausing freezes
- * on the last snapshot; resuming continues from it rather than resetting. */
 export function useSimulationRunner() {
   const status = useSimulationStore((s) => s.status);
+  const speedMultiplier = useSimulationStore((s) => s.speedMultiplier);
+  const pause = useSimulationStore((s) => s.pause);
   const setData = useSimulationStore((s) => s.setData);
   const incrementTick = useSimulationStore((s) => s.incrementTick);
 
@@ -25,18 +26,27 @@ export function useSimulationRunner() {
     const runTick = async () => {
       const next = await fetchLiveSimulationState(latestDataRef.current ?? undefined);
       if (cancelled) return;
+      
       latestDataRef.current = next;
       setData(next);
       incrementTick();
+
+      // Otomatis pause jika shift operasional selesai (17:00)
+      if (next.live_simulation_state.shift_info?.is_shift_ended) {
+        pause();
+      }
     };
 
-    // fire immediately so the flowchart populates as soon as "Mulai Simulasi" is pressed
+    // Hitung interval berdasarkan multiplier
+    // 1x = 1000ms | 2x = 500ms | 5x = 200ms | 10x = 100ms
+    const intervalMs = BASE_TICK_INTERVAL_MS / speedMultiplier;
+
     runTick();
-    const intervalId = window.setInterval(runTick, TICK_INTERVAL_MS);
+    const intervalId = window.setInterval(runTick, intervalMs);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [status, setData, incrementTick]);
+  }, [status, speedMultiplier, setData, incrementTick, pause]);
 }

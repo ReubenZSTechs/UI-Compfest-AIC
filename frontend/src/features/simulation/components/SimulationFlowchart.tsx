@@ -1,8 +1,10 @@
 // features/simulation/components/SimulationFlowchart.tsx
 import { useMemo } from "react";
 import { useSimulationStore } from "../store/simulationStore";
-import { stepOrdinal } from "../types/simulation.types";
+import { stepOrdinal, WAREHOUSE_STEP_ID } from "../types/simulation.types";
 import { StepNode } from "./StepNode";
+import { StepConnector } from "./StepConnector";
+import { WarehouseNode } from "./WarehouseNode";
 import styles from "./SimulationFlowchart.module.css";
 
 interface SimulationFlowchartProps {
@@ -25,6 +27,8 @@ export function SimulationFlowchart({ workerNames = {}, jobTitles = {} }: Simula
   );
 
   const assignments = data?.live_simulation_state.current_assignments ?? [];
+  const activeTransfers = data?.live_simulation_state.active_transfers ?? [];
+  const bottleneckIds = new Set(data?.live_simulation_state.system_bottlenecks ?? []);
 
   if (status === "idle" && !data) {
     return (
@@ -37,23 +41,50 @@ export function SimulationFlowchart({ workerNames = {}, jobTitles = {} }: Simula
     );
   }
 
+  if (!data) return null;
+
+  const firstStep = steps[0];
+  const warehouseTransfer = firstStep
+    ? activeTransfers.find((t) => t.from_step_id === WAREHOUSE_STEP_ID && t.to_step_id === firstStep.step_id)
+    : undefined;
+
   return (
     <div className={styles.flowchart}>
+      <div className={styles.stepGroup}>
+        <WarehouseNode warehouse={data.live_simulation_state.warehouse} />
+        {firstStep && <StepConnector transfer={warehouseTransfer} isBottleneckAdjacent={bottleneckIds.has(firstStep.step_id)} />}
+      </div>
+
       {steps.map((step, index) => {
-        // Positional matching: current_assignments is ordered by workflow position (job-01..job-10),
-        // sama seperti step_breakdown. Kalau backend nanti menambahkan field workflow_step eksplisit
-        // pada tiap assignment, ganti pencocokan ini dari index ke field itu.
-        const assignment = assignments[index];
+        const currentOrdinal = stepOrdinal(step.step_id);
+
+        // Filter SELURUH worker yang ditugaskan di pos ini (berdasarkan nomor job, misal job-06 -> ordinal 6)
+        const stepAssignments = assignments.filter((a) => {
+          const jobOrdinal = parseInt(a.assigned_job_id.replace(/\D/g, ""), 10);
+          return jobOrdinal === currentOrdinal;
+        });
+
+        const nextStep = steps[index + 1];
+        const transfer = nextStep
+          ? activeTransfers.find((t) => t.from_step_id === step.step_id && t.to_step_id === nextStep.step_id)
+          : undefined;
+
         return (
-          <StepNode
-            key={step.step_id}
-            step={step}
-            assignment={assignment}
-            workerName={assignment ? workerNames[assignment.worker_id] : undefined}
-            jobTitle={assignment ? jobTitles[assignment.assigned_job_id] : undefined}
-            isLast={index === steps.length - 1}
-            isRunning={status === "running"}
-          />
+          <div key={step.step_id} className={styles.stepGroup}>
+            <StepNode
+              step={step}
+              assignments={stepAssignments}
+              workerNames={workerNames}
+              jobTitles={jobTitles}
+              isRunning={status === "running"}
+            />
+            {nextStep && (
+              <StepConnector
+                transfer={transfer}
+                isBottleneckAdjacent={bottleneckIds.has(step.step_id) || bottleneckIds.has(nextStep.step_id)}
+              />
+            )}
+          </div>
         );
       })}
     </div>

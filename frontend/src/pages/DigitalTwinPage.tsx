@@ -134,12 +134,6 @@ export function DigitalTwinPage() {
         </div>
       </header>
 
-      {/* Filter */}
-      <FilterBar
-        workflowSteps={data.factory_info.workflow_sequence}
-        categories={categories}
-      />
-
       {/* Live Simulation */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
@@ -151,6 +145,12 @@ export function DigitalTwinPage() {
           <SimulationSummaryPanel />
         </div>
       </section>
+
+      {/* Filter & Search Bar (Dipindahkan ke bawah simulasi) */}
+      <FilterBar
+        workflowSteps={data.factory_info.workflow_sequence}
+        categories={categories}
+      />
 
       {/* Assets */}
       <section className={styles.section}>
