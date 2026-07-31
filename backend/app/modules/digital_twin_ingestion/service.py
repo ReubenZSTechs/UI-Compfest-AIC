@@ -1,35 +1,38 @@
 # app/modules/digital_twin_ingestion/service.py
-"""STUB — implementasi penuh (parsing tabel, LLM CV extraction, fuzzy matching) menyusul."""
-
-from uuid import UUID
-
-from fastapi import UploadFile
-
-from app.modules.digital_twin_ingestion import schemas
-
-
-async def enqueue_ingestion_job(
-    db, factory_id: str, process_table: UploadFile, jobdesk_table: UploadFile,
-    asset_table: UploadFile, cv_files: list[UploadFile], requested_by: str,
-) -> schemas.IngestionJobAccepted:
-    raise NotImplementedError
+from app.modules.digital_twin_ingestion.constants import DIGITAL_TWIN_DATA
+from app.modules.digital_twin_ingestion.schemas import (
+    DigitalTwin,
+    Asset,
+    Worker,
+    JobDesk,
+    CompatibilityEvaluation,
+    FactoryFlowRightNow,
+)
 
 
-async def get_ingestion_status(db, job_id: UUID) -> schemas.IngestionJobStatus | None:
-    raise NotImplementedError
+def _load_twin() -> DigitalTwin:
+    return DigitalTwin.model_validate(DIGITAL_TWIN_DATA)
 
 
-async def get_draft(db, job_id: UUID) -> schemas.DigitalTwinDraft | None:
-    raise NotImplementedError
+def get_full_twin() -> DigitalTwin:
+    return _load_twin()
 
 
-async def patch_draft(db, job_id: UUID, patch: schemas.DigitalTwinDraftPatch) -> schemas.DigitalTwinDraft | None:
-    raise NotImplementedError
+def get_assets() -> list[Asset]:
+    return _load_twin().assets
 
 
-async def commit_draft(db, job_id: UUID, committed_by: str) -> schemas.DigitalTwinCommitResponse | None:
-    raise NotImplementedError
+def get_workers() -> list[Worker]:
+    return _load_twin().workers
 
 
-async def cancel_ingestion(db, job_id: UUID) -> None:
-    raise NotImplementedError
+def get_job_desks() -> list[JobDesk]:
+    return _load_twin().job_desks
+
+
+def get_compatibility_matrix() -> list[CompatibilityEvaluation]:
+    return _load_twin().llm_compatibility_and_evaluations
+
+
+def get_live_flow() -> FactoryFlowRightNow:
+    return _load_twin().factory_flow_rightnow
