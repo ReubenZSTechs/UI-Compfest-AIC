@@ -1,10 +1,4 @@
-"""
-Konstanta simulasi pabrik — port langsung dari frontend `simulationApi.mock.ts`.
-Single source of truth untuk mass balance, kapasitas, biaya, dan seed worker.
-
-PENTING: kalau kamu ubah resep/kapasitas di sini, cek juga apakah frontend
-`simulation.types.ts` / komponen chart butuh disesuaikan (mis. jumlah step = 10).
-"""
+# backend/app/modules/simulation/constants.py
 from typing import TypedDict
 
 

@@ -1,11 +1,4 @@
 # app/modules/digital_twin_ingestion/constants.py
-"""
-Data mentah digital twin (Sweet Bread, PT XYZ Yogyakarta).
-Modul ini stateless: tidak ada tabel, tidak ada DB call — persis pola
-modul `simulation`. Kalau nanti pipeline ingestion (agent) sudah siap
-menulis data dinamis, baru modul ini disambungkan ke tabel/DB.
-"""
-
 import json
 
 DIGITAL_TWIN_DATA = {

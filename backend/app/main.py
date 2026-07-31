@@ -10,6 +10,7 @@ from app.core.exceptions import register_exception_handlers
 from app.core.middleware import register_middlewares
 from app.api.v1.router import api_router
 from app.db.session import engine
+from app.db.create_all import create_all  # ← baru: fungsi buat tabel dari models.py
 from app.services.agent_registry_service import get_agent_registry
 
 import logging
@@ -20,6 +21,10 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
+
+    logger.info("Memastikan skema database sudah siap...")
+    await create_all()
+    logger.info("Skema database siap.")
 
     agent_settings = get_agent_settings()
     agent_registry = get_agent_registry()

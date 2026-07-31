@@ -1,12 +1,4 @@
-"""
-Pydantic schemas untuk simulation config.
-
-Backend TIDAK menjalankan tick/state machine simulasi -- itu tetap jalan di
-frontend (persis logic yang sudah ada di `simulationApi.mock.ts`). Backend
-hanya menyediakan data konfigurasi (recipe table, kapasitas, worker seed,
-jadwal shift, dst.) supaya angka-angka itu tidak lagi hardcoded di frontend
-dan bisa diubah dari satu tempat (mis. lewat DB/admin panel nantinya).
-"""
+# backend/app/modules/simulation/schemas.py
 from typing import Literal
 
 from pydantic import BaseModel
