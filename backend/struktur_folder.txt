@@ -1,0 +1,149 @@
+.
+├── alembic.ini
+├── app
+│   ├── agent
+│   │   ├── configs
+│   │   │   ├── chatbot_general_agent.yaml
+│   │   │   ├── chatbot_query_rewriter_agent.yaml
+│   │   │   ├── chatbot_router_intent_agent.yaml
+│   │   │   ├── chatbot_scenario_explainer_agent.yaml
+│   │   │   ├── chatbot_summarizer_agent.yaml
+│   │   │   ├── chatbot_twin_analyst_agent.yaml
+│   │   │   ├── cv_to_md_agent.yaml
+│   │   │   ├── factory_clarification_agent.yaml
+│   │   │   ├── factory_md_creator_agent.yaml
+│   │   │   ├── optimization_explainer_agent.yaml
+│   │   │   ├── set_initial_state_agent.yaml
+│   │   │   └── simulation_state_agent.yaml
+│   │   ├── __init__.py
+│   │   └── schemas
+│   │       ├── factory_md.schema.json
+│   │       ├── init_state.schema.json
+│   │       ├── optimal_state.schema.json
+│   │       ├── simulation_state.schema.json
+│   │       └── worker_md.schema.json
+│   ├── alembic
+│   │   └── __init__.py
+│   ├── api
+│   │   ├── deps.py
+│   │   ├── __init__.py
+│   │   └── v1
+│   │       ├── endpoints
+│   │       │   ├── assets.py
+│   │       │   ├── auth.py
+│   │       │   ├── digital_twin_ingestion.py
+│   │       │   ├── documents.py
+│   │       │   ├── __init__.py
+│   │       │   ├── job-desks.py
+│   │       │   ├── qa.py
+│   │       │   ├── rl_optimization.py
+│   │       │   ├── summarization.py
+│   │       │   └── workers.py
+│   │       ├── __init__.py
+│   │       └── router.py
+│   ├── core
+│   │   ├── agent_config.py
+│   │   ├── config.py
+│   │   ├── decorators
+│   │   │   ├── __init__.py
+│   │   │   ├── log_llm_calls.py
+│   │   │   ├── log_node_calls.py
+│   │   │   └── __pycache__
+│   │   │       ├── __init__.cpython-311.pyc
+│   │   │       └── log_llm_calls.cpython-311.pyc
+│   │   ├── exceptions.py
+│   │   ├── __init__.py
+│   │   ├── logging
+│   │   │   ├── __init__.py
+│   │   │   ├── llm_call_logs.jsonl
+│   │   │   └── node_call_logs.jsonl
+│   │   ├── logging_config.py
+│   │   ├── logging.py
+│   │   ├── middleware.py
+│   │   ├── __pycache__
+│   │   │   ├── agent_config.cpython-311.pyc
+│   │   │   ├── config.cpython-312.pyc
+│   │   │   ├── exceptions.cpython-311.pyc
+│   │   │   ├── __init__.cpython-311.pyc
+│   │   │   └── __init__.py
+│   │   └── security.py
+│   ├── db
+│   │   ├── base.py
+│   │   ├── __init__.py
+│   │   ├── migrations
+│   │   └── session.py
+│   ├── __init__.py
+│   ├── main.py
+│   ├── modules
+│   │   ├── digital_twin_ingestion
+│   │   │   ├── exceptions.py
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py
+│   │   │   ├── repository.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── documents
+│   │   │   ├── exceptions.py
+│   │   │   ├── models.py
+│   │   │   ├── repository.py
+│   │   │   ├── schemas.py
+│   │   │   └── service.py
+│   │   ├── __init__.py
+│   │   └── rl_optimization
+│   │       ├── exceptions.py
+│   │       ├── __init__.py
+│   │       ├── models.py
+│   │       ├── repository.py
+│   │       ├── schemas.py
+│   │       └── service.py
+│   ├── pipelines
+│   │   ├── __init__.py
+│   │   ├── main
+│   │   │   ├── __init__.py
+│   │   │   ├── main_pipeline.py
+│   │   │   ├── nodes
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── sample.py
+│   │   │   └── state
+│   │   │       ├── chatbot_state.py
+│   │   │       └── __init__.py
+│   │   └── rag
+│   │       ├── __init__.py
+│   │       └── rag_pipeline.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-311.pyc
+│   │   ├── __init__.cpython-312.pyc
+│   │   └── __init__.py
+│   ├── services
+│   │   ├── agent_registry_service.py
+│   │   ├── call_llm_service.py
+│   │   ├── check_factory_completeness.py
+│   │   ├── create_factory_md_service.py
+│   │   ├── embedding_service.py
+│   │   ├── evaluation_service.py
+│   │   ├── extract_input_field_service.py
+│   │   ├── __init__.py
+│   │   ├── memory_service.py
+│   │   ├── __pycache__
+│   │   │   ├── agent_registry_service.cpython-311.pyc
+│   │   │   ├── call_llm_service.cpython-311.pyc
+│   │   │   ├── check_factory_completeness.cpython-311.pyc
+│   │   │   ├── extract_input_field_service.cpython-311.pyc
+│   │   │   └── __init__.cpython-311.pyc
+│   │   ├── retrieval_service.py
+│   │   └── routing_service.py
+│   └── worker
+│       ├── __init__.py
+│       └── tasks.py
+├── docker-compose.yml
+├── Dockerfile
+├── __init__.py
+├── __pycache__
+│   └── __init__.cpython-311.pyc
+├── README.md
+├── requirements.txt
+├── struktur_folder.txt
+└── utils
+    └── sample.py
+
+30 directories, 117 files

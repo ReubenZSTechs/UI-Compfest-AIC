@@ -1,72 +1,89 @@
+// frontend/src/features/digital-twin/store/digitalTwinStore.ts
 import { create } from "zustand";
-import type { AssetCategory } from "../types/digitalTwin.types";
+import { digitalTwinApi } from "../api/digitalTwinApi";
+import type { DigitalTwin, AssetCategory } from "../types/digitalTwin.types";
 
 export type AutomationFilter = "all" | "automated" | "manual";
 
 interface DigitalTwinState {
-  // Filters — panel Asset/JobDesk
+  // data & fetch lifecycle
+  data: DigitalTwin | null;
+  isLoading: boolean;
+  error: Error | null;
+  fetchTwin: () => Promise<void>;
+
+  // filter bar (global, dipakai FilterBar + JobDeskTable)
+  searchQuery: string;
   selectedWorkflowStep: string | null;
   selectedCategory: AssetCategory | null;
   automationFilter: AutomationFilter;
-  searchQuery: string;
 
-  // Seleksi cross-highlight (dipakai nanti oleh CompatibilityMatrix)
+  setSearchQuery: (query: string) => void;
+  setSelectedWorkflowStep: (step: string | null) => void;
+  setSelectedCategory: (category: AssetCategory | null) => void;
+  setAutomationFilter: (filter: AutomationFilter) => void;
+  resetFilters: () => void;
+
+  // seleksi per-entity (AssetCard, WorkerCard)
   selectedAssetId: string | null;
   selectedWorkerId: string | null;
   selectedJobId: string | null;
 
-  // Actions
-  setSelectedWorkflowStep: (step: string | null) => void;
-  setSelectedCategory: (category: AssetCategory | null) => void;
-  setAutomationFilter: (filter: AutomationFilter) => void;
-  setSearchQuery: (query: string) => void;
-  selectAsset: (assetId: string | null) => void;
-  selectWorker: (workerId: string | null) => void;
-  selectJob: (jobId: string | null) => void;
+  selectAsset: (assetId: string) => void;
+  selectWorker: (workerId: string) => void;
+  selectJob: (jobId: string) => void;
+  /** Dipakai CompatibilityMatrix: set worker+job sekaligus saat sel diklik */
   selectPair: (workerId: string, jobId: string) => void;
-  resetFilters: () => void;
 }
 
-const initialFilterState = {
+export const useDigitalTwinStore = create<DigitalTwinState>((set) => ({
+  data: null,
+  isLoading: false,
+  error: null,
+
+  fetchTwin: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const data = await digitalTwinApi.getFullTwin();
+      set({ data, isLoading: false });
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err : new Error("Gagal memuat digital twin"),
+        isLoading: false,
+      });
+    }
+  },
+
+  searchQuery: "",
   selectedWorkflowStep: null,
   selectedCategory: null,
-  automationFilter: "all" as AutomationFilter,
-  searchQuery: "",
-};
+  automationFilter: "all",
 
-export const useDigitalTwinStore = create<DigitalTwinState>((set) => ({
-  ...initialFilterState,
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  setSelectedWorkflowStep: (step) => set({ selectedWorkflowStep: step }),
+  setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setAutomationFilter: (filter) => set({ automationFilter: filter }),
+  resetFilters: () =>
+    set({
+      searchQuery: "",
+      selectedWorkflowStep: null,
+      selectedCategory: null,
+      automationFilter: "all",
+    }),
+
   selectedAssetId: null,
   selectedWorkerId: null,
   selectedJobId: null,
 
-  setSelectedWorkflowStep: (step) => set({ selectedWorkflowStep: step }),
-  setSelectedCategory: (category) => set({ selectedCategory: category }),
-  setAutomationFilter: (filter) => set({ automationFilter: filter }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
-
-  // Klik asset yang sama = toggle off (deselect)
   selectAsset: (assetId) =>
-    set((state) => ({
-      selectedAssetId: state.selectedAssetId === assetId ? null : assetId,
-    })),
+    set((s) => ({ selectedAssetId: s.selectedAssetId === assetId ? null : assetId })),
   selectWorker: (workerId) =>
-    set((state) => ({
-      selectedWorkerId: state.selectedWorkerId === workerId ? null : workerId,
-    })),
+    set((s) => ({ selectedWorkerId: s.selectedWorkerId === workerId ? null : workerId })),
   selectJob: (jobId) =>
-    set((state) => ({
-      selectedJobId: state.selectedJobId === jobId ? null : jobId,
-    })),
-
+    set((s) => ({ selectedJobId: s.selectedJobId === jobId ? null : jobId })),
   selectPair: (workerId, jobId) =>
-    set((state) => {
-      const isSamePair =
-        state.selectedWorkerId === workerId && state.selectedJobId === jobId;
-      return isSamePair
-        ? { selectedWorkerId: null, selectedJobId: null }
-        : { selectedWorkerId: workerId, selectedJobId: jobId };
-    }),
-
-  resetFilters: () => set(initialFilterState),
+    set((s) => ({
+      selectedWorkerId: s.selectedWorkerId === workerId && s.selectedJobId === jobId ? null : workerId,
+      selectedJobId: s.selectedWorkerId === workerId && s.selectedJobId === jobId ? null : jobId,
+    })),
 }));

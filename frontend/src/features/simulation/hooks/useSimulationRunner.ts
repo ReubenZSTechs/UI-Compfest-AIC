@@ -1,7 +1,7 @@
 // features/simulation/hooks/useSimulationRunner.ts
 
 import { useEffect, useRef } from 'react';
-import { fetchLiveSimulationState } from '../api/simulationApi.mock';
+import { fetchLiveSimulationState } from '../api/simulationApi';
 import { useSimulationStore } from '../store/simulationStore';
 import type { SimulationResponse } from '../types/simulation.types';
 

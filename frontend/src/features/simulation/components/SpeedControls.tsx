@@ -1,6 +1,5 @@
 // features/simulation/components/SpeedControls.tsx
 
-import React from 'react';
 import { useSimulationStore, type SpeedMultiplier } from '../store/simulationStore';
 import styles from './SpeedControls.module.css';
 

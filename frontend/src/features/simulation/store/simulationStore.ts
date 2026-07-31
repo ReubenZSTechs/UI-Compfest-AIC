@@ -1,6 +1,6 @@
 // features/simulation/store/simulationStore.ts
 import { create } from 'zustand';
-import { resetMockSimulationState } from '../api/simulationApi.mock';
+import { resetMockSimulationState, getSimulationConfig } from '../api/simulationApi'; // ganti dari .mock
 import type { SimulationResponse, SimulationRunStatus } from '../types/simulation.types';
 
 export type SpeedMultiplier = 1 | 2 | 5 | 10;
@@ -11,10 +11,9 @@ interface SimulationStore {
   tick: number;
   selectedStepId: string | null;
   speedMultiplier: SpeedMultiplier;
-
   start: () => void;
   pause: () => void;
-  reset: () => void;
+  reset: () => Promise<void>; // <-- signature berubah jadi async
   setData: (data: SimulationResponse) => void;
   incrementTick: () => void;
   selectStep: (stepId: string | null) => void;
@@ -27,11 +26,14 @@ export const useSimulationStore = create<SimulationStore>((set) => ({
   tick: 0,
   selectedStepId: null,
   speedMultiplier: 1,
-
   start: () => set({ status: 'running' }),
   pause: () => set({ status: 'paused' }),
-  reset: () => {
-    resetMockSimulationState(); // mock-only: clears batch/progress state; remove once backend-backed
+  reset: async () => {
+    // Config sudah pernah di-fetch waktu load awal (cached di modul
+    // simulationApi.ts), jadi panggilan ini biasanya instan -- tidak
+    // nge-fetch ulang ke backend.
+    const config = await getSimulationConfig();
+    resetMockSimulationState(config);
     set({
       status: 'idle',
       data: null,
