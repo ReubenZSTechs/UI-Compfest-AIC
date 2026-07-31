@@ -1,0 +1,95 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "compatibility_matrix"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generated_at",
+        "worker_count",
+        "job_count",
+        "pair_count",
+        "evaluated_pairs",
+        "retries",
+        "failed_pairs"
+      ],
+      "properties": {
+        "generated_at": { "type": "string" },
+        "worker_count": { "type": "integer", "minimum": 1 },
+        "job_count": { "type": "integer", "minimum": 1 },
+        "pair_count": { "type": "integer", "minimum": 1 },
+        "evaluated_pairs": { "type": "integer", "minimum": 0 },
+        "retries": { "type": "integer", "minimum": 0 },
+        "failed_pairs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["worker_id", "job_id", "error"],
+            "properties": {
+              "worker_id": { "type": "string" },
+              "job_id": { "type": "string" },
+              "error": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "compatibility_matrix": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["worker_name", "best_job_id", "jobs"],
+        "properties": {
+          "worker_name": { "type": "string" },
+          "best_job_id": { "type": "string" },
+          "jobs": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "job_title",
+                "workflow_step",
+                "asset_id",
+                "attempts",
+                "evaluations",
+                "llm_reasoning"
+              ],
+              "properties": {
+                "job_title": { "type": "string" },
+                "workflow_step": { "type": "string" },
+                "asset_id": { "type": "string" },
+                "attempts": { "type": "integer", "minimum": 1 },
+                "evaluations": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "overall_compatibility_score",
+                    "throughput_multiplier",
+                    "error_multiplier",
+                    "fatigue_accumulation_rate",
+                    "stress_sensitivity_factor"
+                  ],
+                  "properties": {
+                    "overall_compatibility_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "throughput_multiplier": { "type": "number", "minimum": 0.8, "maximum": 1.2 },
+                    "error_multiplier": { "type": "number", "minimum": 0.4, "maximum": 1.5 },
+                    "fatigue_accumulation_rate": { "type": "number", "minimum": 0.3, "maximum": 1.5 },
+                    "stress_sensitivity_factor": { "type": "number", "minimum": 0.4, "maximum": 1 }
+                  }
+                },
+                "llm_reasoning": { "type": "string", "minLength": 40 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

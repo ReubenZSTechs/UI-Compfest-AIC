@@ -3,10 +3,7 @@ import sys
 import time
 from pathlib import Path
 
-import sys
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  # PABRIKERS_COMPFEST/
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_DIR = PROJECT_ROOT / "backend"
 
 for p in (str(PROJECT_ROOT), str(BACKEND_DIR)):
@@ -23,6 +20,16 @@ from backend.app.services.extract_input_field_service import (
     build_agent_input,
     extract_document,
 )
+from backend.app.services.cv_pdf_parser_service import (
+    build_worker_agent_input,
+    extract_worker_document,
+    merge_worker_documents,
+)
+from backend.app.services.cross_reference_job_worker_service import (
+    CompatibilityEvaluationError,
+    generate_compatibility_matrix,
+    read_jobs,
+)
 from backend.app.services.check_factory_completeness import (
     GapSeverity,
     check_factory_completeness,
@@ -36,7 +43,10 @@ STAGE_KEYS = [
     "factory_structure",
     "completeness_report",
     "clarification_text",
+    "worker_document",
+    "worker_agent_input",
     "worker_profile",
+    "compatibility_matrix",
     "floor_state",
     "simulation_state",
 ]
@@ -144,7 +154,6 @@ def render_sidebar():
     except Exception as error:
         st.sidebar.error(f"Registry gagal dimuat: {error}")
 
-
     st.sidebar.divider()
     if st.sidebar.button("Reset seluruh state"):
         for key in STAGE_KEYS:
@@ -155,7 +164,7 @@ def render_sidebar():
 
 
 def tab_extraction():
-    st.subheader("Tahap 1 — Ekstraksi dokumen")
+    st.subheader("Tahap 1 — Ekstraksi dokumen pabrik")
 
     mode = st.radio(
         "Sumber input",
@@ -281,7 +290,7 @@ def tab_structure():
     columns = st.columns(4)
     columns[0].metric("Tahapan", len(info.get("workflow_sequence", [])))
     columns[1].metric("Aset", len(twin.get("assets", [])))
-    columns[2].metric("Job desk", len(twin.get("job_descriptions", [])))
+    columns[2].metric("Job desk", len(read_jobs(twin)))
     columns[3].metric("Jenis proses", info.get("process_type", "-"))
 
     asset_rows = []
@@ -303,7 +312,7 @@ def tab_structure():
         st.dataframe(pd.DataFrame(asset_rows), use_container_width=True)
 
     job_rows = []
-    for job in twin.get("job_descriptions", []):
+    for job in read_jobs(twin):
         demands = job.get("demands", {})
         job_rows.append(
             {
@@ -311,8 +320,8 @@ def tab_structure():
                 "judul": job.get("job_title"),
                 "tahapan": job.get("workflow_step"),
                 "aset": job.get("assigned_asset_id"),
-                "pekerja": ", ".join(job.get("assigned_worker_names", [])),
                 "fokus": demands.get("required_cognitive_focus"),
+                "fisik": demands.get("physical_demand_level"),
                 "severity": demands.get("error_severity"),
             }
         )
@@ -401,53 +410,302 @@ def tab_completeness():
         st.info(st.session_state["clarification_text"])
 
 
-def tab_downstream():
-    st.subheader("Tahap 4 — Pipeline lanjutan")
+def tab_worker_extraction():
+    st.subheader("Tahap 4 — Ekstraksi CV / wawancara dan Agent B")
 
-    twin = st.session_state["factory_structure"]
-
-    if twin is None:
-        st.info("Selesaikan Agent A terlebih dahulu.")
-        return
-
-    st.markdown("**Agent B — profil pekerja**")
-    worker_input = st.text_area(
-        "Data pekerja (CV, daftar HR, atau log shift)",
-        height=200,
-        key="worker_input",
+    uploaded = st.file_uploader(
+        "Berkas CV (ATS) atau catatan wawancara",
+        type=["pdf", "docx", "md", "markdown", "txt"],
+        accept_multiple_files=True,
+        key="worker_uploader",
     )
 
-    if worker_input and st.button("Jalankan worker_profile_agent"):
-        with st.spinner("Memproses profil pekerja..."):
+    if uploaded and st.button("Ekstrak dokumen pekerja"):
+        documents = []
+        for item in uploaded:
+            saved_path = persist_upload(item)
+
             try:
-                result = run_structured_agent(
-                    stage="worker_profile",
-                    role=AgentRole.WORKER_PROFILE,
-                    payload=worker_input,
-                )
-                st.session_state["worker_profile"] = result
+                documents.append(extract_worker_document(saved_path))
+
+            except UnsupportedDocumentError as error:
+                st.error(str(error))
+                return
 
             except Exception as error:
-                st.error(f"Agent gagal: {error}")
+                st.error(f"Ekstraksi {item.name} gagal: {error}")
+                return
+
+        merged = merge_worker_documents(documents)
+        st.session_state["worker_document"] = merged
+        st.session_state["worker_agent_input"] = build_worker_agent_input(merged)
+
+    document = st.session_state["worker_document"]
+
+    if document is not None:
+        st.divider()
+        st.markdown(f"**Kandidat terbaca: {len(document.candidates)}**")
+
+        candidate_rows = []
+        for candidate in document.candidates:
+            derived = candidate.derived
+            candidate_rows.append(
+                {
+                    "worker_id": candidate.worker_id,
+                    "nama": derived.get("name"),
+                    "usia": derived.get("age"),
+                    "gender": derived.get("gender"),
+                    "pengalaman": derived.get("years_of_experience"),
+                    "jam_hari_ini": derived.get("hours_worked_today"),
+                    "shift_beruntun": derived.get("consecutive_shifts"),
+                    "field_kosong": ", ".join(candidate.missing_fields()),
+                }
+            )
+
+        if candidate_rows:
+            st.dataframe(pd.DataFrame(candidate_rows), use_container_width=True)
+
+        missing = document.missing_fields()
+        if missing:
+            st.warning(
+                "Field belum terbaca: "
+                + "; ".join(f"{key} ({', '.join(values)})" for key, values in missing.items())
+            )
+
+            if st.button("Susun pertanyaan klarifikasi pekerja"):
+                payload = "\n".join(
+                    f"{candidate.worker_id} — {candidate.derived.get('name') or 'nama tidak terbaca'}: "
+                    f"{', '.join(candidate.missing_fields())}"
+                    for candidate in document.candidates
+                    if candidate.missing_fields()
+                )
+
+                with st.spinner("Menyusun pertanyaan..."):
+                    try:
+                        text = run_text_agent(
+                            stage="worker_clarification",
+                            role=AgentRole.WORKER_CLARIFICATION,
+                            payload=payload,
+                        )
+                        st.info(text)
+
+                    except Exception as error:
+                        st.error(f"Agent klarifikasi gagal: {error}")
+
+        for candidate in document.candidates:
+            with st.expander(f"{candidate.worker_id} — bagian naratif"):
+                for key, value in candidate.sections.items():
+                    st.markdown(f"**{key}**")
+                    st.text(value)
+
+    if st.session_state["worker_agent_input"]:
+        st.divider()
+        st.markdown("**Payload yang akan dikirim ke Agent B**")
+        edited = st.text_area(
+            "Bisa disunting sebelum dikirim",
+            value=st.session_state["worker_agent_input"],
+            height=280,
+            key="worker_agent_input_editor",
+        )
+        st.session_state["worker_agent_input"] = edited
+
+        if st.button("Jalankan worker_profile_agent"):
+            with st.spinner("Memproses profil pekerja..."):
+                try:
+                    result = run_structured_agent(
+                        stage="worker_profile",
+                        role=AgentRole.WORKER_PROFILE,
+                        payload=st.session_state["worker_agent_input"],
+                    )
+                    st.session_state["worker_profile"] = result
+
+                except Exception as error:
+                    st.error(f"Agent gagal: {type(error).__name__}: {error}")
 
     workers = st.session_state["worker_profile"]
 
     if workers is not None:
         render_json_result("worker_profile", "Profil pekerja", workers)
 
-    st.divider()
-    st.markdown("**Agent C — kondisi lantai produksi**")
+        profile_rows = []
+        for worker in workers.get("workers", []):
+            demographics = worker.get("demographics", {})
+            shift = worker.get("shift_context", {})
+            profile_rows.append(
+                {
+                    "worker_id": worker.get("worker_id"),
+                    "nama": worker.get("name"),
+                    "usia": demographics.get("age"),
+                    "pengalaman": demographics.get("years_of_experience"),
+                    "stamina": demographics.get("baseline_physical_stamina"),
+                    "resiliensi": demographics.get("cognitive_resilience"),
+                    "jam_hari_ini": shift.get("hours_worked_today"),
+                    "shift_beruntun": shift.get("consecutive_shifts"),
+                }
+            )
+
+        if profile_rows:
+            st.dataframe(pd.DataFrame(profile_rows), use_container_width=True)
+
+
+def tab_compatibility():
+    st.subheader("Tahap 5 — Matriks kompatibilitas pekerja x job desk")
+
+    twin = st.session_state["factory_structure"]
+    workers = st.session_state["worker_profile"]
+
+    if twin is None:
+        st.info("Butuh struktur pabrik dari Agent A terlebih dahulu.")
+        return
 
     if workers is None:
-        st.info("Butuh output Agent B terlebih dahulu.")
+        st.info("Butuh profil pekerja dari Agent B terlebih dahulu.")
         return
+
+    worker_list = workers.get("workers", [])
+    job_list = read_jobs(twin)
+
+    columns = st.columns(3)
+    columns[0].metric("Pekerja", len(worker_list))
+    columns[1].metric("Job desk", len(job_list))
+    columns[2].metric("Pasangan", len(worker_list) * len(job_list))
+
+    max_workers = st.slider("Panggilan paralel", min_value=1, max_value=12, value=4)
+    max_attempts = st.slider("Percobaan per pasangan", min_value=1, max_value=5, value=3)
+    strict = st.checkbox("Hentikan seluruh proses bila ada pasangan gagal", value=False)
+
+    if st.button("Bangun matriks kompatibilitas"):
+        try:
+            agent = get_agent_registry().get(AgentRole.WORKER_COMPATIBILITY)
+
+        except Exception as error:
+            st.error(f"Agent tidak tersedia: {error}")
+            return
+
+        bar = st.progress(0.0, text="Menyiapkan pasangan...")
+
+        def report(done: int, total: int) -> None:
+            bar.progress(done / total, text=f"Evaluasi pasangan {done}/{total}")
+
+        started = time.perf_counter()
+
+        try:
+            matrix = generate_compatibility_matrix(
+                factory=twin,
+                workers=worker_list,
+                agent=agent,
+                max_workers=max_workers,
+                max_attempts=max_attempts,
+                strict=strict,
+                progress=report,
+            )
+
+        except CompatibilityEvaluationError as error:
+            bar.empty()
+            st.error(str(error))
+            st.dataframe(pd.DataFrame(error.failures), use_container_width=True)
+            return
+
+        except Exception as error:
+            bar.empty()
+            st.error(f"Pembentukan matriks gagal: {type(error).__name__}: {error}")
+            return
+
+        st.session_state["timings"]["compatibility_matrix"] = time.perf_counter() - started
+        st.session_state["compatibility_matrix"] = matrix
+        bar.empty()
+
+    matrix = st.session_state["compatibility_matrix"]
+
+    if matrix is None:
+        return
+
+    render_json_result("compatibility_matrix", "Matriks kompatibilitas", matrix)
+
+    meta = matrix.get("meta", {})
+    columns = st.columns(3)
+    columns[0].metric("Pasangan berhasil", meta.get("evaluated_pairs", 0))
+    columns[1].metric("Percobaan ulang", meta.get("retries", 0))
+    columns[2].metric("Pasangan gagal", len(meta.get("failed_pairs", [])))
+
+    if meta.get("failed_pairs"):
+        st.warning("Sebagian pasangan tidak berhasil dievaluasi agent dan dikeluarkan dari matriks.")
+        st.dataframe(pd.DataFrame(meta["failed_pairs"]), use_container_width=True)
+
+    flat_rows = []
+    score_rows = {}
+
+    for worker_id, record in matrix.get("compatibility_matrix", {}).items():
+        score_rows[worker_id] = {}
+        for job_id, entry in record.get("jobs", {}).items():
+            evaluations = entry.get("evaluations", {})
+            score_rows[worker_id][job_id] = evaluations.get("overall_compatibility_score")
+            flat_rows.append(
+                {
+                    "worker_id": worker_id,
+                    "nama": record.get("worker_name"),
+                    "job_id": job_id,
+                    "job": entry.get("job_title"),
+                    "asset_id": entry.get("asset_id"),
+                    "score": evaluations.get("overall_compatibility_score"),
+                    "throughput": evaluations.get("throughput_multiplier"),
+                    "error": evaluations.get("error_multiplier"),
+                    "fatigue": evaluations.get("fatigue_accumulation_rate"),
+                    "stress": evaluations.get("stress_sensitivity_factor"),
+                    "attempts": entry.get("attempts"),
+                    "terbaik": job_id == record.get("best_job_id"),
+                }
+            )
+
+    if score_rows:
+        st.markdown("**Peta skor kompatibilitas**")
+        heat = pd.DataFrame(score_rows).transpose().sort_index()
+        st.dataframe(heat.style.background_gradient(cmap="RdYlGn"), use_container_width=True)
+
+    if flat_rows:
+        frame = pd.DataFrame(flat_rows)
+
+        st.markdown("**Pasangan terbaik per pekerja**")
+        st.dataframe(frame[frame["terbaik"]].drop(columns=["terbaik"]), use_container_width=True)
+
+        with st.expander("Seluruh pasangan"):
+            st.dataframe(frame.drop(columns=["terbaik"]), use_container_width=True)
+
+        selected = st.selectbox(
+            "Lihat penalaran pasangan",
+            options=frame.index,
+            format_func=lambda index: f"{frame.loc[index, 'worker_id']} x {frame.loc[index, 'job_id']}",
+        )
+        worker_id = frame.loc[selected, "worker_id"]
+        job_id = frame.loc[selected, "job_id"]
+        st.info(matrix["compatibility_matrix"][worker_id]["jobs"][job_id]["llm_reasoning"])
+
+
+def tab_downstream():
+    st.subheader("Tahap 6 — Pipeline lanjutan")
+
+    twin = st.session_state["factory_structure"]
+    workers = st.session_state["worker_profile"]
+
+    if twin is None:
+        st.info("Selesaikan Agent A terlebih dahulu.")
+        return
+
+    if workers is None:
+        st.info("Selesaikan Agent B pada tab pekerja terlebih dahulu.")
+        return
+
+    st.markdown("**Agent C — kondisi lantai produksi**")
 
     if st.button("Jalankan floor_state_agent"):
         payload = {
             "factory_info": twin.get("factory_info"),
             "assets": twin.get("assets"),
-            "job_descriptions": twin.get("job_descriptions"),
+            "job_descriptions": read_jobs(twin),
             "workers": workers.get("workers"),
+            "compatibility_matrix": (st.session_state["compatibility_matrix"] or {}).get(
+                "compatibility_matrix"
+            ),
         }
 
         with st.spinner("Menempatkan pekerja..."):
@@ -477,7 +735,7 @@ def tab_downstream():
     if st.button("Jalankan simulation_state_agent"):
         payload = {
             "assets": twin.get("assets"),
-            "job_descriptions": twin.get("job_descriptions"),
+            "job_descriptions": read_jobs(twin),
             "workers": workers.get("workers"),
             "factory_flow_rightnow": floor.get("factory_flow_rightnow"),
             "llm_compatibility_and_evaluations": floor.get("llm_compatibility_and_evaluations"),
@@ -563,17 +821,19 @@ def main():
     init_session_state()
 
     st.title("Digital Twin Pipeline Playground")
-    st.caption("Uji ekstraksi dokumen, Agent A, pemeriksaan kelengkapan, dan pipeline lanjutan.")
+    st.caption("Uji ekstraksi pabrik, ekstraksi CV pekerja, matriks kompatibilitas, dan pipeline simulasi.")
 
     render_sidebar()
 
     tabs = st.tabs(
         [
-            "1. Ekstraksi",
+            "1. Ekstraksi pabrik",
             "2. Struktur pabrik",
             "3. Kelengkapan",
-            "4. Pipeline lanjutan",
-            "5. Metrik",
+            "4. Pekerja (CV)",
+            "5. Kompatibilitas",
+            "6. Pipeline lanjutan",
+            "7. Metrik",
         ]
     )
 
@@ -587,9 +847,15 @@ def main():
         tab_completeness()
 
     with tabs[3]:
-        tab_downstream()
+        tab_worker_extraction()
 
     with tabs[4]:
+        tab_compatibility()
+
+    with tabs[5]:
+        tab_downstream()
+
+    with tabs[6]:
         tab_metrics()
 
 
