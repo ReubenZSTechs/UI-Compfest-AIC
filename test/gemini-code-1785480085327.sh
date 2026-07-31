@@ -1,0 +1,1 @@
+docker network rm compfest-net 2>/dev/null || true
