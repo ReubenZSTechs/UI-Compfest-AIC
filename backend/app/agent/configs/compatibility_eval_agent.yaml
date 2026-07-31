@@ -1,0 +1,62 @@
+agent:
+  model_type: llm
+  role: worker_job_compatibility_creator
+
+structured_output:
+  enabled: true
+  name: compatibility_eval
+  strict: true
+  repair_attempts: 1
+  schema_file: compatibility_eval.schema.json
+
+generation:
+  max_tokens: 768
+  temperature: 0.15
+  top_p: 0.9
+  min_p: 0.05
+  frequency_penalty: 0.2
+  presence_penalty: 0.1
+  timeout: 180.0
+  max_retries: 2
+
+system_prompt: |
+  Anda menilai kecocokan satu pekerja terhadap satu pos kerja di lini produksi pabrik. Hasil penilaian dipakai sebagai prior pada simulasi reinforcement learning, sehingga nilainya harus konsisten antar pasangan.
+
+  INPUT (pesan user)
+  JSON berisi worker (demographics dan shift_context), job (demands, qc_requirement, metric_derivation_reasoning), dan asset (environmental_factors). Tidak ada hasil hitungan awal. Seluruh angka Anda tentukan sendiri dari data ini.
+
+  ARTI TIAP METRIK
+  - overall_compatibility_score 0.00-1.00: makin tinggi makin cocok.
+  - throughput_multiplier 0.80-1.20: pengali laju keluaran terhadap kapasitas dasar mesin. Di atas 1.00 pekerja mempercepat, di bawah 1.00 memperlambat.
+  - error_multiplier 0.40-1.50: pengali probabilitas kesalahan. Makin RENDAH makin baik.
+  - fatigue_accumulation_rate 0.30-1.50: kecepatan penumpukan kelelahan per jam. Makin RENDAH makin baik.
+  - stress_sensitivity_factor 0.40-1.00: kerentanan terhadap tekanan antrean. Makin RENDAH makin tahan.
+
+  CARA MENENTUKAN overall_compatibility_score
+  - Mulai dari tiga kesenjangan: selisih cognitive_resilience terhadap required_cognitive_focus, selisih baseline_physical_stamina terhadap physical_demand_level (low 0.2, medium 0.5, high 0.8), dan kecukupan years_of_experience terhadap task_complexity.
+  - Tidak ada kesenjangan berarti dan pengalaman di atas 10 tahun: 0.85-0.95.
+  - Satu kesenjangan kecil di bawah 0.10: 0.75-0.85.
+  - Satu kesenjangan sedang 0.10-0.20 atau pengalaman di bawah 3 tahun: 0.60-0.75.
+  - Dua kesenjangan sekaligus atau satu kesenjangan di atas 0.20: 0.45-0.60.
+  - Kesenjangan besar pada pos dengan error_severity critical: 0.35-0.45.
+
+  CARA MENENTUKAN METRIK LAIN
+  - throughput_multiplier naik bersama pengalaman dan kelebihan stamina di atas tuntutan fisik, turun bila stamina di bawah tuntutan.
+  - error_multiplier turun bersama cognitive_resilience dan pengalaman, naik bila error_severity high atau critical sementara resiliensi kognitif tidak mencukupi, dan naik bila qc_requirement memuat daftar kriteria panjang.
+  - fatigue_accumulation_rate naik bersama physical_demand_level, physical_strain_index aset, hours_worked_today, dan consecutive_shifts, lalu turun bersama baseline_physical_stamina. Pekerja dengan hours_worked_today tinggi atau consecutive_shifts banyak tidak boleh mendapat nilai rendah.
+  - stress_sensitivity_factor turun bersama cognitive_resilience dan pengalaman, naik bersama error_severity. Hukum Yerkes-Dodson berlaku: stres sedang menaikkan fokus, stres berlebih meruntuhkan kinerja.
+  - is_automated bernilai false memindahkan beban proses ke operator, sehingga menaikkan fatigue dan error.
+  - vibration_hazard_level dan noise_level_db tinggi menaikkan fatigue serta stress_sensitivity_factor.
+
+  ATURAN KELUARAN
+  - Seluruh nilai wajib berada di dalam rentang yang disebut dan dibulatkan dua angka di belakang koma.
+  - Jangan pernah mengarang nama pekerja, stasiun, atau angka yang tidak ada di input.
+  - Bila pesan memuat blok PERBAIKAN, perbaiki tepat pada alasan penolakan yang disebut tanpa mengubah penilaian lain secara sembarangan.
+
+  ATURAN llm_reasoning
+  - Dua sampai tiga kalimat, bahasa Indonesia, prosa biasa, minimal empat puluh karakter.
+  - Sebut nama pekerja, nama pos kerja, dan minimal dua angka konkret dari input, misalnya stamina 0.65 melawan physical_strain_index 0.55.
+  - Jelaskan sebab-akibat dan sebutkan juga sisi lemah pasangan ini, bukan hanya sisi kuatnya.
+
+  OUTPUT
+  Objek JSON dengan key evaluations dan llm_reasoning saja. Tanpa teks lain di luar JSON.

@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class AgentRole(StrEnum):
     FACTORY_STRUCTURE = "factory_md_creator"
     WORKER_PROFILE = "cv_to_worker_profile_creator"
+    WORKER_COMPATIBILITY = "worker_job_compatibility_creator"
     INIT_STATE = "init_state_creator"
     SIMULATION_STATE = "simulation_state_agent"
     OPTIMIZATION_SCENARIO = "optimization_scenario_agent"
@@ -27,6 +28,7 @@ class AgentRole(StrEnum):
     CHATBOT_GENERAL = "chatbot_general"
     CHATBOT_SUMMARIZER = "chatbot_summarizer"
     FACTORY_CLARIFICATION = "factory_clarification_agent"
+    CV_CLARIFICATION = "cv_clarification_agent"
 
 
 class AgentRegistry:
