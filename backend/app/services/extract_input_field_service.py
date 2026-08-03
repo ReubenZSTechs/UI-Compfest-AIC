@@ -23,6 +23,11 @@ FIELD_ALIASES = {
                      "total workers", "headcount"],
 }
 
+MIN_EVIDENCE_SCORE = 2
+
+NON_CV_STEMS = {"readme", "read me", "notes", "catatan", "index", "license", "lisensi",
+                "changelog", "manifest", "daftar isi", "petunjuk", "instructions"}
+
 COLUMN_ALIASES = {
     "index": ["no", "nomor", "urut"],
     "stage": ["tahapan proses", "tahap proses", "nama tahap", "nama proses", "process stage",
@@ -329,6 +334,9 @@ def refine_bounds(header_cells: Sequence[dict[str, Any]], body: Sequence[dict[st
             chosen.append(value)
             floor = value
     return [-1e6] + chosen + [page_width + 1e6]
+
+
+
 
 
 def row_break_threshold(body: Sequence[dict[str, Any]]) -> Optional[float]:

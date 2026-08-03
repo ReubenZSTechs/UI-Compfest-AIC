@@ -20,10 +20,12 @@ from backend.app.services.extract_input_field_service import (
     build_agent_input,
     extract_document,
 )
+from backend.app.services.extract_worker_archive_service import (
+    ArchiveError,
+    extract_worker_uploads,
+)
 from backend.app.services.cv_pdf_parser_service import (
     build_worker_agent_input,
-    extract_worker_document,
-    merge_worker_documents,
 )
 from backend.app.services.cross_reference_job_worker_service import (
     CompatibilityEvaluationError,
@@ -44,6 +46,7 @@ STAGE_KEYS = [
     "completeness_report",
     "clarification_text",
     "worker_document",
+    "worker_archive_reports",
     "worker_agent_input",
     "worker_profile",
     "compatibility_matrix",
@@ -414,37 +417,94 @@ def tab_worker_extraction():
     st.subheader("Tahap 4 — Ekstraksi CV / wawancara dan Agent B")
 
     uploaded = st.file_uploader(
-        "Berkas CV (ATS) atau catatan wawancara",
-        type=["pdf", "docx", "md", "markdown", "txt"],
+        "Berkas CV (ATS), catatan wawancara, atau arsip ZIP berisi banyak CV",
+        type=["zip", "pdf", "docx", "md", "markdown", "txt"],
         accept_multiple_files=True,
         key="worker_uploader",
     )
 
+    st.caption(
+        "Arsip ZIP boleh memuat campuran PDF dan Markdown, termasuk di dalam subfolder. "
+        "Berkas sistem, ekstensi tidak didukung, dan jalur tidak aman akan dilewati."
+    )
+
+    strict = st.checkbox("Hentikan proses bila ada berkas gagal diekstraksi", value=False)
+
     if uploaded and st.button("Ekstrak dokumen pekerja"):
-        documents = []
-        for item in uploaded:
-            saved_path = persist_upload(item)
+        saved_paths = [persist_upload(item) for item in uploaded]
 
-            try:
-                documents.append(extract_worker_document(saved_path))
+        bar = st.progress(0.0, text="Menyiapkan berkas...")
 
-            except UnsupportedDocumentError as error:
-                st.error(str(error))
-                return
+        def report(done: int, total: int) -> None:
+            bar.progress(done / total, text=f"Memproses berkas {done}/{total}")
 
-            except Exception as error:
-                st.error(f"Ekstraksi {item.name} gagal: {error}")
-                return
+        try:
+            document, archive_reports = extract_worker_uploads(
+                saved_paths,
+                strict=strict,
+                progress=report,
+            )
 
-        merged = merge_worker_documents(documents)
-        st.session_state["worker_document"] = merged
-        st.session_state["worker_agent_input"] = build_worker_agent_input(merged)
+        except ArchiveError as error:
+            bar.empty()
+            st.error(str(error))
+            return
+
+        except UnsupportedDocumentError as error:
+            bar.empty()
+            st.error(str(error))
+            return
+
+        except Exception as error:
+            bar.empty()
+            st.error(f"Ekstraksi gagal: {type(error).__name__}: {error}")
+            return
+
+        bar.empty()
+        st.session_state["worker_document"] = document
+        st.session_state["worker_archive_reports"] = archive_reports
+        st.session_state["worker_agent_input"] = build_worker_agent_input(document)
+
+    for archive_report in st.session_state.get("worker_archive_reports") or []:
+        with st.expander(
+            f"Arsip {archive_report.archive_name} — {archive_report.accepted_count()} berkas diproses"
+        ):
+            counts = archive_report.suffix_counts()
+            if counts:
+                st.caption(" · ".join(f"{suffix}: {total}" for suffix, total in sorted(counts.items())))
+
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "member": member.member_name,
+                            "berkas": member.file_name,
+                            "ekstensi": member.suffix,
+                            "ukuran_byte": member.size_bytes,
+                        }
+                        for member in archive_report.accepted
+                    ]
+                ),
+                use_container_width=True,
+            )
+
+            if archive_report.skipped:
+                st.markdown("**Dilewati**")
+                st.dataframe(pd.DataFrame(archive_report.skipped), use_container_width=True)
+
+            if archive_report.failed:
+                st.markdown("**Gagal diekstraksi**")
+                st.dataframe(pd.DataFrame(archive_report.failed), use_container_width=True)
 
     document = st.session_state["worker_document"]
 
     if document is not None:
         st.divider()
-        st.markdown(f"**Kandidat terbaca: {len(document.candidates)}**")
+
+        columns = st.columns(3)
+        columns[0].metric("Kandidat terbaca", len(document.candidates))
+        columns[1].metric("Berkas sumber", len(set(document.source_names)))
+        columns[2].metric("Blok ditolak", len(document.rejected_blocks))
 
         candidate_rows = []
         for candidate in document.candidates:
@@ -458,12 +518,17 @@ def tab_worker_extraction():
                     "pengalaman": derived.get("years_of_experience"),
                     "jam_hari_ini": derived.get("hours_worked_today"),
                     "shift_beruntun": derived.get("consecutive_shifts"),
+                    "sumber": candidate.source_name,
                     "field_kosong": ", ".join(candidate.missing_fields()),
                 }
             )
 
         if candidate_rows:
             st.dataframe(pd.DataFrame(candidate_rows), use_container_width=True)
+
+        if document.rejected_blocks:
+            st.warning("Sebagian berkas tidak dianggap CV dan dikeluarkan dari daftar pekerja.")
+            st.dataframe(pd.DataFrame(document.rejected_blocks), use_container_width=True)
 
         missing = document.missing_fields()
         if missing:
@@ -474,8 +539,8 @@ def tab_worker_extraction():
 
             if st.button("Susun pertanyaan klarifikasi pekerja"):
                 payload = "\n".join(
-                    f"{candidate.worker_id} — {candidate.derived.get('name') or 'nama tidak terbaca'}: "
-                    f"{', '.join(candidate.missing_fields())}"
+                    f"{candidate.worker_id} — {candidate.derived.get('name') or 'nama tidak terbaca'} "
+                    f"(berkas {candidate.source_name}): {', '.join(candidate.missing_fields())}"
                     for candidate in document.candidates
                     if candidate.missing_fields()
                 )
@@ -483,7 +548,7 @@ def tab_worker_extraction():
                 with st.spinner("Menyusun pertanyaan..."):
                     try:
                         text = run_text_agent(
-                            stage="worker_clarification",
+                            stage="cv_clarification",
                             role=AgentRole.CV_CLARIFICATION,
                             payload=payload,
                         )
@@ -493,7 +558,7 @@ def tab_worker_extraction():
                         st.error(f"Agent klarifikasi gagal: {error}")
 
         for candidate in document.candidates:
-            with st.expander(f"{candidate.worker_id} — bagian naratif"):
+            with st.expander(f"{candidate.worker_id} — {candidate.source_name}"):
                 for key, value in candidate.sections.items():
                     st.markdown(f"**{key}**")
                     st.text(value)
@@ -509,7 +574,7 @@ def tab_worker_extraction():
         )
         st.session_state["worker_agent_input"] = edited
 
-        if st.button("Jalankan worker_profile_agent"):
+        if st.button("Jalankan cv_to_worker_profile_creator"):
             with st.spinner("Memproses profil pekerja..."):
                 try:
                     result = run_structured_agent(

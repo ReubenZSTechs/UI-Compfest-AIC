@@ -101,11 +101,17 @@ YEAR = re.compile(r"(19|20)\d{2}")
 MAX_NAME_WORDS = 6
 MAX_NAME_LENGTH = 60
 
+MIN_EVIDENCE_SCORE = 2
+
+NON_CV_STEMS = {"readme", "read me", "notes", "catatan", "index", "license", "lisensi",
+                "changelog", "manifest", "daftar isi", "petunjuk", "instructions"}
+
 
 @dataclass
 class ExtractedCandidate:
     index: int
     worker_id: str
+    source_name: str = ""
     fields: dict[str, str] = field(default_factory=dict)
     sections: dict[str, str] = field(default_factory=dict)
     derived: dict[str, Any] = field(default_factory=dict)
@@ -122,6 +128,7 @@ class ExtractedCandidate:
 class ExtractedWorkerDocument:
     source_names: list[str] = field(default_factory=list)
     candidates: list[ExtractedCandidate] = field(default_factory=list)
+    rejected_blocks: list[dict[str, str]] = field(default_factory=list)
     raw_text: str = ""
 
     def missing_fields(self) -> dict[str, list[str]]:
@@ -377,7 +384,21 @@ def parse_candidate(lines: Sequence[TextLine], index: int) -> ExtractedCandidate
     )
 
 
-def extract_worker_document(path: str | Path, offset: int = 0) -> ExtractedWorkerDocument:
+def evidence_score(candidate: ExtractedCandidate) -> int:
+    signals = [key for key in candidate.fields if key != "name" and candidate.fields[key]]
+    return len(signals) + len(candidate.sections)
+
+
+def looks_like_curriculum_vitae(candidate: ExtractedCandidate,
+                                min_evidence: int = MIN_EVIDENCE_SCORE) -> bool:
+    if not candidate.derived.get("name"):
+        return False
+    if normalize(Path(candidate.source_name).stem) in NON_CV_STEMS:
+        return False
+    return evidence_score(candidate) >= min_evidence
+
+
+def extract_worker_document(path: str | Path, offset: int = 0, min_evidence: int = MIN_EVIDENCE_SCORE) -> ExtractedWorkerDocument:
     resolved = Path(path)
     extractor = DOCUMENT_EXTRACTORS.get(resolved.suffix.lower())
     if extractor is None:
@@ -391,14 +412,26 @@ def extract_worker_document(path: str | Path, offset: int = 0) -> ExtractedWorke
     blocks = split_candidates(lines)
 
     candidates = []
+    rejected = []
+
     for position, block in enumerate(blocks, start=1):
-        candidate = parse_candidate(block, offset + position)
-        if candidate.derived.get("name") or candidate.raw_text:
+        candidate = parse_candidate(block, len(candidates) + offset + 1)
+        candidate.source_name = resolved.name
+
+        if looks_like_curriculum_vitae(candidate, min_evidence=min_evidence):
             candidates.append(candidate)
+        else:
+            rejected.append({
+                "source": resolved.name,
+                "nama_terbaca": candidate.derived.get("name") or "(tidak terbaca)",
+                "alasan": f"bukti tidak cukup untuk dianggap CV (skor {evidence_score(candidate)}"
+                          f" dari minimal {min_evidence})",
+            })
 
     return ExtractedWorkerDocument(
         source_names=[resolved.name],
         candidates=candidates,
+        rejected_blocks=rejected,
         raw_text="\n".join(line.text for line in lines),
     )
 
@@ -407,6 +440,7 @@ def merge_worker_documents(documents: Sequence[ExtractedWorkerDocument]) -> Extr
     merged = ExtractedWorkerDocument()
     for document in documents:
         merged.source_names.extend(document.source_names)
+        merged.rejected_blocks.extend(document.rejected_blocks)
         for candidate in document.candidates:
             candidate.index = len(merged.candidates) + 1
             candidate.worker_id = f"wrk-{candidate.index:02d}"
