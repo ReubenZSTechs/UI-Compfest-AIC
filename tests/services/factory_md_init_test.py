@@ -484,7 +484,7 @@ def tab_worker_extraction():
                     try:
                         text = run_text_agent(
                             stage="worker_clarification",
-                            role=AgentRole.WORKER_CLARIFICATION,
+                            role=AgentRole.CV_CLARIFICATION,
                             payload=payload,
                         )
                         st.info(text)
@@ -712,7 +712,7 @@ def tab_downstream():
             try:
                 result = run_structured_agent(
                     stage="floor_state",
-                    role=AgentRole.FLOOR_STATE,
+                    role=AgentRole.INIT_STATE,
                     payload=json.dumps(payload, ensure_ascii=False),
                 )
                 st.session_state["floor_state"] = result
