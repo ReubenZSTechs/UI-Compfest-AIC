@@ -11,7 +11,7 @@ from app.services.extract_input_field_service import (
     DOCUMENT_EXTRACTORS,
     UnsupportedDocumentError,
 )
-from app.services.extract_worker_field_service import (
+from app.services.cv_pdf_parser_service import (
     ExtractedWorkerDocument,
     extract_worker_document,
     merge_worker_documents,
