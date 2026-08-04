@@ -5,6 +5,7 @@ interface ParseStatusBannerProps {
   steps: ParseStep[];
   jobStatus: ParseJobStatus;
   resultSummary?: string;
+  errorMessage?: string;
 }
 
 const STEP_MARKER: Record<ParseStep['status'], string> = {
@@ -14,7 +15,7 @@ const STEP_MARKER: Record<ParseStep['status'], string> = {
   error: '✕',
 };
 
-export function ParseStatusBanner({ steps, jobStatus, resultSummary }: ParseStatusBannerProps) {
+export function ParseStatusBanner({ steps, jobStatus, resultSummary, errorMessage }: ParseStatusBannerProps) {
   if (jobStatus === 'idle') return null;
 
   return (
@@ -32,7 +33,9 @@ export function ParseStatusBanner({ steps, jobStatus, resultSummary }: ParseStat
 
       {jobStatus === 'success' && resultSummary && <p className={styles.summary}>{resultSummary}</p>}
       {jobStatus === 'error' && (
-        <p className={styles.summary}>Parsing gagal. Periksa langkah yang ditandai di atas, lalu coba lagi.</p>
+        <p className={styles.summary}>
+          {errorMessage ?? 'Parsing gagal. Periksa langkah yang ditandai di atas, lalu coba lagi.'}
+        </p>
       )}
     </div>
   );

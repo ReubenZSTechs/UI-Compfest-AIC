@@ -11,6 +11,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - SECRET_KEY=${SECRET_KEY}
       - HF_TOKEN=${HF_TOKEN}
+      - LLM_BRIDGE_URL=http://LLM:15000/v1
+      - EMBEDDING_BRIDGE_URL=http://embedding:15001/v1
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,3 +66,4 @@ volumes:
 networks:
   default:
     name: compfest-net
+    external: true

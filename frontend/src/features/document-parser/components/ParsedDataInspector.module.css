@@ -1,0 +1,390 @@
+.inspectorContainer {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--twin-surface-low, #121824);
+  border: 1px solid var(--twin-border, #2a2f3a);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inspectorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  display: inline-block;
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--twin-accent-automated, #14b8a6);
+  background: rgba(20, 184, 166, 0.1);
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  margin-bottom: 0.4rem;
+}
+
+.inspectorTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--twin-text-primary, #f8fafc);
+}
+
+/* --- STREAMLIT METRICS ROW --- */
+.metricsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.metricCard {
+  background: var(--twin-surface-inset, #0b0f17);
+  border: 1px solid var(--twin-border, #2a2f3a);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.metricLabel {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.725rem;
+  text-transform: uppercase;
+  color: var(--twin-text-muted, #94a3b8);
+  margin-bottom: 0.25rem;
+}
+
+.metricValue {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--twin-accent-automated, #14b8a6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metricSub {
+  font-size: 0.75rem;
+  color: var(--twin-text-faint, #64748b);
+  margin-top: 0.25rem;
+}
+
+/* --- STREAMLIT TABS BAR --- */
+.tabBar {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--twin-border, #2a2f3a);
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.tabButton {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--twin-text-muted, #94a3b8);
+  font-family: var(--twin-font-sans, system-ui);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tabButton:hover {
+  color: var(--twin-text-primary, #f8fafc);
+}
+
+.activeTab {
+  color: var(--twin-accent-automated, #14b8a6) !important;
+  border-bottom-color: var(--twin-accent-automated, #14b8a6) !important;
+  font-weight: 600;
+}
+
+/* --- TAB PANELS --- */
+.tabContent {
+  background: var(--twin-surface-inset, #0b0f17);
+  border: 1px solid var(--twin-border, #2a2f3a);
+  border-radius: 8px;
+  padding: 1.25rem;
+  min-height: 250px;
+}
+
+.overviewPanel,
+.factoryPanel,
+.workersPanel,
+.matrixPanel,
+.rawPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sectionBlock h3,
+.sectionBlock h4 {
+  margin: 0;
+  color: var(--twin-text-primary, #f8fafc);
+  font-weight: 600;
+}
+
+.sectionBlock h3 {
+  font-size: 1.05rem;
+  border-bottom: 1px solid var(--twin-border, #2a2f3a);
+  padding-bottom: 0.4rem;
+}
+
+.sectionBlock h4 {
+  font-size: 0.925rem;
+}
+
+.sectionBlock p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--twin-text-secondary, #cbd5e1);
+  line-height: 1.5;
+}
+
+.infoList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  color: var(--twin-text-secondary, #cbd5e1);
+}
+
+.tabContent code {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.8rem;
+  background: var(--twin-surface-raised, #1e293b);
+  color: var(--twin-accent-automated, #14b8a6);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--twin-border, #2a2f3a);
+}
+
+.warningBox {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 6px;
+  color: var(--twin-accent-manual, #f59e0b);
+}
+
+.warningBox h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.warningBox ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+}
+
+/* --- TABLES & RESPONSIVE CONTAINER --- */
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  text-align: left;
+  overflow-x: auto;
+  display: block;
+}
+
+.dataTable th,
+.dataTable td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--twin-border, #2a2f3a);
+  vertical-align: middle;
+}
+
+.dataTable th {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.725rem;
+  text-transform: uppercase;
+  color: var(--twin-text-muted, #94a3b8);
+  background: var(--twin-surface-low, #121824);
+  white-space: nowrap;
+}
+
+.mutedText {
+  color: var(--twin-text-muted, #94a3b8);
+  font-size: 0.75rem;
+}
+
+.chipGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.skillChip {
+  font-size: 0.725rem;
+  background: var(--twin-surface-raised, #1e293b);
+  color: var(--twin-text-secondary, #cbd5e1);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid var(--twin-border, #2a2f3a);
+  white-space: nowrap;
+}
+
+/* --- WORKERS GRID & CARDS --- */
+.workersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.workerCard {
+  background: var(--twin-surface-low, #121824);
+  border: 1px solid var(--twin-border, #2a2f3a);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.15s ease;
+}
+
+.workerCard:hover {
+  border-color: rgba(20, 184, 166, 0.4);
+}
+
+.workerHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--twin-border, #2a2f3a);
+}
+
+.workerAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--twin-accent-automated, #14b8a6);
+  color: var(--twin-bg, #0b0f17);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.workerName {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--twin-text-primary, #f8fafc);
+}
+
+.workerRole {
+  font-size: 0.75rem;
+  color: var(--twin-text-muted, #94a3b8);
+  font-family: var(--twin-font-mono, monospace);
+}
+
+.workerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.workerBody p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--twin-text-secondary, #cbd5e1);
+}
+
+/* --- SUB SECTIONS --- */
+.subSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background: var(--twin-surface-low, #121824);
+  border-radius: 6px;
+  border: 1px solid var(--twin-border, #2a2f3a);
+}
+
+.subSectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--twin-accent-automated, #14b8a6);
+  margin: 0;
+}
+
+.codeBlock {
+  max-height: 400px;
+  overflow: auto;
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.8rem;
+  color: var(--twin-text-secondary, #cbd5e1);
+  background: var(--twin-surface-low, #121824);
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--twin-border, #2a2f3a);
+  margin: 0;
+}
+
+.emptyText {
+  color: var(--twin-text-muted, #94a3b8);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* --- FOOTER ACTION BAR --- */
+.inspectorFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--twin-border, #2a2f3a);
+}
+
+.footerHint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--twin-text-muted, #94a3b8);
+}
+
+.proceedButton {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--twin-bg, #0b0f17);
+  background: var(--twin-accent-automated, #14b8a6);
+  border: none;
+  border-radius: 6px;
+  padding: 0.8rem 1.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.25);
+}
+
+.proceedButton:hover {
+  background: color-mix(in srgb, var(--twin-accent-automated, #14b8a6) 88%, white);
+  transform: translateY(-1px);
+}
