@@ -3,38 +3,53 @@ import { useSimulationStore } from "../store/simulationStore";
 import styles from "./SimulationSummaryPanel.module.css";
 
 function formatIdr(value: number) {
-  return `Rp${Math.round(value).toLocaleString("id-ID")}`;
+  return `Rp${Math.round(value || 0).toLocaleString("id-ID")}`;
 }
 
 export function SimulationSummaryPanel() {
   const data = useSimulationStore((s) => s.data);
-  const summary = data?.live_simulation_state.simulation_summary;
-  const insight = data?.live_simulation_state.analytical_insight_summary;
-  const bottlenecks = data?.live_simulation_state.system_bottlenecks ?? [];
+  const summary = data?.live_simulation_state?.simulation_summary;
+  const insight = data?.live_simulation_state?.analytical_insight_summary;
+  const bottlenecks = data?.live_simulation_state?.system_bottlenecks ?? [];
 
   if (!summary) {
     return <div className={styles.waiting}>Menunggu data simulasi…</div>;
   }
 
+  const achievement = summary.production_achievement_percentage ?? 0;
   const achievementTone =
-    summary.production_achievement_percentage >= 95
+    achievement >= 95
       ? styles.toneSafe
-      : summary.production_achievement_percentage >= 80
+      : achievement >= 80
         ? styles.toneWarning
         : styles.toneDanger;
 
   return (
     <div className={styles.panel}>
       <div className={styles.metricGrid}>
-        <Metric label="Output" value={summary.total_output_units.toFixed(0)} unit={`/ ${summary.target_output_units.toFixed(0)} unit`} />
+        <Metric
+          label="Output"
+          value={(summary.total_output_units ?? 0).toFixed(0)}
+          unit={`/ ${(summary.target_output_units ?? 0).toFixed(0)} unit`}
+        />
         <Metric
           label="Pencapaian"
-          value={`${summary.production_achievement_percentage.toFixed(1)}%`}
+          value={`${achievement.toFixed(1)}%`}
           toneClassName={achievementTone}
         />
-        <Metric label="Efisiensi" value={summary.efficiency_score.toFixed(1)} unit="/ 100" />
-        <Metric label="Biaya Total" value={formatIdr(summary.total_operational_cost_idr)} />
-        <Metric label="Biaya / Unit" value={formatIdr(summary.cost_per_unit_idr)} />
+        <Metric
+          label="Efisiensi"
+          value={(summary.efficiency_score ?? 0).toFixed(1)}
+          unit="/ 100"
+        />
+        <Metric
+          label="Biaya Total"
+          value={formatIdr(summary.total_operational_cost_idr ?? 0)}
+        />
+        <Metric
+          label="Biaya / Unit"
+          value={formatIdr(summary.cost_per_unit_idr ?? 0)}
+        />
         <Metric
           label="Bottleneck Aktif"
           value={String(bottlenecks.length)}
@@ -44,7 +59,10 @@ export function SimulationSummaryPanel() {
       </div>
 
       <div className={styles.progressTrack}>
-        <div className={styles.progressFill} style={{ width: `${Math.min(100, summary.production_achievement_percentage)}%` }} />
+        <div
+          className={styles.progressFill}
+          style={{ width: `${Math.min(100, Math.max(0, achievement))}%` }}
+        />
       </div>
 
       {insight && (

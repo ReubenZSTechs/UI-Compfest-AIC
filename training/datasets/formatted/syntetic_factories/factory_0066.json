@@ -1,0 +1,380 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0066",
+    "factory_name": "Synthetic Plant 66",
+    "process_type": "parallel",
+    "declared_worker_count": 10,
+    "layout_description": "A parallel production line laid out along the sequence Machining -> Cutting -> Quality Inspection -> Assembly, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Machining",
+      "Cutting",
+      "Quality Inspection",
+      "Assembly"
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "PG-66-01",
+        "steps": [
+          "Quality Inspection",
+          "Machining"
+        ],
+        "reasoning": "Steps Quality Inspection, Machining do not share equipment or line dependencies, so they can run concurrently without blocking one another."
+      }
+    ]
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0066-001",
+      "asset_name": "Hydraulic Press 1",
+      "category": "machine",
+      "workflow_step": "Machining",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 255,
+      "operational_cost_per_hour": 66.8,
+      "environmental_factors": {
+        "noise_level_db": 44,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.11
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Machining' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0066-002",
+      "asset_name": "Lathe Station 2",
+      "category": "machine",
+      "workflow_step": "Machining",
+      "is_automated": false,
+      "units_available": 4,
+      "base_throughput_capacity": 21,
+      "operational_cost_per_hour": 12.65,
+      "environmental_factors": {
+        "noise_level_db": 86,
+        "vibration_hazard_level": "high",
+        "physical_strain_index": 0.84
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Machining' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0066-003",
+      "asset_name": "Lathe Station 3",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 1,
+      "base_throughput_capacity": 238,
+      "operational_cost_per_hour": 77.23,
+      "environmental_factors": {
+        "noise_level_db": 66,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.45
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0066-004",
+      "asset_name": "Injection Molder 4",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 2,
+      "base_throughput_capacity": 82,
+      "operational_cost_per_hour": 46.55,
+      "environmental_factors": {
+        "noise_level_db": 86,
+        "vibration_hazard_level": "high",
+        "physical_strain_index": 0.08
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0066-005",
+      "asset_name": "Coordinate Measuring Machine 5",
+      "category": "measuring_equipment",
+      "workflow_step": "Quality Inspection",
+      "is_automated": false,
+      "units_available": 3,
+      "base_throughput_capacity": 85,
+      "operational_cost_per_hour": 95.15,
+      "environmental_factors": {
+        "noise_level_db": 82,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.22
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a measuring equipment used at the 'Quality Inspection' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0066-006",
+      "asset_name": "Manual Assembly Bench 6",
+      "category": "manual_station",
+      "workflow_step": "Assembly",
+      "is_automated": false,
+      "units_available": 3,
+      "base_throughput_capacity": 161,
+      "operational_cost_per_hour": 37.68,
+      "environmental_factors": {
+        "noise_level_db": 50,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.58
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Assembly' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0066-001",
+      "job_title": "Machine Operator",
+      "workflow_step": "Machining",
+      "assigned_asset_id": "AST-0066-002",
+      "assigned_worker_name": [
+        "WKR-0066-001"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.29,
+        "physical_demand_level": "low",
+        "task_complexity": 0.78,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Lathe Station 2.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, moderate-severity task typical of the 'Machining' step."
+    },
+    {
+      "job_id": "JOB-0066-002",
+      "job_title": "Machine Operator",
+      "workflow_step": "Machining",
+      "assigned_asset_id": "AST-0066-001",
+      "assigned_worker_name": [
+        "WKR-0066-004",
+        "WKR-0066-009"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.18,
+        "physical_demand_level": "high",
+        "task_complexity": 0.73,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hydraulic Press 1.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, moderate-severity task typical of the 'Machining' step."
+    },
+    {
+      "job_id": "JOB-0066-003",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0066-004",
+      "assigned_worker_name": [
+        "WKR-0066-004"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.49,
+        "physical_demand_level": "low",
+        "task_complexity": 0.24,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Injection Molder 4.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, high-severity task typical of the 'Cutting' step."
+    },
+    {
+      "job_id": "JOB-0066-004",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0066-003",
+      "assigned_worker_name": [
+        "WKR-0066-004"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.67,
+        "physical_demand_level": "low",
+        "task_complexity": 0.47,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Lathe Station 3.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Cutting' step."
+    },
+    {
+      "job_id": "JOB-0066-005",
+      "job_title": "QC Inspector",
+      "workflow_step": "Quality Inspection",
+      "assigned_asset_id": "AST-0066-005",
+      "assigned_worker_name": [
+        "WKR-0066-004"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.71,
+        "physical_demand_level": "low",
+        "task_complexity": 0.48,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Coordinate Measuring Machine 5.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Quality Inspection' step."
+    },
+    {
+      "job_id": "JOB-0066-006",
+      "job_title": "Assembly Technician",
+      "workflow_step": "Assembly",
+      "assigned_asset_id": "AST-0066-006",
+      "assigned_worker_name": [
+        "WKR-0066-009"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.67,
+        "physical_demand_level": "low",
+        "task_complexity": 0.47,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Manual Assembly Bench 6.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, high-severity task typical of the 'Assembly' step."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0066-001",
+      "name": "Hari Santoso",
+      "demographics": {
+        "age": 21,
+        "gender": "female",
+        "years_of_experience": 13,
+        "baseline_physical_stamina": 0.33,
+        "cognitive_resilience": 0.52
+      },
+      "shift_context": {
+        "hours_worked_today": 3.9,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0066-002",
+      "name": "Lestari Wibowo",
+      "demographics": {
+        "age": 56,
+        "gender": "female",
+        "years_of_experience": 14,
+        "baseline_physical_stamina": 0.46,
+        "cognitive_resilience": 0.94
+      },
+      "shift_context": {
+        "hours_worked_today": 4.8,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0066-003",
+      "name": "Nia Kusuma",
+      "demographics": {
+        "age": 56,
+        "gender": "female",
+        "years_of_experience": 7,
+        "baseline_physical_stamina": 0.65,
+        "cognitive_resilience": 0.35
+      },
+      "shift_context": {
+        "hours_worked_today": 6.0,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0066-004",
+      "name": "Citra Permana",
+      "demographics": {
+        "age": 27,
+        "gender": "female",
+        "years_of_experience": 2,
+        "baseline_physical_stamina": 0.33,
+        "cognitive_resilience": 0.49
+      },
+      "shift_context": {
+        "hours_worked_today": 2.8,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0066-005",
+      "name": "Kartika Santoso",
+      "demographics": {
+        "age": 56,
+        "gender": "male",
+        "years_of_experience": 17,
+        "baseline_physical_stamina": 0.52,
+        "cognitive_resilience": 0.96
+      },
+      "shift_context": {
+        "hours_worked_today": 5.1,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0066-006",
+      "name": "Eka Hidayat",
+      "demographics": {
+        "age": 23,
+        "gender": "female",
+        "years_of_experience": 10,
+        "baseline_physical_stamina": 0.98,
+        "cognitive_resilience": 0.67
+      },
+      "shift_context": {
+        "hours_worked_today": 6.2,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0066-007",
+      "name": "Indra Santoso",
+      "demographics": {
+        "age": 36,
+        "gender": "female",
+        "years_of_experience": 8,
+        "baseline_physical_stamina": 0.46,
+        "cognitive_resilience": 0.95
+      },
+      "shift_context": {
+        "hours_worked_today": 3.2,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0066-008",
+      "name": "Gita Halim",
+      "demographics": {
+        "age": 30,
+        "gender": "female",
+        "years_of_experience": 9,
+        "baseline_physical_stamina": 0.66,
+        "cognitive_resilience": 0.59
+      },
+      "shift_context": {
+        "hours_worked_today": 2.6,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0066-009",
+      "name": "Gita Setiawan",
+      "demographics": {
+        "age": 36,
+        "gender": "male",
+        "years_of_experience": 4,
+        "baseline_physical_stamina": 0.78,
+        "cognitive_resilience": 0.8
+      },
+      "shift_context": {
+        "hours_worked_today": 5.5,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0066-010",
+      "name": "Oscar Setiawan",
+      "demographics": {
+        "age": 29,
+        "gender": "male",
+        "years_of_experience": 16,
+        "baseline_physical_stamina": 0.81,
+        "cognitive_resilience": 0.5
+      },
+      "shift_context": {
+        "hours_worked_today": 2.5,
+        "consecutive_shifts": 4
+      }
+    }
+  ]
+}

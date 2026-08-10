@@ -1,3 +1,5 @@
+// frontend/src/features/digital-twin/components/CompatibilityMatrix.tsx
+
 import { useMemo } from "react";
 import type { Worker, JobDesk, CompatibilityEvaluation } from "../types/digitalTwin.types";
 import { getInitials } from "../utils/formatMetrics";
@@ -6,27 +8,34 @@ import { useDigitalTwinStore } from "../store/digitalTwinStore";
 import styles from "./CompatibilityMatrix.module.css";
 
 interface CompatibilityMatrixProps {
-  workers: Worker[];
-  jobDesks: JobDesk[];
-  evaluations: CompatibilityEvaluation[];
+  workers?: Worker[] | null;
+  jobDesks?: JobDesk[] | null;
+  evaluations?: CompatibilityEvaluation[] | null;
 }
 
 export function CompatibilityMatrix({
-  workers,
-  jobDesks,
-  evaluations,
+  workers = [],
+  jobDesks = [],
+  evaluations = [],
 }: CompatibilityMatrixProps) {
+  // Menjamin variabel selalu berupa array meskipun dikirim `null` secara eksplisit
+  const safeWorkers = workers ?? [];
+  const safeJobDesks = jobDesks ?? [];
+  const safeEvaluations = evaluations ?? [];
+
   const selectedWorkerId = useDigitalTwinStore((s) => s.selectedWorkerId);
   const selectedJobId = useDigitalTwinStore((s) => s.selectedJobId);
   const selectPair = useDigitalTwinStore((s) => s.selectPair);
 
   const evaluationLookup = useMemo(() => {
     const map = new Map<string, CompatibilityEvaluation>();
-    evaluations.forEach((ev) => {
-      map.set(`${ev.worker_id}__${ev.job_id}`, ev);
+    safeEvaluations.forEach((ev) => {
+      if (ev?.workerId && ev?.jobId) {
+        map.set(`${ev.workerId}__${ev.jobId}`, ev);
+      }
     });
     return map;
-  }, [evaluations]);
+  }, [safeEvaluations]);
 
   const activeEvaluation = useMemo(() => {
     if (!selectedWorkerId || !selectedJobId) return null;
@@ -34,7 +43,7 @@ export function CompatibilityMatrix({
   }, [evaluationLookup, selectedWorkerId, selectedJobId]);
 
   function handleCellClick(workerId: string, jobId: string) {
-  selectPair(workerId, jobId);
+    selectPair(workerId, jobId);
   }
 
   function handleCellKeyDown(e: React.KeyboardEvent, workerId: string, jobId: string) {
@@ -44,9 +53,20 @@ export function CompatibilityMatrix({
     }
   }
 
+  // Tampilan cadangan jika data pekerja atau job desk masih kosong
+  if (safeWorkers.length === 0 || safeJobDesks.length === 0) {
+    return (
+      <div className={styles.wrapper}>
+        <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted, #888)" }}>
+          Data matriks kompatibilitas belum tersedia atau kosong.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.wrapper}>
-      {/* Legend — mirip skala pada panel sensor */}
+      {/* Legend — skala pada panel sensor */}
       <div className={styles.legend}>
         <span className={styles.legendLabel}>Skor Kompatibilitas</span>
         <div className={styles.legendBar} />
@@ -62,66 +82,66 @@ export function CompatibilityMatrix({
           <thead>
             <tr>
               <th className={styles.cornerCell} />
-              {jobDesks.map((job) => (
+              {safeJobDesks.map((job) => (
                 <th
-                  key={job.job_id}
+                  key={job.jobId}
                   className={`${styles.colHeader} ${
-                    selectedJobId === job.job_id ? styles.headerActive : ""
+                    selectedJobId === job.jobId ? styles.headerActive : ""
                   }`}
-                  title={job.job_title}
+                  title={job.jobTitle}
                 >
-                  <span className={styles.colHeaderText}>{job.job_id}</span>
+                  <span className={styles.colHeaderText}>{job.jobId}</span>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {workers.map((worker) => (
-              <tr key={worker.worker_id}>
+            {safeWorkers.map((worker) => (
+              <tr key={worker.workerId}>
                 <th
                   className={`${styles.rowHeader} ${
-                    selectedWorkerId === worker.worker_id ? styles.headerActive : ""
+                    selectedWorkerId === worker.workerId ? styles.headerActive : ""
                   }`}
                 >
-                  <span className={styles.rowAvatar}>{getInitials(worker.name)}</span>
-                  <span className={styles.rowName}>{worker.name}</span>
+                  <span className={styles.rowAvatar}>{getInitials(worker.name ?? "")}</span>
+                  <span className={styles.rowName}>{worker.name ?? worker.workerId}</span>
                 </th>
 
-                {jobDesks.map((job) => {
+                {safeJobDesks.map((job) => {
                   const evaluation = evaluationLookup.get(
-                    `${worker.worker_id}__${job.job_id}`
+                    `${worker.workerId}__${job.jobId}`
                   );
                   const isSelected =
-                    selectedWorkerId === worker.worker_id && selectedJobId === job.job_id;
+                    selectedWorkerId === worker.workerId && selectedJobId === job.jobId;
                   const inSelectedRowOrCol =
-                    selectedWorkerId === worker.worker_id ||
-                    selectedJobId === job.job_id;
+                    selectedWorkerId === worker.workerId ||
+                    selectedJobId === job.jobId;
 
                   if (!evaluation) {
                     return (
-                      <td key={job.job_id} className={styles.cellEmpty} aria-disabled="true">
+                      <td key={job.jobId} className={styles.cellEmpty} aria-disabled="true">
                         <span className={styles.emptyDash}>—</span>
                       </td>
                     );
                   }
 
-                  const score = evaluation.evaluations.overall_compatibility_score;
+                  const score = evaluation.evaluations?.overallCompatibilityScore ?? 0;
                   const bg = compatibilityScoreToColor(score);
                   const textColor = readableTextColor(score);
 
                   return (
                     <td
-                      key={job.job_id}
+                      key={job.jobId}
                       className={`${styles.cell} ${isSelected ? styles.cellSelected : ""} ${
                         inSelectedRowOrCol && !isSelected ? styles.cellDimmed : ""
                       }`}
                       style={{ backgroundColor: bg, color: textColor }}
-                      onClick={() => handleCellClick(worker.worker_id, job.job_id)}
-                      onKeyDown={(e) => handleCellKeyDown(e, worker.worker_id, job.job_id)}
+                      onClick={() => handleCellClick(worker.workerId, job.jobId)}
+                      onKeyDown={(e) => handleCellKeyDown(e, worker.workerId, job.jobId)}
                       tabIndex={0}
                       role="button"
                       aria-pressed={isSelected}
-                      aria-label={`Kompatibilitas ${worker.name} dengan ${job.job_title}: ${score.toFixed(2)}`}
+                      aria-label={`Kompatibilitas ${worker.name} dengan ${job.jobTitle}: ${score.toFixed(2)}`}
                     >
                       {score.toFixed(2)}
                     </td>
@@ -138,40 +158,52 @@ export function CompatibilityMatrix({
         <div className={styles.detailPanel}>
           <div className={styles.detailHeader}>
             <span className={styles.detailPairId}>
-              {activeEvaluation.worker_id} → {activeEvaluation.job_id}
+              {activeEvaluation.workerId} → {activeEvaluation.jobId}
             </span>
             <span
               className={styles.detailScore}
               style={{
                 color: compatibilityScoreToColor(
-                  activeEvaluation.evaluations.overall_compatibility_score
+                  activeEvaluation.evaluations?.overallCompatibilityScore ?? 0
                 ),
               }}
             >
-              {activeEvaluation.evaluations.overall_compatibility_score.toFixed(2)}
+              {(activeEvaluation.evaluations?.overallCompatibilityScore ?? 0).toFixed(2)}
             </span>
           </div>
 
           <div className={styles.detailMetricsGrid}>
             <DetailMetric
               label="Throughput"
-              value={`${activeEvaluation.evaluations.throughput_multiplier.toFixed(2)}x`}
+              value={`${(activeEvaluation.evaluations?.throughputMultiplier ?? 1).toFixed(2)}x`}
             />
             <DetailMetric
               label="Error Multiplier"
-              value={`${activeEvaluation.evaluations.error_multiplier.toFixed(2)}x`}
+              value={`${(activeEvaluation.evaluations?.errorMultiplier ?? 1).toFixed(2)}x`}
             />
             <DetailMetric
               label="Akumulasi Fatigue"
-              value={`${activeEvaluation.evaluations.fatigue_accumulation_rate.toFixed(2)}x`}
+              value={
+                activeEvaluation.evaluations?.fatigueAccumulationRate !== undefined &&
+                activeEvaluation.evaluations?.fatigueAccumulationRate !== null
+                  ? `${activeEvaluation.evaluations.fatigueAccumulationRate.toFixed(2)}x`
+                  : "-"
+              }
             />
             <DetailMetric
               label="Sensitivitas Stres"
-              value={`${activeEvaluation.evaluations.stress_sensitivity_factor.toFixed(2)}x`}
+              value={
+                activeEvaluation.evaluations?.stressSensitivityFactor !== undefined &&
+                activeEvaluation.evaluations?.stressSensitivityFactor !== null
+                  ? `${activeEvaluation.evaluations.stressSensitivityFactor.toFixed(2)}x`
+                  : "-"
+              }
             />
           </div>
 
-          <p className={styles.detailReasoning}>{activeEvaluation.llm_reasoning}</p>
+          {activeEvaluation.llmReasoning && (
+            <p className={styles.detailReasoning}>{activeEvaluation.llmReasoning}</p>
+          )}
         </div>
       )}
     </div>

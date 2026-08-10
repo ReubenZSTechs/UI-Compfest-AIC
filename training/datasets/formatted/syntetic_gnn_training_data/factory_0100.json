@@ -1,0 +1,1982 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0100",
+    "factory_name": "Synthetic Plant 100",
+    "process_type": "parallel",
+    "declared_worker_count": 14,
+    "layout_description": "A parallel production line laid out along the sequence Machining -> Assembly -> Raw Material Intake -> Surface Treatment -> Cutting -> Packaging, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Machining",
+      "Assembly",
+      "Raw Material Intake",
+      "Surface Treatment",
+      "Cutting",
+      "Packaging"
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "PG-100-01",
+        "steps": [
+          "Surface Treatment",
+          "Assembly"
+        ],
+        "reasoning": "Steps Surface Treatment, Assembly do not share equipment or line dependencies, so they can run concurrently without blocking one another."
+      }
+    ]
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0100-001",
+      "asset_name": "Hydraulic Press 1",
+      "category": "machine",
+      "workflow_step": "Machining",
+      "is_automated": false,
+      "units_available": 2,
+      "base_throughput_capacity": 81,
+      "operational_cost_per_hour": 57.47,
+      "environmental_factors": {
+        "noise_level_db": 75,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.2
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Machining' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0100-002",
+      "asset_name": "Inspection Table 2",
+      "category": "manual_station",
+      "workflow_step": "Assembly",
+      "is_automated": false,
+      "units_available": 3,
+      "base_throughput_capacity": 163,
+      "operational_cost_per_hour": 35.97,
+      "environmental_factors": {
+        "noise_level_db": 55,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.37
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Assembly' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0100-003",
+      "asset_name": "Inspection Table 3",
+      "category": "manual_station",
+      "workflow_step": "Assembly",
+      "is_automated": false,
+      "units_available": 3,
+      "base_throughput_capacity": 191,
+      "operational_cost_per_hour": 119.81,
+      "environmental_factors": {
+        "noise_level_db": 78,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.46
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Assembly' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0100-004",
+      "asset_name": "Belt Conveyor 4",
+      "category": "conveyor_automation",
+      "workflow_step": "Raw Material Intake",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 93,
+      "operational_cost_per_hour": 39.3,
+      "environmental_factors": {
+        "noise_level_db": 77,
+        "vibration_hazard_level": "high",
+        "physical_strain_index": 0.23
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Raw Material Intake' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0100-005",
+      "asset_name": "Curing Oven 5",
+      "category": "environmental_chamber",
+      "workflow_step": "Surface Treatment",
+      "is_automated": false,
+      "units_available": 2,
+      "base_throughput_capacity": 254,
+      "operational_cost_per_hour": 46.89,
+      "environmental_factors": {
+        "noise_level_db": 35,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.82
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a environmental chamber used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0100-006",
+      "asset_name": "CNC Mill 6",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 249,
+      "operational_cost_per_hour": 5.09,
+      "environmental_factors": {
+        "noise_level_db": 83,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.37
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0100-007",
+      "asset_name": "Injection Molder 7",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 133,
+      "operational_cost_per_hour": 85.32,
+      "environmental_factors": {
+        "noise_level_db": 62,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.69
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0100-008",
+      "asset_name": "Hand-Pack Station 8",
+      "category": "manual_station",
+      "workflow_step": "Packaging",
+      "is_automated": false,
+      "units_available": 1,
+      "base_throughput_capacity": 144,
+      "operational_cost_per_hour": 105.48,
+      "environmental_factors": {
+        "noise_level_db": 87,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.76
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Packaging' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0100-009",
+      "asset_name": "Belt Conveyor 9",
+      "category": "conveyor_automation",
+      "workflow_step": "Packaging",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 275,
+      "operational_cost_per_hour": 33.61,
+      "environmental_factors": {
+        "noise_level_db": 58,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.66
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Packaging' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0100-001",
+      "job_title": "Machine Operator",
+      "workflow_step": "Machining",
+      "assigned_asset_id": "AST-0100-001",
+      "assigned_worker_name": [
+        "WKR-0100-003"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.44,
+        "physical_demand_level": "low",
+        "task_complexity": 0.49,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hydraulic Press 1.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Machining' step."
+    },
+    {
+      "job_id": "JOB-0100-002",
+      "job_title": "Assembly Technician",
+      "workflow_step": "Assembly",
+      "assigned_asset_id": "AST-0100-003",
+      "assigned_worker_name": [
+        "WKR-0100-006"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.51,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.87,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Inspection Table 3.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a medium physical, moderate-severity task typical of the 'Assembly' step."
+    },
+    {
+      "job_id": "JOB-0100-003",
+      "job_title": "Assembly Technician",
+      "workflow_step": "Assembly",
+      "assigned_asset_id": "AST-0100-002",
+      "assigned_worker_name": [
+        "WKR-0100-003"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.26,
+        "physical_demand_level": "high",
+        "task_complexity": 0.55,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Inspection Table 2.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, moderate-severity task typical of the 'Assembly' step."
+    },
+    {
+      "job_id": "JOB-0100-004",
+      "job_title": "Material Handler",
+      "workflow_step": "Raw Material Intake",
+      "assigned_asset_id": "AST-0100-004",
+      "assigned_worker_name": [
+        "WKR-0100-010",
+        "WKR-0100-014"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.44,
+        "physical_demand_level": "low",
+        "task_complexity": 0.92,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Belt Conveyor 4.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Raw Material Intake' step."
+    },
+    {
+      "job_id": "JOB-0100-005",
+      "job_title": "Surface Treatment Operator",
+      "workflow_step": "Surface Treatment",
+      "assigned_asset_id": "AST-0100-005",
+      "assigned_worker_name": [
+        "WKR-0100-006"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.87,
+        "physical_demand_level": "high",
+        "task_complexity": 0.91,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Curing Oven 5.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, low-severity task typical of the 'Surface Treatment' step."
+    },
+    {
+      "job_id": "JOB-0100-006",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0100-006",
+      "assigned_worker_name": [
+        "WKR-0100-006"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.84,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.44,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on CNC Mill 6.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a medium physical, high-severity task typical of the 'Cutting' step."
+    },
+    {
+      "job_id": "JOB-0100-007",
+      "job_title": "Packaging Operator",
+      "workflow_step": "Packaging",
+      "assigned_asset_id": "AST-0100-009",
+      "assigned_worker_name": [
+        "WKR-0100-006"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.36,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.31,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Belt Conveyor 9.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a medium physical, high-severity task typical of the 'Packaging' step."
+    },
+    {
+      "job_id": "JOB-0100-008",
+      "job_title": "Packaging Operator",
+      "workflow_step": "Packaging",
+      "assigned_asset_id": "AST-0100-008",
+      "assigned_worker_name": [
+        "WKR-0100-001"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.31,
+        "physical_demand_level": "high",
+        "task_complexity": 0.62,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hand-Pack Station 8.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, moderate-severity task typical of the 'Packaging' step."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0100-001",
+      "name": "Gita Pratama",
+      "demographics": {
+        "age": 23,
+        "gender": "male",
+        "years_of_experience": 14,
+        "baseline_physical_stamina": 0.94,
+        "cognitive_resilience": 0.3
+      },
+      "shift_context": {
+        "hours_worked_today": 4.2,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "name": "Joko Setiawan",
+      "demographics": {
+        "age": 28,
+        "gender": "male",
+        "years_of_experience": 8,
+        "baseline_physical_stamina": 0.5,
+        "cognitive_resilience": 0.32
+      },
+      "shift_context": {
+        "hours_worked_today": 7.2,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "name": "Hari Wijaya",
+      "demographics": {
+        "age": 38,
+        "gender": "male",
+        "years_of_experience": 7,
+        "baseline_physical_stamina": 0.99,
+        "cognitive_resilience": 0.72
+      },
+      "shift_context": {
+        "hours_worked_today": 0.2,
+        "consecutive_shifts": 2
+      }
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "name": "Lestari Setiawan",
+      "demographics": {
+        "age": 44,
+        "gender": "male",
+        "years_of_experience": 19,
+        "baseline_physical_stamina": 1.0,
+        "cognitive_resilience": 0.72
+      },
+      "shift_context": {
+        "hours_worked_today": 0.6,
+        "consecutive_shifts": 2
+      }
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "name": "Oscar Pratama",
+      "demographics": {
+        "age": 41,
+        "gender": "male",
+        "years_of_experience": 0,
+        "baseline_physical_stamina": 0.73,
+        "cognitive_resilience": 0.41
+      },
+      "shift_context": {
+        "hours_worked_today": 10.0,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "name": "Indra Pratama",
+      "demographics": {
+        "age": 27,
+        "gender": "female",
+        "years_of_experience": 1,
+        "baseline_physical_stamina": 0.79,
+        "cognitive_resilience": 0.88
+      },
+      "shift_context": {
+        "hours_worked_today": 0.8,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "name": "Dewi Wibowo",
+      "demographics": {
+        "age": 50,
+        "gender": "female",
+        "years_of_experience": 15,
+        "baseline_physical_stamina": 0.3,
+        "cognitive_resilience": 0.74
+      },
+      "shift_context": {
+        "hours_worked_today": 9.5,
+        "consecutive_shifts": 2
+      }
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "name": "Kartika Permana",
+      "demographics": {
+        "age": 21,
+        "gender": "male",
+        "years_of_experience": 18,
+        "baseline_physical_stamina": 0.76,
+        "cognitive_resilience": 0.48
+      },
+      "shift_context": {
+        "hours_worked_today": 7.7,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "name": "Eka Permana",
+      "demographics": {
+        "age": 39,
+        "gender": "male",
+        "years_of_experience": 2,
+        "baseline_physical_stamina": 0.96,
+        "cognitive_resilience": 0.84
+      },
+      "shift_context": {
+        "hours_worked_today": 1.1,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "name": "Eka Wibowo",
+      "demographics": {
+        "age": 37,
+        "gender": "male",
+        "years_of_experience": 20,
+        "baseline_physical_stamina": 0.92,
+        "cognitive_resilience": 0.44
+      },
+      "shift_context": {
+        "hours_worked_today": 5.1,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "name": "Budi Permana",
+      "demographics": {
+        "age": 22,
+        "gender": "male",
+        "years_of_experience": 20,
+        "baseline_physical_stamina": 0.58,
+        "cognitive_resilience": 0.67
+      },
+      "shift_context": {
+        "hours_worked_today": 6.0,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "name": "Farid Santoso",
+      "demographics": {
+        "age": 51,
+        "gender": "male",
+        "years_of_experience": 9,
+        "baseline_physical_stamina": 0.96,
+        "cognitive_resilience": 0.76
+      },
+      "shift_context": {
+        "hours_worked_today": 0.2,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "name": "Kartika Setiawan",
+      "demographics": {
+        "age": 59,
+        "gender": "female",
+        "years_of_experience": 5,
+        "baseline_physical_stamina": 0.74,
+        "cognitive_resilience": 0.36
+      },
+      "shift_context": {
+        "hours_worked_today": 4.2,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "name": "Nia Setiawan",
+      "demographics": {
+        "age": 56,
+        "gender": "female",
+        "years_of_experience": 3,
+        "baseline_physical_stamina": 0.57,
+        "cognitive_resilience": 0.38
+      },
+      "shift_context": {
+        "hours_worked_today": 8.0,
+        "consecutive_shifts": 3
+      }
+    }
+  ],
+  "synthetic_compatibility_evaluations": [
+    {
+      "worker_id": "WKR-0100-001",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.85,
+        "fatigue_accumulation_rate": 1.1,
+        "stress_sensitivity_factor": 0.7
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and physical stamina are somewhat offset by their low years of experience and high consecutive shifts, which increases their fatigue accumulation rate. The job's moderate task complexity and low error severity are also factors, but the worker's physical stamina is a concern due to the low physical demand level of the job. The asset's noise level and vibration hazard level are significant stress multipliers, which amplifies the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-001",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.73,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and years of experience are somewhat offset by their low cognitive resilience, which is further exacerbated by the job's high task complexity and moderate error severity. The noisy and vibration-prone environment of the Inspection Table 3 also amplifies the worker's stress sensitivity, making them more prone to fatigue and errors."
+    },
+    {
+      "worker_id": "WKR-0100-001",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.63,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience help offset the demands of the assembly technician job, but the worker's fatigue accumulation rate is higher than expected due to consecutive shifts. The inspection table's environmental factors also contribute to the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-001",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.63,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.08,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience are somewhat offset by the job's demanding task complexity and the high noise level of the asset, which amplifies the worker's stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-001",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.11,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's low cognitive resilience (0.3) and moderate physical stamina (0.94) make them a poor fit for the job's high physical demand level and task complexity. The worker's fatigue accumulation rate is high due to their 6 consecutive shifts, and their stress sensitivity factor is increased by the job's high task complexity and the asset's moderate noise level."
+    },
+    {
+      "worker_id": "WKR-0100-001",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.21,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.64
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience offset the job's moderate physical demands, but the high error severity and task complexity amplify the worker's stress sensitivity. The automated asset reduces the impact of physical demands, but the worker's fatigue accumulation rate remains high due to consecutive shifts."
+    },
+    {
+      "worker_id": "WKR-0100-001",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's relatively low cognitive resilience (0.3) and moderate years of experience (14) are offset by their high baseline physical stamina (0.94), but the job's high error severity and moderate task complexity are exacerbated by the noisy and moderately physically straining environment of the belt conveyor. As a result, the worker's fatigue accumulation rate is higher than expected, and their stress sensitivity factor is moderately elevated."
+    },
+    {
+      "worker_id": "WKR-0100-001",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.54,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.08,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience are somewhat offset by their low stamina and fatigue accumulation, but the job's demands are not extremely high. The asset's physical strain index and environmental factors also contribute to the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.64,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.85,
+        "fatigue_accumulation_rate": 1.11,
+        "stress_sensitivity_factor": 0.69
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are a good match for the job's demands, but the high noise level and vibration hazard in the environment may increase the worker's stress levels. The worker's fatigue accumulation rate is higher than expected due to the consecutive shifts, and the stress sensitivity factor is moderately increased due to the high noise level."
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.68
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are insufficient to meet the demands of this job, which requires high cognitive focus and task complexity. The noisy and vibrating environment also exacerbates the worker's stress levels. The worker's fatigue accumulation rate is high due to the long hours worked today and the consecutive shifts. The stress sensitivity factor is increased due to the moderate error severity and the worker's fatigue."
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience help mitigate the demands of this job, but the high physical demand level and moderate error severity still pose significant challenges. The noisy and moderately vibrating environment further increases the worker's stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 0.85,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are somewhat offset by their fatigue accumulation rate, which is higher than average due to consecutive shifts. The job's moderate cognitive demands and low physical demands are somewhat mitigated by the asset's automation, but the high noise level and vibration hazard level in the environment exacerbate the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are partially offset by their years of experience, but the job's high physical demand and task complexity, combined with the non-automated asset's moderate physical strain index, result in a lower overall compatibility score. The worker's fatigue accumulation rate is higher due to their prolonged shift and consecutive shifts, and the stress sensitivity factor is moderately increased due to the high noise level and task complexity."
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.85
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are somewhat offset by their fatigue accumulation due to consecutive shifts, but the automated CNC Mill 6 reduces the importance of physical demands. However, the high noise level and task complexity amplify the stress sensitivity factor, and the high error severity increases the error multiplier."
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.27,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are somewhat offset by their fatigue from consecutive shifts, which compounds the asset's high noise level and task complexity. The automated nature of the belt conveyor reduces the impact of physical demands, but the worker's experience and cognitive fit remain a concern."
+    },
+    {
+      "worker_id": "WKR-0100-002",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.12,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and physical stamina are partially offset by their years of experience, but the job's high physical demand level and moderate error severity are significant concerns. The worker's fatigue accumulation rate is increased due to consecutive shifts, and the stress sensitivity factor is elevated by the high noise level and task complexity."
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.82,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.83,
+        "fatigue_accumulation_rate": 0.42,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are offset by the job's moderate task complexity and the noisy environment, but the worker's cognitive resilience is sufficient to handle the required cognitive focus. The asset's physical strain index is low, but the worker's fatigue accumulation rate is slightly increased due to the short hours worked today and consecutive shifts."
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.63,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate years of experience and physical stamina are offset by the job's high task complexity and moderate error severity, exacerbated by the noisy and moderately vibrating environment. The worker's cognitive resilience is somewhat adequate but not sufficient to handle the demands of this job."
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.9,
+        "error_multiplier": 1.2,
+        "fatigue_accumulation_rate": 1.1,
+        "stress_sensitivity_factor": 0.8
+      },
+      "llm_reasoning": "The worker's moderate years of experience and physical stamina are offset by their relatively low cognitive resilience, which may lead to errors in a job with moderate task complexity and high error severity. The inspection table's high noise level and physical strain index also increase the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.85,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are offset by the job's high task complexity and the asset's high noise level, making this a less-than-ideal fit. The worker's fatigue accumulation rate is increased due to the short hours worked today and consecutive shifts. The stress sensitivity factor is moderately elevated due to the high task complexity and noise level."
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.11,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.72
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are partially offset by the job's high physical demand and task complexity, which are exacerbated by the noisy and moderately strained environment. The worker's cognitive resilience is adequate but not exceptional, which contributes to a moderate overall compatibility score."
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.61,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.02,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and physical stamina are offset by their relatively low experience and the job's high task complexity and error severity. The automated CNC Mill 6 reduces the physical demands, but the worker's fatigue accumulation rate is increased by their short hours worked today and consecutive shifts. The noisy environment also amplifies the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience (0.72) and experience (7 years) help offset the job's high required cognitive focus (0.36) and task complexity (0.31), but the worker's fatigue accumulation rate is high due to working 20% of the shift and having 2 consecutive shifts. The asset's moderate physical strain index (0.66) and low vibration hazard level reduce the impact of the worker's low baseline physical stamina (0.99)."
+    },
+    {
+      "worker_id": "WKR-0100-003",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.54,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.22,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience help offset the high physical demand level and task complexity of the Packaging Operator job, but the worker's fatigue accumulation rate is increased due to consecutive shifts and hours worked today. The noisy and physically straining environment of the Hand-Pack Station 8 also exacerbates the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.1,
+        "fatigue_accumulation_rate": 1.1,
+        "stress_sensitivity_factor": 0.8
+      },
+      "llm_reasoning": "The worker's cognitive resilience is a good match for the job's required cognitive focus, but the worker's physical stamina is lower than the job's physical demands. The worker's fatigue accumulation rate is high due to the consecutive shifts worked, and the stress sensitivity factor is increased due to the high noise level in the environment. However, the worker's years of experience provides some buffer against these factors."
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.72,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.15,
+        "fatigue_accumulation_rate": 1.05,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience partially offset the demands of the job, but the worker's physical stamina is a concern due to the medium physical demand level and moderate error severity. The Inspection Table 3's environmental factors, particularly the high noise level, also increase the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience are offset by the job's high physical demand level and task complexity, exacerbated by the Inspection Table's medium vibration hazard level and moderate error severity. The worker's fatigue accumulation rate is increased due to the consecutive shifts worked today, and the stress sensitivity factor is amplified by the Inspection Table's noise level and vibration hazard."
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.85,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.75
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are offset by their relatively low cognitive resilience, which may lead to errors in a task with moderate complexity and low error severity. The automated nature of the asset reduces the importance of physical stamina, but the high noise level and vibration hazard level in the environment increase the worker's stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.9,
+        "error_multiplier": 1.1,
+        "fatigue_accumulation_rate": 1.2,
+        "stress_sensitivity_factor": 0.7
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are partially offset by their years of experience, but the job's high physical demand level and task complexity, combined with the asset's high noise level and moderate physical strain index, result in a moderate overall compatibility score and a higher error multiplier."
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.01,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience buffer the demands of the CNC Mill 6, but the high noise level and required cognitive focus of the job still pose significant challenges, increasing the risk of fatigue and errors."
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.58,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience are partially offset by the high required cognitive focus and task complexity of the job. The automated nature of the belt conveyor reduces the impact of physical demands, but the high noise level and vibration hazard amplify stress sensitivity. The worker's fatigue accumulation rate is increased due to the consecutive shifts, and their stress sensitivity factor is moderately elevated due to the harsh environment."
+    },
+    {
+      "worker_id": "WKR-0100-004",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.53,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.14,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience (0.72) is somewhat offset by the job's moderate task complexity (0.62) and high physical demand level, which strains the worker's baseline physical stamina (1.0). The asset's noisy environment (87 dB) and moderate vibration hazard level also increase the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.53,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.11,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's low years of experience and physical stamina make them a poor fit for this job, which requires moderate cognitive focus and physical demands. The worker's cognitive resilience is also lower than the job's required cognitive focus, increasing the likelihood of errors. The noisy and vibrating environment of the hydraulic press further increases the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.02,
+        "stress_sensitivity_factor": 0.61
+      },
+      "llm_reasoning": "The worker's low years of experience and physical stamina, combined with the job's moderate error severity and high task complexity, result in a lower overall compatibility score. The asset's high noise level and vibration hazard also contribute to the worker's stress sensitivity, but the physical demand level is moderate, which helps to mitigate some of the fatigue accumulation rate."
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.88,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.02,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's low years of experience and baseline physical stamina, combined with the high physical demand level of the job, result in a moderate overall compatibility score. The worker's fatigue accumulation rate is slightly increased due to the long hours worked today, and the stress sensitivity factor is elevated by the moderate error severity and medium vibration hazard level of the asset's environment."
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.52,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's low years of experience and physical stamina, combined with the job's high task complexity and error severity, contribute to a moderate compatibility score. The asset's automation and environmental factors, particularly the high noise level, amplify the worker's stress sensitivity. The worker's fatigue accumulation rate is elevated due to consecutive shifts, and the error multiplier is increased due to the job's error severity."
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.11,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's low years of experience and physical stamina, combined with the job's high physical demand and task complexity, result in a moderate overall compatibility score. The worker's fatigue accumulation rate is increased due to consecutive shifts, and the stress sensitivity factor is amplified by the noisy environment and high task complexity."
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.32,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.43,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "This worker's low years of experience and physical stamina, combined with the high physical demand level of the CNC Mill 6, result in a poor overall compatibility score. The high error severity of the Cutting Operator job further exacerbates this issue, increasing the error multiplier. The worker's fatigue accumulation rate is also elevated due to the 10 hours worked today, and the stress sensitivity factor is increased by the high noise level of the CNC Mill 6."
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.56,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's low cognitive resilience and years of experience, combined with the high error severity of the job, result in a moderate overall compatibility score. The automated asset reduces the physical demand level, but the worker's fatigue accumulation rate is still elevated due to the long hours worked today. The high noise level in the environment further increases the stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-005",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's low years of experience and physical stamina, combined with the high physical demand level and task complexity of the job, result in a moderate overall compatibility score. The worker's fatigue accumulation rate is elevated due to the long hours worked today and the moderate error severity of the job. The stress sensitivity factor is moderately increased due to the high noise level and task complexity of the job."
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.22,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's relatively low years of experience and physical stamina, combined with the job's moderate task complexity and low physical demand level, result in a moderate overall compatibility score. The worker's fatigue accumulation rate is higher due to the consecutive shifts worked today, and the stress sensitivity factor is increased by the job's task complexity and the asset's high noise level. However, the worker's cognitive resilience and the job's low error severity mitigate some of these effects."
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.25,
+        "fatigue_accumulation_rate": 1.2,
+        "stress_sensitivity_factor": 0.7
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are offset by their limited experience and the job's moderate physical demands and high task complexity. The noisy and vibrating environment of the Inspection Table 3 also increases the worker's stress sensitivity. Overall, the worker's compatibility with the job and asset is below average due to these factors."
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.64,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.82
+      },
+      "llm_reasoning": "The worker's relatively low years of experience and moderate cognitive resilience are offset by their high physical stamina, but the job's high physical demand level and moderate error severity are mitigated by the worker's high cognitive resilience. The noisy and moderately hazardous environment also increases the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.11,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's relatively low years of experience and physical stamina, combined with the job's moderate cognitive demands and low physical demands, result in a moderate overall compatibility score. The worker's fatigue accumulation rate is increased due to the long consecutive shifts, and the stress sensitivity factor is elevated due to the high noise level and vibration hazard level of the asset."
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.53,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.21,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and physical stamina are somewhat offset by their limited experience and fatigue from consecutive shifts. The job's high task complexity and physical demand level, combined with the noisy and moderately straining environment, amplify the worker's stress sensitivity and fatigue accumulation rate."
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.91,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's low years of experience and physical stamina, combined with the job's high physical demand level and error severity, result in a low overall compatibility score. The worker's cognitive resilience is sufficient to handle the job's required cognitive focus, but the physical demands of the job are likely to lead to fatigue accumulation. The CNC Mill 6's automated nature reduces the physical demands, but the high noise level and vibration hazard level increase the stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.63,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's relatively low years of experience and moderate baseline physical stamina are offset by their high cognitive resilience, but the job's high task complexity and error severity, combined with the noisy and moderately physically straining environment, amplify the worker's stress sensitivity factor and fatigue accumulation rate."
+    },
+    {
+      "worker_id": "WKR-0100-006",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.55,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.05,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's limited experience and physical stamina, combined with the high physical demand level of the job, result in a moderate overall compatibility score. The moderate error severity and high task complexity of the job, coupled with the noisy and vibrating environment, increase the error multiplier and stress sensitivity factor. The worker's fatigue accumulation rate is elevated due to the consecutive shifts worked today."
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 1.11,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.68
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are offset by the job's moderate cognitive demands and low physical demands. The worker's fatigue accumulation rate is increased due to the consecutive shifts, and the stress sensitivity factor is amplified by the high noise level and medium vibration hazard level."
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.1,
+        "stress_sensitivity_factor": 0.85
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience are partially offset by the high task complexity and moderate error severity of the job, as well as the worker's fatigue accumulation rate due to 9.5 hours worked today and 2 consecutive shifts. The Inspection Table 3's medium vibration hazard level and physical strain index also amplify the stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.02,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience help offset the demands of the assembly technician job, but the high physical demand level and moderate error severity still pose a challenge. The inspection table's noise level and vibration hazard also contribute to the worker's stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.64,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and years of experience partially offset the demands of the Material Handler job, but the high noise level and vibration hazard on the Belt Conveyor 4 asset amplify the stress sensitivity factor, increasing the risk of fatigue and error. The worker's cognitive resilience is sufficient for the required cognitive focus, but the high task complexity and low error severity contribute to a moderate error multiplier."
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.05,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are offset by the high physical demand and task complexity of the job, which is performed on a non-automated asset in a moderately noisy environment. The worker's fatigue accumulation rate is increased due to the 9.5 hours worked today and 2 consecutive shifts, and the stress sensitivity factor is moderately elevated due to the high task complexity and low error severity."
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.2,
+        "fatigue_accumulation_rate": 1.1,
+        "stress_sensitivity_factor": 0.8
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience help offset the demands of the cutting operator job, but the worker's low physical stamina and the high noise level on the CNC Mill 6 asset amplify fatigue and stress. The asset's partial automation reduces the impact of physical demands, but the worker's fatigue accumulation rate remains elevated due to the recent long shift and consecutive shifts."
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.52,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.08,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience are offset by the high required cognitive focus and task complexity of the job. The asset's automation reduces the impact of the worker's low physical stamina, but the high noise level and physical strain index of the environment amplify the stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-007",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.56,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate years of experience and cognitive resilience are somewhat offset by their low physical stamina and the high physical demand of the job. The noisy and vibrating environment of the Hand-Pack Station 8 also increases the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.42,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.11,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's low cognitive resilience and years of experience are not well-suited for the task's moderate cognitive demands, and the machine's physical strain index is relatively high, contributing to a lower overall compatibility score. The worker's fatigue accumulation rate is elevated due to the long hours worked today and consecutive shifts, and the stress sensitivity factor is increased by the high noise level and vibration hazard level of the asset."
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.64,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and relatively low cognitive resilience are mismatched against the job's medium physical demand level and high task complexity. The worker's years of experience partially compensate for these mismatches, but the job's error severity is moderate, which amplifies the stress sensitivity factor due to the noisy and vibrating environment of the inspection table."
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience help offset the job's moderate task complexity, but the worker's physical stamina is a concern given the job's high physical demand level. The inspection table's moderate noise level and physical strain index also contribute to the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.42,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.42,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's low cognitive resilience (0.48) and years of experience (18) are not sufficient to offset the high task complexity (0.92) of the Material Handler job. Additionally, the worker's physical stamina (0.76) is not well-suited for the low physical demand level of the job, and the Belt Conveyor 4 asset's high noise level (77 dB) and vibration hazard level amplify the stress sensitivity factor. As a result, the overall compatibility score is low, and the error multiplier and fatigue accumulation rate are high."
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.42,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's low cognitive resilience (0.48) and moderate physical stamina (0.76) make them a poor fit for this job, which demands high cognitive focus (0.87) and physical demands (high). The worker's fatigue accumulation rate is high due to their long hours (7.7) and consecutive shifts (5), and their stress sensitivity factor is increased by the high noise level (35 dB) and task complexity (0.91)."
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.64,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.24,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.73
+      },
+      "llm_reasoning": "The worker's low cognitive resilience (0.48) and years of experience (18) are partially offset by their high baseline physical stamina (0.76) and medium physical demand level on the CNC Mill 6, but the high noise level (83 dB) and task complexity (0.44) increase the worker's stress sensitivity factor. The worker's fatigue accumulation rate is also increased due to their long hours worked today (7.7) and consecutive shifts (5)."
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.54,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.69
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience help mitigate the demands of the packaging operator job, but the high noise level and vibration hazard level on the belt conveyor 9 asset amplify the stress sensitivity factor, indicating a higher risk of fatigue and errors."
+    },
+    {
+      "worker_id": "WKR-0100-008",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's low cognitive resilience and moderate years of experience are not enough to offset the high physical demand level and task complexity of the job. The noisy and vibrating environment of the Hand-Pack Station 8 also exacerbates the worker's fatigue accumulation rate."
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.73,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 0.85,
+        "fatigue_accumulation_rate": 0.45,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are somewhat offset by their lower cognitive resilience, which may lead to errors on the job. The machine's moderate noise level and vibration hazard level also contribute to a higher stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.72,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.12,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are offset by the job's high task complexity and moderate error severity, which are exacerbated by the noisy and moderately hazardous work environment. The worker's cognitive resilience is somewhat lower than the job's required cognitive focus, which increases the likelihood of errors. The worker's fatigue accumulation rate is slightly higher than normal due to the short hours worked today, but the stress sensitivity factor is not significantly impacted."
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 0.44,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are somewhat offset by their relatively low cognitive resilience, which may struggle with the job's moderate task complexity and error severity. The noisy and vibrating environment of the inspection table also increases the worker's stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.58,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 0.85,
+        "fatigue_accumulation_rate": 0.45,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are offset by their relatively low cognitive resilience, which may struggle with the job's moderate task complexity. The automated asset reduces the physical demands, but the high noise level and vibration hazard in the environment increase the stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.02,
+        "stress_sensitivity_factor": 0.69
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are offset by their relatively low cognitive resilience, which may struggle with the job's high task complexity and required cognitive focus. The asset's physical strain index and the worker's baseline physical stamina also contribute to a lower overall compatibility score."
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.72,
+        "throughput_multiplier": 0.98,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.05,
+        "stress_sensitivity_factor": 0.69
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are offset by the high cognitive demands and error severity of the job, as well as the noisy environment of the CNC Mill 6. The automated asset reduces the importance of physical stamina, but the worker's fatigue accumulation rate is still elevated due to the short hours worked today. The stress sensitivity factor is moderately increased due to the high noise level."
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 0.43,
+        "stress_sensitivity_factor": 0.69
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience (0.84) is a good fit for the job's required cognitive focus (0.36), but the worker's limited experience (2 years) and physical stamina (0.96) are not ideal matches for the job's medium physical demand level and task complexity (0.31). The automated asset reduces the importance of physical fit, but the high noise level (58 dB) and moderate task complexity increase the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-009",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.02,
+        "stress_sensitivity_factor": 0.58
+      },
+      "llm_reasoning": "The worker's moderate years of experience and physical stamina are offset by their relatively low cognitive resilience, making them a less-than-ideal fit for this job. The high noise level and moderate error severity also contribute to a higher stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.67,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 0.85,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.68
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are partially offset by their fatigue-prone shift context, while the machine operator job's demands are somewhat mitigated by the worker's years of experience. However, the high noise level and vibration hazard in the hydraulic press environment significantly increase the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.11,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience buffer the demands of the job, but the worker's low cognitive resilience and the asset's high noise level and vibration hazard level contribute to a lower overall compatibility score and higher error multiplier. The worker's fatigue accumulation rate is increased due to consecutive shifts and hours worked today, and the stress sensitivity factor is moderately elevated due to the task complexity and error severity."
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.53,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience are partially offset by their physical stamina and fatigue accumulation rate, which are impacted by their recent shift schedule and the job's moderate task complexity and high error severity. The inspection table's environmental factors, including high noise levels and moderate vibration hazard, further increase the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.73,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience buffer the demands of the Material Handler job, but the high noise level and vibration hazard of the Belt Conveyor 4 asset amplify the stress sensitivity factor. The worker's relatively low cognitive resilience also contributes to a lower overall compatibility score."
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.73,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.11,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience buffer the demands of the job, but the worker's low cognitive resilience and the high noise level in the environment contribute to a lower overall compatibility score. The worker's fatigue accumulation rate is increased due to the long hours worked today and consecutive shifts. The error multiplier is higher due to the low cognitive focus required by the job and the low error severity, which may indicate a lack of attention to detail."
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.65,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.25,
+        "fatigue_accumulation_rate": 1.1,
+        "stress_sensitivity_factor": 0.7
+      },
+      "llm_reasoning": "The worker's cognitive resilience is somewhat mismatched to the job's required cognitive focus, but the worker's years of experience provides some buffer. The asset's automation level reduces the importance of physical stamina, but the worker's baseline physical stamina is still relatively low. The job's task complexity and error severity are high, and the asset's noise level is very high, all of which increase the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.68,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.02,
+        "stress_sensitivity_factor": 0.85
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience buffer the demands of the job, but the high error severity and task complexity, combined with the noisy and moderately automated environment, increase the likelihood of errors and fatigue accumulation. The worker's cognitive resilience is somewhat compromised by the high noise level, but their experience helps to mitigate this effect."
+    },
+    {
+      "worker_id": "WKR-0100-010",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.73,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.33,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and experience buffer against the job's demands, but the high noise level and physical strain on the asset compromise the worker's physical stamina, increasing fatigue accumulation and stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.73,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 0.83,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's high years of experience and moderate cognitive resilience are partially offset by the job's moderate task complexity and the asset's high noise level, which increases the worker's stress sensitivity factor. The worker's baseline physical stamina is also a concern, given the job's low physical demand level. However, the worker's fatigue accumulation rate is elevated due to the consecutive shifts worked today."
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.72,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.12,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's high years of experience and moderate cognitive resilience are offset by the job's high task complexity and moderate error severity, while the asset's high noise level and moderate vibration hazard level amplify the stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.15,
+        "fatigue_accumulation_rate": 1.22,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's high years of experience and moderate cognitive resilience are offset by the job's high task complexity and moderate error severity, while the asset's physical strain index and moderate noise level amplify the worker's fatigue accumulation rate. The worker's physical stamina is adequate for the job's physical demands, but the worker's fatigue level is increased due to consecutive shifts and hours worked today."
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.83,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.72
+      },
+      "llm_reasoning": "The worker's high years of experience (20) and moderate physical stamina (0.58) somewhat offset the mismatch between their cognitive resilience (0.67) and the job's high task complexity (0.92), but the worker's fatigue accumulation rate is still elevated due to their long hours worked today (6.0) and consecutive shifts (3). The automated asset reduces the impact of the worker's physical demands, but the high noise level (77 dB) and vibration hazard level ('high') amplify the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.64,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.83
+      },
+      "llm_reasoning": "The worker's strong cognitive resilience and experience are offset by their relatively low physical stamina, which is exacerbated by the high physical demand level of the job. The worker's fatigue accumulation rate is increased due to consecutive shifts, and the stress sensitivity factor is amplified by the high noise level in the environment."
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's experience and cognitive resilience are a good fit for the job's demands, but the worker's physical stamina is a concern due to the medium physical demand level. The automated asset reduces the importance of physical stamina, but the high noise level and task complexity still contribute to the worker's stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.72,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.21,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's strong cognitive resilience and moderate physical stamina are partially offset by the job's high error severity and moderate task complexity, which are exacerbated by the noisy environment of the belt conveyor. The worker's fatigue accumulation rate is increased due to the consecutive shifts and hours worked today, but the stress sensitivity factor is moderately increased due to the high error severity."
+    },
+    {
+      "worker_id": "WKR-0100-011",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.85,
+        "error_multiplier": 1.15,
+        "fatigue_accumulation_rate": 1.25,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's high years of experience and moderate cognitive resilience are partially offset by the job's high physical demand level and task complexity, which are exacerbated by the noisy and vibration-prone environment. The worker's fatigue accumulation rate is high due to the consecutive shifts, and the stress sensitivity factor is increased by the noise level and task complexity."
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.63,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.11,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate experience and physical stamina are somewhat offset by their lower cognitive resilience, which may struggle with the job's moderate task complexity. The noisy and moderately hazardous environment of the Hydraulic Press 1 also increases the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.63,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.22,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.68
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience help offset the demands of the assembly job, but the worker's physical stamina is slightly below the task's physical demands. The noisy and vibrating environment of the inspection table also increases the worker's stress sensitivity, making it more challenging to maintain throughput and accuracy."
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.14,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.85
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and physical stamina are offset by their relatively low years of experience and the job's high physical demand level. The inspection table's noisy environment and moderate task complexity further increase the worker's stress sensitivity. Overall, the worker is moderately compatible with this job and asset, but may experience increased fatigue and errors due to the demands of the task."
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.73,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.94,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate years of experience and physical stamina help offset the demands of the Material Handler job, but the high noise level and vibration hazard of the Belt Conveyor 4 asset amplify the worker's stress sensitivity. The worker's cognitive resilience is sufficient for the job's required cognitive focus, but the task complexity and error severity are concerns. The worker's fatigue accumulation rate is higher than expected due to the short hours worked today and the consecutive shifts."
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.81,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience (0.76) and years of experience (9) help offset the job's high task complexity (0.91) and required cognitive focus (0.87). However, the worker's relatively low physical stamina (0.96) and the job's high physical demand level ('high') result in a lower overall compatibility score. The worker's fatigue accumulation rate is increased due to their short hours worked today (0.2) and consecutive shifts (1). The stress sensitivity factor is moderately elevated due to the job's task complexity and the worker's fatigue state."
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.11,
+        "stress_sensitivity_factor": 0.72
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and physical stamina are offset by the high required cognitive focus and task complexity of the job. The automated asset reduces the importance of physical demands, but the high noise level and physical strain index of the environment amplify the worker's stress sensitivity. The worker's years of experience provide some buffer against these demands, but the overall fit is not ideal."
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.04,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience (0.76) and years of experience (9) help offset the job's high required cognitive focus (0.36) and task complexity (0.31), but the worker's low physical stamina (0.96) and the asset's high noise level (58 dB) and physical strain index (0.66) contribute to a lower overall compatibility score and increased error multiplier."
+    },
+    {
+      "worker_id": "WKR-0100-012",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.58,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.85
+      },
+      "llm_reasoning": "The worker's moderate years of experience and physical stamina are offset by their relatively low cognitive resilience, which is not well-suited to the job's moderate task complexity and high error severity. The automated asset's high noise level and physical strain index also contribute to the worker's stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 0.85,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and limited experience are offset by their adequate cognitive resilience, but the high noise level and task complexity in the job environment amplify the stress sensitivity factor. The worker's fatigue accumulation rate is higher due to the recent shift, but the overall compatibility score is still relatively high due to the worker's experience and the job's moderate demands."
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 1.11,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.73
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and years of experience partially compensate for the job's high task complexity and moderate error severity, but the asset's noisy environment and moderate physical strain index amplify the worker's fatigue accumulation rate and stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.93,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.05,
+        "stress_sensitivity_factor": 0.62
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and limited experience are not well-suited to the high physical demands of this job. The noisy and moderately hazardous environment also increases the worker's stress sensitivity. However, the worker's cognitive resilience is relatively low, which may exacerbate errors in this task."
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.83,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and years of experience help offset the high task complexity and low cognitive resilience, but the automated conveyor's high noise level and vibration hazard level amplify the worker's stress sensitivity. The low error severity and physical demand level are mitigating factors, but the worker's fatigue accumulation rate is higher due to the short hours worked today and the lack of consecutive shifts."
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 0.81,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and limited experience are offset by their low cognitive resilience, making them a less-than-ideal fit for this physically demanding job. The worker's fatigue accumulation rate is elevated due to their recent shift, and the stressful environment of the curing oven exacerbates their stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.21,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's low cognitive resilience and years of experience, combined with the high required cognitive focus and task complexity of the job, result in a moderate overall compatibility score. The job's physical demand level and the asset's physical strain index are mitigated by the asset's automation, but the worker's fatigue accumulation rate is still elevated due to the short hours worked today. The high noise level and error severity of the job further increase the worker's stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.54,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 0.43,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience offset the job's moderate physical demands, but the worker's low cognitive resilience and the high error severity of the job drive up the error multiplier. The automated asset reduces the importance of physical stamina, but the worker's fatigue accumulation rate is still elevated due to the short hours worked today."
+    },
+    {
+      "worker_id": "WKR-0100-013",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.43,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience are somewhat offset by their relatively low cognitive resilience, which may struggle with the moderate error severity and task complexity of this job. The noisy and physically demanding environment of the Hand-Pack Station 8 also exacerbates the worker's stress sensitivity, making it more likely for them to accumulate fatigue and make errors."
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "job_id": "JOB-0100-001",
+      "asset_id": "AST-0100-001",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 0.83,
+        "fatigue_accumulation_rate": 1.12,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience help offset the demands of the machine operator job, but the high noise level and vibration hazard on the hydraulic press asset amplify the worker's stress sensitivity. The worker's physical stamina is sufficient for the low physical demand level of the job, but fatigue accumulation rate is still elevated due to the worker's long hours and consecutive shifts."
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "job_id": "JOB-0100-002",
+      "asset_id": "AST-0100-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.42,
+        "throughput_multiplier": 0.91,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.82
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and cognitive resilience are somewhat offset by their limited experience, which makes them a less-than-ideal fit for this job. The job's moderate error severity and high task complexity are exacerbated by the noisy and vibrating environment, which increases the worker's stress sensitivity factor. The worker's fatigue accumulation rate is higher than average due to their consecutive shifts, and their throughput multiplier is lower than expected due to their physical demands."
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "job_id": "JOB-0100-003",
+      "asset_id": "AST-0100-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.42,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.22,
+        "stress_sensitivity_factor": 0.63
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and limited experience are mismatched with the high physical demands of the job, while the worker's cognitive resilience is also not well-suited to the moderate task complexity and moderate error severity. The noisy and moderately hazardous environment of the inspection table further exacerbates the worker's stress sensitivity."
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "job_id": "JOB-0100-004",
+      "asset_id": "AST-0100-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.52,
+        "throughput_multiplier": 0.95,
+        "error_multiplier": 0.8,
+        "fatigue_accumulation_rate": 1.15,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and limited experience are offset by their relatively high cognitive resilience, but the demanding task complexity and high noise level on the belt conveyor asset amplify stress and fatigue. The worker's fatigue accumulation rate is increased due to the consecutive shifts, and their stress sensitivity factor is elevated due to the harsh environment."
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "job_id": "JOB-0100-005",
+      "asset_id": "AST-0100-005",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 1.13,
+        "fatigue_accumulation_rate": 1.23,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience are offset by their relatively low cognitive resilience, which is further exacerbated by the high physical demand level and task complexity of the job. The noisy environment and moderate vibration hazard level also contribute to the worker's stress sensitivity, making them more prone to fatigue and errors."
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "job_id": "JOB-0100-006",
+      "asset_id": "AST-0100-006",
+      "evaluations": {
+        "overall_compatibility_score": 0.62,
+        "throughput_multiplier": 0.94,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.11,
+        "stress_sensitivity_factor": 0.68
+      },
+      "llm_reasoning": "The worker's moderate physical stamina and experience level are somewhat offset by the high physical demand level of the job, but the automated CNC Mill 6 reduces the importance of physical stamina. The worker's cognitive resilience is also somewhat below the required cognitive focus, increasing the error multiplier. The high noise level and vibration hazard level of the asset's environment amplify the stress sensitivity factor."
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "job_id": "JOB-0100-007",
+      "asset_id": "AST-0100-009",
+      "evaluations": {
+        "overall_compatibility_score": 0.52,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.65
+      },
+      "llm_reasoning": "The worker's moderate cognitive resilience and years of experience are offset by their low physical stamina and high fatigue accumulation rate due to consecutive shifts. The automated asset reduces the impact of physical demands, but the high noise level and task complexity amplify the stress sensitivity factor. The worker's overall compatibility score is moderately low due to these factors."
+    },
+    {
+      "worker_id": "WKR-0100-014",
+      "job_id": "JOB-0100-008",
+      "asset_id": "AST-0100-008",
+      "evaluations": {
+        "overall_compatibility_score": 0.42,
+        "throughput_multiplier": 0.92,
+        "error_multiplier": 1.23,
+        "fatigue_accumulation_rate": 1.13,
+        "stress_sensitivity_factor": 0.67
+      },
+      "llm_reasoning": "The worker's cognitive resilience is a good match for the job's required cognitive focus, but their physical stamina is low for a high physical demand level task. The noisy and vibrating environment also increases the worker's stress sensitivity factor. Additionally, the worker's years of experience provide some buffer against the physical and cognitive demands of the job."
+    }
+  ]
+}

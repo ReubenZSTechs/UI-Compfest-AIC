@@ -1,3 +1,5 @@
+// frontend/src/features/digital-twin/components/AssetCard.tsx
+
 import type { Asset } from "../types/digitalTwin.types";
 import {
   formatCostPerHour,
@@ -17,23 +19,23 @@ export function AssetCard({ asset }: AssetCardProps) {
   const selectedAssetId = useDigitalTwinStore((s) => s.selectedAssetId);
   const selectAsset = useDigitalTwinStore((s) => s.selectAsset);
 
-  const isSelected = selectedAssetId === asset.asset_id;
+  const isSelected = selectedAssetId === asset.assetId;
   const strainLevel = strainLevelFromIndex(
-    asset.environmental_factors.physical_strain_index
+    asset.environmentalFactors.physicalStrainIndex
   );
 
   return (
     <button
       type="button"
       className={`${styles.card} ${isSelected ? styles.cardSelected : ""}`}
-      onClick={() => selectAsset(asset.asset_id)}
+      onClick={() => selectAsset(asset.assetId)}
       aria-pressed={isSelected}
     >
       {/* Header: automation status + category */}
       <div className={styles.header}>
         <span
           className={`${styles.automationDot} ${
-            asset.is_automated ? styles.dotAutomated : styles.dotManual
+            asset.isAutomated ? styles.dotAutomated : styles.dotManual
           }`}
           aria-hidden="true"
         />
@@ -41,14 +43,14 @@ export function AssetCard({ asset }: AssetCardProps) {
           {asset.category.replace(/_/g, " ")}
         </span>
         <span className={styles.stepTag}>
-          {formatWorkflowStepLabel(asset.workflow_step)}
+          {formatWorkflowStepLabel(asset.workflowStep)}
         </span>
       </div>
 
       {/* Title & ID */}
       <div className={styles.titleBlock}>
-        <h3 className={styles.title}>{asset.asset_name}</h3>
-        <span className={styles.assetId}>{asset.asset_id}</span>
+        <h3 className={styles.title}>{asset.assetName}</h3>
+        <span className={styles.assetId}>{asset.assetId}</span>
       </div>
 
       {/* Readout: throughput & cost */}
@@ -56,13 +58,13 @@ export function AssetCard({ asset }: AssetCardProps) {
         <div className={styles.readout}>
           <span className={styles.readoutLabel}>Kapasitas</span>
           <span className={styles.readoutValue}>
-            {formatCapacity(asset.base_throughput_capacity)}
+            {formatCapacity(asset.baseThroughputCapacity)}
           </span>
         </div>
         <div className={styles.readout}>
           <span className={styles.readoutLabel}>Biaya Operasional</span>
           <span className={styles.readoutValue}>
-            {formatCostPerHour(asset.operational_cost_per_hour)}
+            {formatCostPerHour(asset.operationalCostPerHour)}
           </span>
         </div>
       </div>
@@ -72,18 +74,20 @@ export function AssetCard({ asset }: AssetCardProps) {
         <div className={styles.meterLabelRow}>
           <span className={styles.readoutLabel}>Beban Fisik</span>
           <span className={`${styles.meterValue} ${styles[`strain-${strainLevel}`]}`}>
-            {(asset.environmental_factors.physical_strain_index * 100).toFixed(0)}%
+            {(asset.environmentalFactors.physicalStrainIndex * 100).toFixed(0)}%
           </span>
         </div>
-        <div className={styles.meter} role="meter"
-          aria-valuenow={asset.environmental_factors.physical_strain_index}
+        <div
+          className={styles.meter}
+          role="meter"
+          aria-valuenow={asset.environmentalFactors.physicalStrainIndex}
           aria-valuemin={0}
           aria-valuemax={1}
         >
           {Array.from({ length: 10 }).map((_, i) => {
             const segmentThreshold = (i + 1) / 10;
             const filled =
-              asset.environmental_factors.physical_strain_index >= segmentThreshold - 0.05;
+              asset.environmentalFactors.physicalStrainIndex >= segmentThreshold - 0.05;
             return (
               <span
                 key={i}
@@ -98,10 +102,10 @@ export function AssetCard({ asset }: AssetCardProps) {
 
       {/* Environmental footer */}
       <div className={styles.envRow}>
-        <span>{asset.environmental_factors.noise_level_db} dB</span>
+        <span>{asset.environmentalFactors.noiseLevelDb} dB</span>
         <span className={styles.envDivider}>·</span>
         <span>
-          Getaran: {VIBRATION_LABEL[asset.environmental_factors.vibration_hazard_level]}
+          Getaran: {VIBRATION_LABEL[asset.environmentalFactors.vibrationHazardLevel]}
         </span>
       </div>
     </button>

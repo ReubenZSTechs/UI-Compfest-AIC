@@ -1,9 +1,11 @@
+// frontend/src/features/digital-twin/hooks/useCompatibilityMatrix.ts
 import { useDigitalTwin } from "./useDigitalTwin";
 
-export function useCompatibilityMatrix() {
-  const { data, isLoading, error } = useDigitalTwin();
+export function useCompatibilityMatrix(factoryId?: string) {
+  const { compatibilityEvaluations, isLoading, error } = useDigitalTwin(factoryId);
+
   return {
-    matrix: data?.llm_compatibility_and_evaluations ?? [],
+    matrix: compatibilityEvaluations,
     isLoading,
     error,
   };

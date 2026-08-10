@@ -1,115 +1,211 @@
+// frontend/src/features/digital-twin/types/digitalTwin.types.ts
+
+/**
+ * Tipe data TypeScript Modul Digital Twin & Document Parser (Frontend UI).
+ * Menggunakan format camelCase sesuai serializer FastAPI (Pydantic to_camel).
+ */
+
+export interface ParallelGroup {
+  groupId: string;
+  steps: string[];
+  reasoning?: string;
+}
+
 export interface FactoryInfo {
-  factory_id: string;
-  factory_name: string;
-  workflow_sequence: string[];
+  factoryId: string;
+  factoryName: string;
+  workflowSequence: string[];
+  processType?: string;
+  declaredWorkerCount?: number;
+  layoutDescription?: string;
+  parallelGroups?: ParallelGroup[];
 }
 
 export type VibrationHazardLevel = "low" | "medium" | "high";
 export type PhysicalDemandLevel = "low" | "medium" | "high";
 export type ErrorSeverity = "low" | "moderate" | "high" | "critical";
-
 export type BurnoutHazardRisk = "low" | "medium" | "high" | "critical";
 
 export interface RealtimeMetrics {
-  current_fatigue_level: number;
-  current_stress_level: number;
-  burnout_hazard_risk: BurnoutHazardRisk;
+  currentFatigueLevel: number;
+  currentStressLevel: number;
+  burnoutHazardRisk: BurnoutHazardRisk;
 }
 
 export interface EnvironmentalFactors {
-  noise_level_db: number;
-  vibration_hazard_level: VibrationHazardLevel;
-  physical_strain_index: number;
+  noiseLevelDb: number;
+  vibrationHazardLevel: VibrationHazardLevel;
+  physicalStrainIndex: number;
 }
 
 export interface Asset {
-  asset_id: string;
-  asset_name: string;
+  assetId: string;
+  assetName: string;
   category: string;
-  workflow_step: string;
-  is_automated: boolean;
-  base_throughput_capacity: number;
-  operational_cost_per_hour: number;
-  environmental_factors: EnvironmentalFactors;
-  metric_derivation_reasoning: string;
+  workflowStep: string;
+  isAutomated: boolean;
+  baseThroughputCapacity: number;
+  operationalCostPerHour: number;
+  environmentalFactors: EnvironmentalFactors;
+  metricDerivationReasoning?: string;
+  unitsAvailable?: number;
 }
 
 export type AssetCategory = Asset["category"];
 
 export interface Demands {
-  required_cognitive_focus: number;
-  physical_demand_level: PhysicalDemandLevel;
-  task_complexity: number;
-  error_severity: ErrorSeverity;
+  requiredCognitiveFocus: number;
+  physicalDemandLevel: PhysicalDemandLevel;
+  taskComplexity: number;
+  errorSeverity: ErrorSeverity;
 }
 
 export interface JobDesk {
-  job_id: string;
-  job_title: string;
-  workflow_step: string;
-  assigned_asset_id: string;
+  jobId: string;
+  jobTitle: string;
+  workflowStep: string;
+  assignedAssetId: string;
   demands: Demands;
-  qc_requirement: string;
-  metric_derivation_reasoning: string;
+  qcRequirement: string;
+  metricDerivationReasoning?: string;
 }
 
 export interface Demographics {
   age: number;
   gender: string;
-  years_of_experience: number;
-  baseline_physical_stamina: number;
-  cognitive_resilience: number;
+  yearsOfExperience: number;
+  baselinePhysicalStamina: number;
+  cognitiveResilience: number;
 }
 
 export interface ShiftContext {
-  hours_worked_today: number;
-  consecutive_shifts: number;
+  hoursWorkedToday: number;
+  consecutiveShifts: number;
 }
 
 export interface Worker {
-  worker_id: string;
+  workerId: string;
   name: string;
   demographics: Demographics;
-  shift_context: ShiftContext;
+  shiftContext: ShiftContext;
+  skills?: string[];
+  certifications?: string[];
+  capabilities?: string[];
 }
 
 export interface StaffPosition {
-  worker_id: string;
+  workerId: string;
   name: string;
-  current_station: string;
-  current_asset_id: string;
-  activity_status: string;
-  moving_to_next_step: string;
-  handoff_item: string;
+  currentStation: string;
+  currentAssetId: string;
+  activityStatus: string;
+  movingToNextStep: string;
+  handoffItem: string;
 }
 
 export interface FactoryFlowRightNow {
-  snapshot_timestamp: string;
-  note: string;
-  staff_current_positions: StaffPosition[];
+  snapshotTimestamp: string;
+  note?: string;
+  staffCurrentPositions: StaffPosition[];
 }
 
 export interface Evaluations {
-  overall_compatibility_score: number;
-  throughput_multiplier: number;
-  error_multiplier: number;
-  fatigue_accumulation_rate: number;
-  stress_sensitivity_factor: number;
+  overallCompatibilityScore: number;
+  throughputMultiplier: number;
+  errorMultiplier: number;
+  fatigueAccumulationRate?: number;
+  stressSensitivityFactor?: number;
 }
 
 export interface CompatibilityEvaluation {
-  worker_id: string;
-  job_id: string;
-  asset_id: string;
+  workerId: string;
+  jobId: string;
+  assetId?: string;
   evaluations: Evaluations;
-  llm_reasoning: string;
+  llmReasoning?: string;
 }
 
 export interface DigitalTwin {
-  factory_info: FactoryInfo;
+  simulationId?: string;
+  jobId?: string;
+  factoryInfo: FactoryInfo;
   assets: Asset[];
-  job_desks: JobDesk[];
+  jobDesks: JobDesk[];
   workers: Worker[];
-  factory_flow_rightnow: FactoryFlowRightNow;
-  llm_compatibility_and_evaluations: CompatibilityEvaluation[];
+  factoryFlowRightnow?: FactoryFlowRightNow;
+  llmCompatibilityAndEvaluations: CompatibilityEvaluation[];
+  warnings?: string[];
+}
+
+// --- Payload Response API Gateway (Document Parser) ---
+
+export interface ExtractionSummary {
+  extractedFields?: Record<string, string>;
+  tablesCount?: number;
+  rawText?: string;
+  warnings?: string[];
+}
+
+export interface ProcessFactoryDocumentResponse {
+  parseJobId?: string;
+  agentInput: string;
+  factoryStructure: {
+    factoryInfo: FactoryInfo;
+    assets: Asset[];
+    jobDesks: JobDesk[];
+  };
+  extractionSummary?: ExtractionSummary;
+}
+
+export interface Step4Response {
+  workerProfile: {
+    workers: Worker[];
+  };
+  workerAgentInput?: string;
+  candidatesFound: number;
+  rejectedBlocksCount: number;
+  archiveReports?: any[];
+  warnings?: string[];
+}
+
+export interface Step5Response {
+  compatibilityMatrix: CompatibilityEvaluation[];
+  warnings?: string[];
+}
+
+export interface ProcessCombinedDocumentsResponse {
+  parseJobId?: string;
+  extractionSummary?: ExtractionSummary;
+  agentInput?: string;
+  factoryStructure: {
+    factoryInfo: FactoryInfo;
+    assets: Asset[];
+    jobDesks: JobDesk[];
+  };
+  workerProfile: {
+    workers: Worker[];
+  };
+  workerAgentInput?: string;
+  candidatesFound?: number;
+  rejectedBlocksCount?: number;
+  archiveReports?: any[];
+  compatibilityMatrix: CompatibilityEvaluation[];
+}
+
+export interface ParseJobResult {
+  id: string;
+  factoryId?: string;
+  status: "pending" | "in_progress" | "success" | "error";
+  templateFilename?: string;
+  cvBundleFilename?: string;
+  workersParsed: number;
+  jobDesksParsed: number;
+  warnings?: string[];
+  errorStage?: string;
+  errorMessage?: string;
+  errorDetails?: any[];
+  factoryStructure?: Record<string, any>;
+  workerProfile?: Record<string, any>;
+  compatibilityMatrix?: CompatibilityEvaluation[] | Record<string, any>;
+  createdAt?: string;
 }

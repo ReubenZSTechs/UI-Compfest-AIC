@@ -1,4 +1,3 @@
-// frontend/src/features/digital-twin/store/digitalTwinStore.ts
 import { create } from "zustand";
 import { digitalTwinApi } from "../api/digitalTwinApi";
 import type { DigitalTwin, AssetCategory } from "../types/digitalTwin.types";
@@ -6,13 +5,14 @@ import type { DigitalTwin, AssetCategory } from "../types/digitalTwin.types";
 export type AutomationFilter = "all" | "automated" | "manual";
 
 interface DigitalTwinState {
-  // data & fetch lifecycle
+  // Data & fetch lifecycle
   data: DigitalTwin | null;
   isLoading: boolean;
   error: Error | null;
-  fetchTwin: () => Promise<void>;
+  simulationId?: string;
+  fetchTwin: (simulationId?: string) => Promise<void>;
 
-  // filter bar (global, dipakai FilterBar + JobDeskTable)
+  // Filter bar (global)
   searchQuery: string;
   selectedWorkflowStep: string | null;
   selectedCategory: AssetCategory | null;
@@ -24,7 +24,7 @@ interface DigitalTwinState {
   setAutomationFilter: (filter: AutomationFilter) => void;
   resetFilters: () => void;
 
-  // seleksi per-entity (AssetCard, WorkerCard)
+  // Seleksi per-entity
   selectedAssetId: string | null;
   selectedWorkerId: string | null;
   selectedJobId: string | null;
@@ -40,14 +40,17 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set) => ({
   data: null,
   isLoading: false,
   error: null,
+  simulationId: undefined,
 
-  fetchTwin: async () => {
-    set({ isLoading: true, error: null });
+  fetchTwin: async (simulationId?: string) => {
+    set({ isLoading: true, error: null, simulationId });
     try {
-      const data = await digitalTwinApi.getFullTwin();
-      set({ data, isLoading: false });
+      const response = await digitalTwinApi.getFullTwin(simulationId);
+      // Memastikan data bernilai null jika API mengembalikan null/undefined
+      set({ data: response ?? null, isLoading: false });
     } catch (err) {
       set({
+        data: null, // Reset data ke null jika request gagal
         error: err instanceof Error ? err : new Error("Gagal memuat digital twin"),
         isLoading: false,
       });
@@ -69,6 +72,9 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set) => ({
       selectedWorkflowStep: null,
       selectedCategory: null,
       automationFilter: "all",
+      selectedAssetId: null,
+      selectedWorkerId: null,
+      selectedJobId: null,
     }),
 
   selectedAssetId: null,

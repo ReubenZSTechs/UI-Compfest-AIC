@@ -1,3 +1,5 @@
+// src/features/document-parser/api/documentParser.api.ts
+
 import { isAxiosError } from 'axios';
 import { apiClient } from '@/api/client';
 import { ENDPOINTS } from '@/api/endpoints';
@@ -5,7 +7,6 @@ import type {
   ParseJobResult,
   ParseStepId,
   ParseStepStatus,
-  ProcessCombinedDocumentsResponse,
 } from '../types/documentParser.types';
 
 interface StartParseArgs {
@@ -17,16 +18,13 @@ interface StartParseArgs {
   onStepUpdate: (step: ParseStepId, status: ParseStepStatus, detail?: string) => void;
 }
 
-// Bentuk `detail` di response HTTPException backend FastAPI (HTTP 422)
 interface ParseErrorDetail {
   stage?: ParseStepId;
   message?: string;
   details?: string[];
 }
 
-// Pipeline backend menjalankan beberapa Agent LLM berurutan (Struktur Pabrik,
-// Profil Pekerja, dan Matriks Kompatibilitas N x M).
-const PARSE_TIMEOUT_MS = 5 * 60 * 1000; // 5 menit
+const PARSE_TIMEOUT_MS = 5 * 60 * 1000;
 
 const STEP_ORDER: ParseStepId[] = [
   'upload',
@@ -58,8 +56,7 @@ function parseErrorResponse(error: unknown): { stage: ParseStepId; message: stri
     if (error.response?.status === 404) {
       return {
         stage: 'upload',
-        message:
-          'Endpoint document-parser tidak ditemukan (404). Pastikan router document_parser sudah didaftarkan di backend.',
+        message: 'Endpoint document-parser tidak ditemukan (404).',
       };
     }
 
@@ -68,10 +65,6 @@ function parseErrorResponse(error: unknown): { stage: ParseStepId; message: stri
         stage: 'llm_parse',
         message: 'Parsing memakan waktu terlalu lama dan timeout. Coba lagi.',
       };
-    }
-
-    if (error.response?.status === 413) {
-      return { stage: 'upload', message: 'Berkas terlalu besar untuk diunggah.' };
     }
   }
 
@@ -102,43 +95,24 @@ export const documentParserApi = {
     onStepUpdate('upload', 'active');
 
     try {
-      const { data } = await apiClient.post<
-        ProcessCombinedDocumentsResponse | ParseJobResult
-      >(endpointUrl, formData, {
+      const { data } = await apiClient.post<Record<string, any>>(endpointUrl, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: PARSE_TIMEOUT_MS,
       });
 
-      let jobId = `job-${Date.now()}`;
-      let factoryId: string | null = null;
-      let workersParsed = 0;
-      let jobDesksParsed = 0;
-      let warnings: string[] = [];
-      let factoryStructure = null;
-      let workerProfile = null;
-      let compatibilityMatrix = null;
-      let floorState = null;
+      // Backend baru mengembalikan `simulation_id` dan membungkus hasil LLM di `data`
+      const simulationId = data.simulation_id ?? data.job_id ?? data.jobId ?? `sim-${Date.now()}`;
+      const factoryId = data.factory_id ?? data.factoryId ?? null;
+      const workersParsed = data.workers_parsed ?? data.workersParsed ?? 0;
+      const jobDesksParsed = data.job_desks_parsed ?? data.jobDesksParsed ?? 0;
+      const warnings: string[] = data.warnings ?? [];
 
-      // Type narrowing untuk membedakan bentuk data response
-      if ('extractionSummary' in data) {
-        factoryStructure = data.factoryStructure;
-        workerProfile = data.workerProfile;
-        compatibilityMatrix = data.compatibilityMatrix;
-        warnings = data.extractionSummary?.warnings ?? [];
-        workersParsed = data.candidatesFound ?? data.workerProfile?.workers?.length ?? 0;
-        jobDesksParsed = data.factoryStructure?.job_desks?.length ?? 0;
-        factoryId = data.factoryStructure?.factory_info?.factory_id ?? null;
-      } else {
-        jobId = data.jobId;
-        factoryId = data.factoryId ?? null;
-        workersParsed = data.workersParsed;
-        jobDesksParsed = data.jobDesksParsed;
-        warnings = data.warnings ?? [];
-        factoryStructure = data.factoryStructure;
-        workerProfile = data.workerProfile;
-        compatibilityMatrix = data.compatibilityMatrix;
-        floorState = data.floorState ?? null;
-      }
+      // Ekstrak payload LLM dari properti `data` (jika ada) atau dari top-level
+      const nestedData = data.data ?? data;
+      const factoryStructure = nestedData.factory_structure ?? nestedData.factoryStructure ?? null;
+      const workerProfile = nestedData.worker_profile ?? nestedData.workerProfile ?? null;
+      const compatibilityMatrix = nestedData.compatibility_matrix ?? nestedData.compatibilityMatrix ?? null;
+      const floorState = nestedData.floor_state ?? nestedData.floorState ?? null;
 
       // Update indikator UI bertahap setelah request sukses
       onStepUpdate('upload', 'success');
@@ -157,7 +131,8 @@ export const documentParserApi = {
       );
 
       return {
-        jobId,
+        jobId: simulationId, // Tetap dipetakan ke jobId agar kompatibel dengan komponen UI
+        simulationId,       // Menyimpan simulation_id secara eksplisit
         factoryId,
         workersParsed,
         jobDesksParsed,
@@ -170,7 +145,6 @@ export const documentParserApi = {
     } catch (error) {
       const { stage, message } = parseErrorResponse(error);
 
-      // Tandai step sebelum stage yang gagal sebagai sukses, stage gagal sebagai error
       const failedIndex = STEP_ORDER.indexOf(stage);
       STEP_ORDER.forEach((step, index) => {
         if (index < failedIndex) {

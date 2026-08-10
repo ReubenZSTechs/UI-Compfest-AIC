@@ -11,36 +11,68 @@ import type {
 } from "../types/digitalTwin.types";
 
 export const digitalTwinApi = {
-  getFullTwin: async (): Promise<DigitalTwin> => {
-    const { data } = await apiClient.get<DigitalTwin>(ENDPOINTS.DIGITAL_TWIN.ROOT);
+  /**
+   * Mengambil snapshot Digital Twin lengkap berdasarkan factoryId.
+   */
+  getFullTwin: async (factoryId?: string): Promise<DigitalTwin> => {
+    const { data } = await apiClient.get<DigitalTwin>(ENDPOINTS.DIGITAL_TWIN.ROOT, {
+      params: factoryId ? { factory_id: factoryId } : undefined,
+    });
     return data;
   },
 
-  getAssets: async (): Promise<Asset[]> => {
-    const { data } = await apiClient.get<Asset[]>(ENDPOINTS.DIGITAL_TWIN.ASSETS);
+  /**
+   * Mengambil daftar aset/mesin pabrik.
+   */
+  getAssets: async (factoryId?: string): Promise<Asset[]> => {
+    const { data } = await apiClient.get<Asset[]>(ENDPOINTS.DIGITAL_TWIN.ASSETS, {
+      params: factoryId ? { factory_id: factoryId } : undefined,
+    });
     return data;
   },
 
-  getWorkers: async (): Promise<Worker[]> => {
-    const { data } = await apiClient.get<Worker[]>(ENDPOINTS.DIGITAL_TWIN.WORKERS);
+  /**
+   * Mengambil daftar profil pekerja beserta demografi & shift context.
+   */
+  getWorkers: async (factoryId?: string): Promise<Worker[]> => {
+    const { data } = await apiClient.get<Worker[]>(ENDPOINTS.DIGITAL_TWIN.WORKERS, {
+      params: factoryId ? { factory_id: factoryId } : undefined,
+    });
     return data;
   },
 
-  getJobDesks: async (): Promise<JobDesk[]> => {
-    const { data } = await apiClient.get<JobDesk[]>(ENDPOINTS.DIGITAL_TWIN.JOB_DESKS);
+  /**
+   * Mengambil daftar job desks (pekerjaan utama pabrik).
+   */
+  getJobDesks: async (factoryId?: string): Promise<JobDesk[]> => {
+    const { data } = await apiClient.get<JobDesk[]>(ENDPOINTS.DIGITAL_TWIN.JOB_DESKS, {
+      params: factoryId ? { factory_id: factoryId } : undefined,
+    });
     return data;
   },
 
-  getCompatibilityMatrix: async (): Promise<CompatibilityEvaluation[]> => {
+  /**
+   * Mengambil matriks kompatibilitas (llmCompatibilityAndEvaluations) yang telah diratakan.
+   */
+  getCompatibilityMatrix: async (factoryId?: string): Promise<CompatibilityEvaluation[]> => {
     const { data } = await apiClient.get<CompatibilityEvaluation[]>(
-      ENDPOINTS.DIGITAL_TWIN.COMPATIBILITY_MATRIX
+      ENDPOINTS.DIGITAL_TWIN.COMPATIBILITY_MATRIX,
+      {
+        params: factoryId ? { factory_id: factoryId } : undefined,
+      }
     );
     return data;
   },
 
-  getLiveFlow: async (): Promise<FactoryFlowRightNow> => {
-    const { data } = await apiClient.get<FactoryFlowRightNow>(
-      ENDPOINTS.DIGITAL_TWIN.LIVE_FLOW
+  /**
+   * Mengambil status posisi pekerja dan live flow pabrik terkini.
+   */
+  getLiveFlow: async (factoryId?: string): Promise<FactoryFlowRightNow | null> => {
+    const { data } = await apiClient.get<FactoryFlowRightNow | null>(
+      ENDPOINTS.DIGITAL_TWIN.LIVE_FLOW,
+      {
+        params: factoryId ? { factory_id: factoryId } : undefined,
+      }
     );
     return data;
   },

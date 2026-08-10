@@ -1,0 +1,383 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0053",
+    "factory_name": "Synthetic Plant 53",
+    "process_type": "serial",
+    "declared_worker_count": 13,
+    "layout_description": "A serial production line laid out along the sequence Machining -> Raw Material Intake -> Assembly -> Packaging, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Machining",
+      "Raw Material Intake",
+      "Assembly",
+      "Packaging"
+    ],
+    "parallel_groups": []
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0053-001",
+      "asset_name": "Injection Molder 1",
+      "category": "machine",
+      "workflow_step": "Machining",
+      "is_automated": true,
+      "units_available": 1,
+      "base_throughput_capacity": 185,
+      "operational_cost_per_hour": 85.65,
+      "environmental_factors": {
+        "noise_level_db": 75,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.82
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Machining' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0053-002",
+      "asset_name": "Lathe Station 2",
+      "category": "machine",
+      "workflow_step": "Machining",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 71,
+      "operational_cost_per_hour": 26.52,
+      "environmental_factors": {
+        "noise_level_db": 57,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.45
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Machining' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0053-003",
+      "asset_name": "Robotic Pick-and-Place 3",
+      "category": "conveyor_automation",
+      "workflow_step": "Raw Material Intake",
+      "is_automated": false,
+      "units_available": 4,
+      "base_throughput_capacity": 242,
+      "operational_cost_per_hour": 89.06,
+      "environmental_factors": {
+        "noise_level_db": 65,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.26
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Raw Material Intake' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0053-004",
+      "asset_name": "Lathe Station 4",
+      "category": "machine",
+      "workflow_step": "Assembly",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 40,
+      "operational_cost_per_hour": 116.64,
+      "environmental_factors": {
+        "noise_level_db": 91,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.84
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Assembly' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0053-005",
+      "asset_name": "Hand-Pack Station 5",
+      "category": "manual_station",
+      "workflow_step": "Assembly",
+      "is_automated": false,
+      "units_available": 4,
+      "base_throughput_capacity": 157,
+      "operational_cost_per_hour": 114.71,
+      "environmental_factors": {
+        "noise_level_db": 60,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.19
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Assembly' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0053-006",
+      "asset_name": "Inspection Table 6",
+      "category": "manual_station",
+      "workflow_step": "Packaging",
+      "is_automated": false,
+      "units_available": 2,
+      "base_throughput_capacity": 91,
+      "operational_cost_per_hour": 19.94,
+      "environmental_factors": {
+        "noise_level_db": 56,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.1
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Packaging' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0053-001",
+      "job_title": "Machine Operator",
+      "workflow_step": "Machining",
+      "assigned_asset_id": "AST-0053-002",
+      "assigned_worker_name": [
+        "WKR-0053-013"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.49,
+        "physical_demand_level": "low",
+        "task_complexity": 0.66,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Lathe Station 2.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Machining' step."
+    },
+    {
+      "job_id": "JOB-0053-002",
+      "job_title": "Material Handler",
+      "workflow_step": "Raw Material Intake",
+      "assigned_asset_id": "AST-0053-003",
+      "assigned_worker_name": [
+        "WKR-0053-005",
+        "WKR-0053-002"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.47,
+        "physical_demand_level": "high",
+        "task_complexity": 0.72,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Robotic Pick-and-Place 3.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, low-severity task typical of the 'Raw Material Intake' step."
+    },
+    {
+      "job_id": "JOB-0053-003",
+      "job_title": "Assembly Technician",
+      "workflow_step": "Assembly",
+      "assigned_asset_id": "AST-0053-005",
+      "assigned_worker_name": [
+        "WKR-0053-008"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.57,
+        "physical_demand_level": "low",
+        "task_complexity": 0.43,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hand-Pack Station 5.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Assembly' step."
+    },
+    {
+      "job_id": "JOB-0053-004",
+      "job_title": "Packaging Operator",
+      "workflow_step": "Packaging",
+      "assigned_asset_id": "AST-0053-006",
+      "assigned_worker_name": [
+        "WKR-0053-008",
+        "WKR-0053-012"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.43,
+        "physical_demand_level": "high",
+        "task_complexity": 0.37,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Inspection Table 6.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, low-severity task typical of the 'Packaging' step."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0053-001",
+      "name": "Budi Halim",
+      "demographics": {
+        "age": 52,
+        "gender": "male",
+        "years_of_experience": 3,
+        "baseline_physical_stamina": 0.9,
+        "cognitive_resilience": 0.76
+      },
+      "shift_context": {
+        "hours_worked_today": 7.4,
+        "consecutive_shifts": 2
+      }
+    },
+    {
+      "worker_id": "WKR-0053-002",
+      "name": "Kartika Kusuma",
+      "demographics": {
+        "age": 41,
+        "gender": "female",
+        "years_of_experience": 18,
+        "baseline_physical_stamina": 0.96,
+        "cognitive_resilience": 0.58
+      },
+      "shift_context": {
+        "hours_worked_today": 8.4,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0053-003",
+      "name": "Budi Wijaya",
+      "demographics": {
+        "age": 50,
+        "gender": "male",
+        "years_of_experience": 6,
+        "baseline_physical_stamina": 0.49,
+        "cognitive_resilience": 0.42
+      },
+      "shift_context": {
+        "hours_worked_today": 0.4,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0053-004",
+      "name": "Gita Permana",
+      "demographics": {
+        "age": 29,
+        "gender": "female",
+        "years_of_experience": 13,
+        "baseline_physical_stamina": 0.89,
+        "cognitive_resilience": 0.96
+      },
+      "shift_context": {
+        "hours_worked_today": 3.1,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0053-005",
+      "name": "Lestari Wijaya",
+      "demographics": {
+        "age": 47,
+        "gender": "female",
+        "years_of_experience": 10,
+        "baseline_physical_stamina": 0.79,
+        "cognitive_resilience": 0.7
+      },
+      "shift_context": {
+        "hours_worked_today": 4.6,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0053-006",
+      "name": "Citra Kusuma",
+      "demographics": {
+        "age": 29,
+        "gender": "male",
+        "years_of_experience": 2,
+        "baseline_physical_stamina": 0.74,
+        "cognitive_resilience": 0.31
+      },
+      "shift_context": {
+        "hours_worked_today": 1.7,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0053-007",
+      "name": "Gita Halim",
+      "demographics": {
+        "age": 23,
+        "gender": "female",
+        "years_of_experience": 14,
+        "baseline_physical_stamina": 0.96,
+        "cognitive_resilience": 0.52
+      },
+      "shift_context": {
+        "hours_worked_today": 6.8,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0053-008",
+      "name": "Gita Kusuma",
+      "demographics": {
+        "age": 21,
+        "gender": "male",
+        "years_of_experience": 9,
+        "baseline_physical_stamina": 0.5,
+        "cognitive_resilience": 0.5
+      },
+      "shift_context": {
+        "hours_worked_today": 5.7,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0053-009",
+      "name": "Hari Pratama",
+      "demographics": {
+        "age": 30,
+        "gender": "male",
+        "years_of_experience": 8,
+        "baseline_physical_stamina": 0.51,
+        "cognitive_resilience": 0.79
+      },
+      "shift_context": {
+        "hours_worked_today": 2.6,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0053-010",
+      "name": "Lestari Setiawan",
+      "demographics": {
+        "age": 40,
+        "gender": "female",
+        "years_of_experience": 11,
+        "baseline_physical_stamina": 0.67,
+        "cognitive_resilience": 0.88
+      },
+      "shift_context": {
+        "hours_worked_today": 6.9,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0053-011",
+      "name": "Budi Setiawan",
+      "demographics": {
+        "age": 27,
+        "gender": "female",
+        "years_of_experience": 12,
+        "baseline_physical_stamina": 0.45,
+        "cognitive_resilience": 0.79
+      },
+      "shift_context": {
+        "hours_worked_today": 3.5,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0053-012",
+      "name": "Joko Pratama",
+      "demographics": {
+        "age": 50,
+        "gender": "female",
+        "years_of_experience": 10,
+        "baseline_physical_stamina": 0.82,
+        "cognitive_resilience": 0.49
+      },
+      "shift_context": {
+        "hours_worked_today": 5.1,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0053-013",
+      "name": "Indra Pratama",
+      "demographics": {
+        "age": 34,
+        "gender": "male",
+        "years_of_experience": 14,
+        "baseline_physical_stamina": 0.38,
+        "cognitive_resilience": 0.76
+      },
+      "shift_context": {
+        "hours_worked_today": 1.9,
+        "consecutive_shifts": 1
+      }
+    }
+  ]
+}

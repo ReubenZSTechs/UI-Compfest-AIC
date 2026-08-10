@@ -7,8 +7,9 @@ konfigurasi dari sini — jangan baca os.environ langsung di tempat lain.
 """
 
 from functools import lru_cache
+from typing import Literal
 
-from pydantic import Field, PostgresDsn, field_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
     # Project meta
     PROJECT_NAME: str = "Pabrikers Backend"
     VERSION: str = "0.1.0"
-    ENVIRONMENT: str = Field(default="development")  # development | staging | production
+    ENVIRONMENT: Literal["development", "staging", "production"] = "development"
     API_V1_PREFIX: str = "/api/v1"
 
     # Database
@@ -37,11 +38,11 @@ class Settings(BaseSettings):
 
     # Security / Auth
     SECRET_KEY: str = Field(
-        default="CHANGE_ME_IN_PRODUCTION",
+        default="dev-only-change-me-in-env",
         description="Dipakai untuk sign JWT — WAJIB di-override lewat env var saat deploy.",
     )
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 jam
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 jam (1 hari)
 
     # CORS
     CORS_ALLOW_ORIGINS: list[str] = ["http://localhost:3000"]
@@ -65,20 +66,6 @@ class Settings(BaseSettings):
 
     # Hugging Face Token (untuk akses model LLM, mis. vLLM container)
     HF_TOKEN: str = Field(default="", description="Hugging Face Token untuk akses model LLM (mis. vLLM container).")
-
-
-    SECRET_KEY: str = "dev-only-change-me-in-env"
-    JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 hari
- 
-
-    @field_validator("ENVIRONMENT")
-    @classmethod
-    def validate_environment(cls, v: str) -> str:
-        allowed = {"development", "staging", "production"}
-        if v not in allowed:
-            raise ValueError(f"ENVIRONMENT harus salah satu dari {allowed}, dapat: '{v}'")
-        return v
 
     @property
     def is_production(self) -> bool:

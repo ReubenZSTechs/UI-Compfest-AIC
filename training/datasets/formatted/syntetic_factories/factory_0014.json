@@ -1,0 +1,331 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0014",
+    "factory_name": "Synthetic Plant 14",
+    "process_type": "parallel",
+    "declared_worker_count": 11,
+    "layout_description": "A parallel production line laid out along the sequence Raw Material Intake -> Cutting -> Packaging -> Surface Treatment, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Raw Material Intake",
+      "Cutting",
+      "Packaging",
+      "Surface Treatment"
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "PG-14-01",
+        "steps": [
+          "Packaging",
+          "Cutting"
+        ],
+        "reasoning": "Steps Packaging, Cutting do not share equipment or line dependencies, so they can run concurrently without blocking one another."
+      }
+    ]
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0014-001",
+      "asset_name": "Robotic Pick-and-Place 1",
+      "category": "conveyor_automation",
+      "workflow_step": "Raw Material Intake",
+      "is_automated": false,
+      "units_available": 2,
+      "base_throughput_capacity": 68,
+      "operational_cost_per_hour": 58.13,
+      "environmental_factors": {
+        "noise_level_db": 86,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.15
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Raw Material Intake' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0014-002",
+      "asset_name": "Hydraulic Press 2",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 210,
+      "operational_cost_per_hour": 83.92,
+      "environmental_factors": {
+        "noise_level_db": 76,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.55
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0014-003",
+      "asset_name": "Belt Conveyor 3",
+      "category": "conveyor_automation",
+      "workflow_step": "Packaging",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 85,
+      "operational_cost_per_hour": 15.58,
+      "environmental_factors": {
+        "noise_level_db": 89,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.33
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Packaging' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0014-004",
+      "asset_name": "CNC Mill 4",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 222,
+      "operational_cost_per_hour": 62.05,
+      "environmental_factors": {
+        "noise_level_db": 59,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.2
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0014-001",
+      "job_title": "Material Handler",
+      "workflow_step": "Raw Material Intake",
+      "assigned_asset_id": "AST-0014-001",
+      "assigned_worker_name": [
+        "WKR-0014-005",
+        "WKR-0014-008"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.63,
+        "physical_demand_level": "low",
+        "task_complexity": 0.31,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Robotic Pick-and-Place 1.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, high-severity task typical of the 'Raw Material Intake' step."
+    },
+    {
+      "job_id": "JOB-0014-002",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0014-002",
+      "assigned_worker_name": [
+        "WKR-0014-009",
+        "WKR-0014-008"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.22,
+        "physical_demand_level": "low",
+        "task_complexity": 0.27,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hydraulic Press 2.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Cutting' step."
+    },
+    {
+      "job_id": "JOB-0014-003",
+      "job_title": "Packaging Operator",
+      "workflow_step": "Packaging",
+      "assigned_asset_id": "AST-0014-003",
+      "assigned_worker_name": [
+        "WKR-0014-006",
+        "WKR-0014-008"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.88,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.53,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Belt Conveyor 3.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a medium physical, moderate-severity task typical of the 'Packaging' step."
+    },
+    {
+      "job_id": "JOB-0014-004",
+      "job_title": "Surface Treatment Operator",
+      "workflow_step": "Surface Treatment",
+      "assigned_asset_id": "AST-0014-004",
+      "assigned_worker_name": [
+        "WKR-0014-001"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.86,
+        "physical_demand_level": "low",
+        "task_complexity": 0.76,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on CNC Mill 4.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Surface Treatment' step."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0014-001",
+      "name": "Citra Hidayat",
+      "demographics": {
+        "age": 37,
+        "gender": "male",
+        "years_of_experience": 9,
+        "baseline_physical_stamina": 0.69,
+        "cognitive_resilience": 0.31
+      },
+      "shift_context": {
+        "hours_worked_today": 2.0,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0014-002",
+      "name": "Joko Setiawan",
+      "demographics": {
+        "age": 47,
+        "gender": "male",
+        "years_of_experience": 7,
+        "baseline_physical_stamina": 0.98,
+        "cognitive_resilience": 1.0
+      },
+      "shift_context": {
+        "hours_worked_today": 7.8,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0014-003",
+      "name": "Hari Kusuma",
+      "demographics": {
+        "age": 44,
+        "gender": "male",
+        "years_of_experience": 0,
+        "baseline_physical_stamina": 0.68,
+        "cognitive_resilience": 0.75
+      },
+      "shift_context": {
+        "hours_worked_today": 6.9,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0014-004",
+      "name": "Kartika Saputra",
+      "demographics": {
+        "age": 37,
+        "gender": "male",
+        "years_of_experience": 12,
+        "baseline_physical_stamina": 0.67,
+        "cognitive_resilience": 0.47
+      },
+      "shift_context": {
+        "hours_worked_today": 4.9,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0014-005",
+      "name": "Eka Santoso",
+      "demographics": {
+        "age": 20,
+        "gender": "female",
+        "years_of_experience": 2,
+        "baseline_physical_stamina": 0.93,
+        "cognitive_resilience": 0.66
+      },
+      "shift_context": {
+        "hours_worked_today": 7.0,
+        "consecutive_shifts": 2
+      }
+    },
+    {
+      "worker_id": "WKR-0014-006",
+      "name": "Oscar Wijaya",
+      "demographics": {
+        "age": 24,
+        "gender": "female",
+        "years_of_experience": 18,
+        "baseline_physical_stamina": 0.75,
+        "cognitive_resilience": 0.58
+      },
+      "shift_context": {
+        "hours_worked_today": 5.9,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0014-007",
+      "name": "Nia Kusuma",
+      "demographics": {
+        "age": 36,
+        "gender": "male",
+        "years_of_experience": 7,
+        "baseline_physical_stamina": 0.52,
+        "cognitive_resilience": 0.86
+      },
+      "shift_context": {
+        "hours_worked_today": 7.0,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0014-008",
+      "name": "Kartika Halim",
+      "demographics": {
+        "age": 35,
+        "gender": "male",
+        "years_of_experience": 14,
+        "baseline_physical_stamina": 0.96,
+        "cognitive_resilience": 0.4
+      },
+      "shift_context": {
+        "hours_worked_today": 7.7,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0014-009",
+      "name": "Eka Wijaya",
+      "demographics": {
+        "age": 46,
+        "gender": "male",
+        "years_of_experience": 5,
+        "baseline_physical_stamina": 0.58,
+        "cognitive_resilience": 0.68
+      },
+      "shift_context": {
+        "hours_worked_today": 9.6,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0014-010",
+      "name": "Oscar Santoso",
+      "demographics": {
+        "age": 34,
+        "gender": "female",
+        "years_of_experience": 14,
+        "baseline_physical_stamina": 0.36,
+        "cognitive_resilience": 0.87
+      },
+      "shift_context": {
+        "hours_worked_today": 3.0,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0014-011",
+      "name": "Budi Pratama",
+      "demographics": {
+        "age": 27,
+        "gender": "male",
+        "years_of_experience": 10,
+        "baseline_physical_stamina": 0.47,
+        "cognitive_resilience": 0.55
+      },
+      "shift_context": {
+        "hours_worked_today": 5.1,
+        "consecutive_shifts": 5
+      }
+    }
+  ]
+}
