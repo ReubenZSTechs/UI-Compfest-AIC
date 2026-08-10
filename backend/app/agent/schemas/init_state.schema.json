@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "init_state",
   "type": "object",
   "additionalProperties": false,
   "required": ["factory_flow_rightnow", "llm_compatibility_and_evaluations"],
@@ -19,16 +21,22 @@
             "required": [
               "worker_id",
               "name",
-              "current_station",
+              "allocation_id",
+              "current_stage_id",
+              "lane",
+              "shift_id",
               "current_asset_id",
               "activity_status",
-              "moving_to_next_step",
+              "moving_to_next_stage_id",
               "handoff_item"
             ],
             "properties": {
               "worker_id": { "type": "string" },
               "name": { "type": "string" },
-              "current_station": { "type": "string" },
+              "allocation_id": { "type": "string" },
+              "current_stage_id": { "type": "string" },
+              "lane": { "type": "string" },
+              "shift_id": { "type": "string" },
               "current_asset_id": { "type": "string" },
               "activity_status": {
                 "type": "string",
@@ -36,10 +44,15 @@
                   "processing",
                   "waiting_on_machine",
                   "idle_waiting_input",
-                  "on_break"
+                  "waiting_on_parallel_lane",
+                  "on_break",
+                  "off_shift"
                 ]
               },
-              "moving_to_next_step": { "type": "string" },
+              "moving_to_next_stage_id": {
+                "type": ["string", "null"],
+                "description": "null bila tahap terminal; produk langsung ke gudang barang jadi."
+              },
               "handoff_item": { "type": "string" }
             }
           }
@@ -55,6 +68,7 @@
         "required": [
           "worker_id",
           "job_id",
+          "stage_id",
           "asset_id",
           "evaluations",
           "llm_reasoning"
@@ -62,6 +76,7 @@
         "properties": {
           "worker_id": { "type": "string" },
           "job_id": { "type": "string" },
+          "stage_id": { "type": "string" },
           "asset_id": { "type": "string" },
           "evaluations": {
             "type": "object",
@@ -74,11 +89,11 @@
               "stress_sensitivity_factor"
             ],
             "properties": {
-              "overall_compatibility_score": { "type": "number" },
-              "throughput_multiplier": { "type": "number" },
-              "error_multiplier": { "type": "number" },
-              "fatigue_accumulation_rate": { "type": "number" },
-              "stress_sensitivity_factor": { "type": "number" }
+              "overall_compatibility_score": { "type": "number", "minimum": 0, "maximum": 1 },
+              "throughput_multiplier": { "type": "number", "minimum": 0.8, "maximum": 1.2 },
+              "error_multiplier": { "type": "number", "minimum": 0.4, "maximum": 1.5 },
+              "fatigue_accumulation_rate": { "type": "number", "minimum": 0.3, "maximum": 1.5 },
+              "stress_sensitivity_factor": { "type": "number", "minimum": 0.4, "maximum": 1 }
             }
           },
           "llm_reasoning": { "type": "string" }

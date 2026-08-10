@@ -13,6 +13,12 @@ from docx import Document as DocxDocument
 from docx.table import Table as DocxTable
 from docx.text.paragraph import Paragraph as DocxParagraph
 
+from extract_xlsx_input_service import UnsupportedWorkbookError
+from extract_xlsx_input_service import build_agent_input as build_workbook_agent_input
+from extract_xlsx_input_service import extract_workbook
+
+WORKBOOK_SUFFIXES = {".xlsx", ".xlsm"}
+
 
 FIELD_ALIASES = {
     "factory_name": ["nama pabrik", "nama perusahaan", "factory name", "plant name", "company name"],
@@ -244,6 +250,22 @@ def is_header_fields(fields: Sequence[Optional[str]], width: int) -> bool:
     if len(unique) >= 3:
         return True
     return len(unique) >= 2 and "stage" in unique and width >= 3
+
+
+def is_workbook(path: str | Path) -> bool:
+    return Path(path).suffix.lower() in WORKBOOK_SUFFIXES
+
+
+def extract_any(path: str | Path):
+    if is_workbook(path):
+        return extract_workbook(path)
+    return extract_document(path)
+
+
+def build_any_agent_input(source) -> str:
+    if isinstance(source, ExtractedDocument):
+        return build_agent_input(source)
+    return build_workbook_agent_input(source)
 
 
 class PageModel:
@@ -838,7 +860,7 @@ def extract_document(path: str | Path) -> ExtractedDocument:
     if extractor is None:
         raise UnsupportedDocumentError(
             f"Format dokumen tidak didukung: '{resolved.suffix}'. "
-            f"Didukung: {sorted(DOCUMENT_EXTRACTORS.keys())}"
+            f"Didukung: {sorted(set(DOCUMENT_EXTRACTORS) | WORKBOOK_SUFFIXES)}"
         )
 
     text_lines, raw_tables = extractor(resolved)
