@@ -13,9 +13,9 @@ from docx import Document as DocxDocument
 from docx.table import Table as DocxTable
 from docx.text.paragraph import Paragraph as DocxParagraph
 
-from extract_xlsx_input_service import UnsupportedWorkbookError
-from extract_xlsx_input_service import build_agent_input as build_workbook_agent_input
-from extract_xlsx_input_service import extract_workbook
+from app.services.extract_xlsx_input_service import UnsupportedWorkbookError
+from app.services.extract_xlsx_input_service import build_agent_input as build_workbook_agent_input
+from app.services.extract_xlsx_input_service import extract_workbook
 
 WORKBOOK_SUFFIXES = {".xlsx", ".xlsm"}
 

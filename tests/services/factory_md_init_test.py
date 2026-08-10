@@ -19,11 +19,17 @@ from backend.app.services.extract_input_field_service import (
     UnsupportedDocumentError,
     build_any_agent_input,
     extract_any,
-    is_workbook,
-    validate_workbook,
-    apply_repairs,
-    build_workbook,
+    is_workbook
 )
+from backend.app.services.extract_xlsx_input_service import (
+    apply_repairs,
+    build_workbook
+)
+
+from backend.app.services.validate_workbook_service import (
+    validate_workbook
+)
+
 from backend.app.services.extract_worker_archive_service import (
     ArchiveError,
     extract_worker_uploads,
@@ -184,13 +190,19 @@ def tab_extraction():
     if uploaded is not None and st.button("Ekstrak"):
         saved_path = persist_upload(uploaded)
 
-        try:
-            source = extract_any(saved_path)
+        with st.spinner("Extracting documents..."):
+            started = time.perf_counter()
 
-        except (UnsupportedDocumentError, UnsupportedWorkbookError) as error:
-            st.error(str(error))
-            return
+            try:
+                source = extract_any(saved_path)
 
+            except (UnsupportedDocumentError, UnsupportedWorkbookError) as error:
+                st.error(str(error))
+                return
+
+            elapsed = time.perf_counter() - started
+
+        st.success(f"Extraction done at {elapsed:.2f} seconds")
         st.session_state["extracted_source"] = source
         st.session_state["agent_input"] = build_any_agent_input(source)
 

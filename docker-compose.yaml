@@ -5,8 +5,8 @@ services:
     container_name: llm-server
     runtime: nvidia
     volumes:
-      - ../../model_cache:/root/.cache/huggingface
-      - ../../models:/models
+      - ./model_cache:/root/.cache/huggingface
+      - ./models:/models
     ports:
       - "15000:15000"
     environment:
@@ -47,8 +47,8 @@ services:
     container_name: embedding-server
     runtime: nvidia
     volumes:
-      - ../../model_cache:/root/.cache/huggingface
-      - ../../models:/models
+      - ./model_cache:/root/.cache/huggingface
+      - ./models:/models
     ports:
       - "15001:15001"
     environment:
@@ -77,9 +77,12 @@ services:
 
   backend:
     build:
-      context: ../../backend
-      dockerfile: ../deployment/docker/backend.Dockerfile
+      context: .
+      dockerfile: deployment/docker/backend.Dockerfile
     container_name: digital_twin_backend
+    volumes:
+      - ./backend/app:/app/app
+
     ports:
       - "8000:8000"
     environment:
@@ -98,8 +101,7 @@ services:
       retries: 5
       start_period: 30s
     restart: unless-stopped
-    volumes:
-      - ../../backend/app:/app/app
+
 
   postgres:
     image: postgres:16-alpine
@@ -136,11 +138,11 @@ services:
 
   frontend:
     build:
-      context: ../../
+      context: .
       dockerfile: deployment/docker/frontend.Dockerfile
       args:
         VITE_API_URL: /api
-    container_name: compfest_frontend
+    container_name: frontend-server
     restart: unless-stopped
     ports:
       - "3000:80"
