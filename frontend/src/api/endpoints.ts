@@ -7,6 +7,13 @@ export const ENDPOINTS = {
     COMPATIBILITY_MATRIX: "/digital-twin/compatibility-matrix",
     LIVE_FLOW: "/digital-twin/live-flow",
   },
+  DOCUMENT_PARSER: {
+    PROCESS_COMBINED: "/documents/process-combined-documents",
+    PARSE: "/documents/process-combined-documents",
+    PROCESS_FACTORY: "/documents/process-factory-document",
+    STEP_4: "/documents/step-4",
+    STEP_5: "/documents/step-5",
+  },
   SIMULATION: {
     STATE: "/simulation/state",
     SCENARIOS: "/simulation/scenarios",
@@ -18,3 +25,5 @@ export const ENDPOINTS = {
     ME: "/auth/me",
   },
 } as const;
+
+export type Endpoints = typeof ENDPOINTS;

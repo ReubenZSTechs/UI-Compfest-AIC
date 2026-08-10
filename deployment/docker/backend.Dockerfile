@@ -22,6 +22,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Buat folder logging yang di-ignore oleh .gitignore
+RUN mkdir -p /app/backend/app/core/logging /app/backend/core/logging
+
 # Jalan sebagai non-root user — praktik keamanan dasar untuk container
 RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app

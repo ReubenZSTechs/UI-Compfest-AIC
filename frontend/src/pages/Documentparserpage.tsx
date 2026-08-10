@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/app/router/routes';
 import { UploadDropzone } from '@/features/document-parser/components/UploadDropzone';
 import { ParseStatusBanner } from '@/features/document-parser/components/ParseStatusBanner';
-import { useDocumentParser } from '@/features/document-parser/hooks/Usedocumentparser';
+import { ParsedDataInspector } from '@/features/document-parser/components/ParsedDataInspector';
+import { useDocumentParser } from '@/features/document-parser/hooks/useDocumentParser';
 import styles from './DocumentParserPage.module.css';
 
 export function DocumentParserPage() {
@@ -15,6 +15,7 @@ export function DocumentParserPage() {
     steps,
     jobStatus,
     result,
+    errorMessage,
     canParse,
     selectTemplate,
     selectCvBundle,
@@ -25,30 +26,22 @@ export function DocumentParserPage() {
   } = useDocumentParser();
 
   const resultSummary = result
-    ? `${result.workersParsed} pekerja & ${result.jobDesksParsed} job desk berhasil diparsing ke digital twin.`
+    ? `${result.workersParsed} pekerja & ${result.jobDesksParsed} job desk${
+        result.compatibilityMatrix ? ' & matriks kompatibilitas' : ''
+      } berhasil diparsing.`
     : undefined;
 
-  // Handler utama saat tombol parsing diklik
   const handleParse = async () => {
     try {
       await runParse();
-      // Jika runParse bersifat synchronous/selesai seketika tanpa jobStatus async,
-      // navigasi bisa ditempatkan langsung di sini.
     } catch (error) {
       console.error('Gagal menjalankan parsing:', error);
     }
   };
 
-  // Otomatis berpindah ke Digital Twin saat parsing berhasil diselesaikan
-  useEffect(() => {
-    if (jobStatus === 'success') {
-      const timer = setTimeout(() => {
-        navigate(ROUTES.DIGITAL_TWIN);
-      }, 1200); // Jeda 1.2 detik agar user sempat melihat status "Selesai" pada banner
-
-      return () => clearTimeout(timer);
-    }
-  }, [jobStatus, navigate]);
+  const handleProceedToDigitalTwin = () => {
+    navigate(ROUTES.DIGITAL_TWIN);
+  };
 
   return (
     <div className={styles.page}>
@@ -57,7 +50,7 @@ export function DocumentParserPage() {
           <span className={styles.eyebrow}>Document Ingestion</span>
           <h1 className={styles.title}>Document Parser</h1>
           <p className={styles.subtitle}>
-            Unggah template pabrik dan bundel CV karyawan. Keduanya akan disusun ulang menjadi satu digital twin JSON.
+            Unggah template pabrik dan bundel CV karyawan. Keduanya akan disusun ulang menjadi satu digital twin JSON terpadu.
           </p>
         </div>
       </header>
@@ -66,10 +59,10 @@ export function DocumentParserPage() {
         <UploadDropzone
           id="template-upload"
           eyebrow="01 — Template Pabrik"
-          title="Template PDF"
-          description="Formulir workflow, aset, dan job desk sesuai template yang kami sediakan."
-          accept="application/pdf"
-          acceptLabel="PDF"
+          title="Template Dokumen Pabrik"
+          description="Formulir workflow, aset, dan job desk (PDF, DOCX, MD, TXT)."
+          accept=".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
+          acceptLabel="PDF, DOCX, MD, TXT"
           accent="automated"
           file={templateSlot.file}
           errorMessage={templateSlot.errorMessage}
@@ -77,12 +70,13 @@ export function DocumentParserPage() {
           onFileSelect={selectTemplate}
           onClear={clearTemplate}
         />
+
         <UploadDropzone
           id="cv-bundle-upload"
           eyebrow="02 — Data Karyawan"
           title="Bundel CV (ZIP)"
           description="Kumpulan CV karyawan pabrik dalam satu berkas arsip terkompresi."
-          accept=".zip,application/zip,application/x-zip-compressed"
+          accept=".zip,application/zip,application/x-zip-compressed,application/x-zip"
           acceptLabel="ZIP"
           accent="manual"
           file={cvBundleSlot.file}
@@ -100,18 +94,8 @@ export function DocumentParserPage() {
           disabled={!canParse || jobStatus === 'running'}
           onClick={handleParse}
         >
-          {jobStatus === 'running' ? 'Memproses...' : 'Mulai Parsing'}
+          {jobStatus === 'running' ? 'Memproses Tahap 1 - 5...' : 'Mulai Parsing Terpadu'}
         </button>
-
-        {jobStatus === 'success' && (
-          <button
-            type="button"
-            className={styles.parseButton}
-            onClick={() => navigate(ROUTES.DIGITAL_TWIN)}
-          >
-            Buka Digital Twin →
-          </button>
-        )}
 
         {(jobStatus === 'success' || jobStatus === 'error') && (
           <button type="button" className={styles.resetButton} onClick={reset}>
@@ -120,7 +104,21 @@ export function DocumentParserPage() {
         )}
       </section>
 
-      <ParseStatusBanner steps={steps} jobStatus={jobStatus} resultSummary={resultSummary} />
+      {/* Indikator Status & Pesan Error */}
+      <ParseStatusBanner
+        steps={steps}
+        jobStatus={jobStatus}
+        resultSummary={resultSummary}
+        errorMessage={errorMessage}
+      />
+
+      {/* COMPONENT STREAMLIT-LIKE INSPECTOR & TOMBOL MANUAL NAVIGASI */}
+      {jobStatus === 'success' && result && (
+        <ParsedDataInspector
+          result={result}
+          onProceed={handleProceedToDigitalTwin}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 export { UploadDropzone } from './components/UploadDropzone';
 export { ParseStatusBanner } from './components/ParseStatusBanner';
-export { useDocumentParser } from './hooks/Usedocumentparser';
-export { startParseJob } from './api/Documentparserapi';
+export { useDocumentParser } from './hooks/useDocumentParser';
+export { documentParserApi} from './api/Documentparserapi';
 export type {
   ParseJobResult,
   ParseJobStatus,
