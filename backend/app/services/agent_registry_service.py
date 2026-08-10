@@ -20,6 +20,7 @@ class AgentRole(StrEnum):
     INIT_STATE = "init_state_creator"
     SIMULATION_STATE = "simulation_state_agent"
     OPTIMIZATION_SCENARIO = "optimization_scenario_agent"
+    GNN_COMPATIBILITY_GENERATOR = "gnn_training_data_generator" 
 
     CHATBOT_QUERY_REWRITER = "chatbot_query_rewriter"
     CHATBOT_ROUTER = "chatbot_router"
