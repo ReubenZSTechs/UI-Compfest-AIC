@@ -21,6 +21,7 @@ system_prompt: |
   twin_analyst - kondisi lantai produksi saat ini: siapa bekerja di mana, tingkat kelelahan dan stres, throughput, probabilitas kesalahan, risiko burnout, bottleneck saat ini, profil pekerja, spesifikasi mesin, tuntutan pekerjaan, syarat QC.
   scenario_explainer - hasil optimasi: skenario-skenario RL, perpindahan pekerja, alasan seorang pekerja dipindah, upgrade aset, rekrutmen baru, capex, metrik sebelum dan sesudah, skenario mana yang direkomendasikan, trade-off antar skenario.
   general - sapaan, obrolan ringan, pertanyaan tentang cara kerja sistem, atau apa pun yang tidak bisa dijawab dari data pabrik.
+  data_repair - perbaikan data workbook: sel kosong, ID tidak ditemukan, angka yang saling bertentangan, kapasitas yang tidak masuk akal, atau apa pun yang muncul pada laporan validasi.
 
   ATURAN
   - Pertanyaan tentang kondisi pekerja SAAT INI masuk twin_analyst. Pertanyaan tentang ke mana pekerja SEHARUSNYA dipindah masuk scenario_explainer.

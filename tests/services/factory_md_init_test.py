@@ -17,8 +17,12 @@ from backend.app.core.agent_config import get_agent_settings
 from backend.app.services.agent_registry_service import AgentRole, get_agent_registry
 from backend.app.services.extract_input_field_service import (
     UnsupportedDocumentError,
-    build_agent_input,
-    extract_document,
+    build_any_agent_input,
+    extract_any,
+    is_workbook,
+    validate_workbook,
+    apply_repairs,
+    build_workbook,
 )
 from backend.app.services.extract_worker_archive_service import (
     ArchiveError,
@@ -35,6 +39,12 @@ from backend.app.services.cross_reference_job_worker_service import (
 from backend.app.services.check_factory_completeness import (
     GapSeverity,
     check_factory_completeness,
+)
+
+from backend.app.services.extract_xlsx_input_service import (
+    UnsupportedWorkbookError,
+    build_agent_input as build_workbook_agent_input,
+    extract_workbook,
 )
 
 
@@ -167,96 +177,75 @@ def render_sidebar():
 
 
 def tab_extraction():
-    st.subheader("Tahap 1 — Ekstraksi dokumen pabrik")
+    st.subheader("Tahap 1 — Ekstraksi workbook")
 
-    mode = st.radio(
-        "Sumber input",
-        options=["Unggah file", "Tempel teks manual"],
-        horizontal=True,
-        key="extraction_mode",
-    )
+    uploaded = st.file_uploader("Workbook pabrik", type=["xlsx", "xlsm", "pdf", "docx", "md"])
 
-    if mode == "Unggah file":
-        uploaded = st.file_uploader(
-            "Dokumen pabrik",
-            type=["pdf", "docx", "md", "markdown", "txt"],
+    if uploaded is not None and st.button("Ekstrak"):
+        saved_path = persist_upload(uploaded)
+
+        try:
+            source = extract_any(saved_path)
+
+        except (UnsupportedDocumentError, UnsupportedWorkbookError) as error:
+            st.error(str(error))
+            return
+
+        st.session_state["extracted_source"] = source
+        st.session_state["agent_input"] = build_any_agent_input(source)
+
+        if is_workbook(saved_path):
+            st.session_state["validation_report"] = validate_workbook(source)
+
+
+def tab_validation():
+    st.subheader("Tahap 2 — Validasi integritas data")
+
+    report = st.session_state.get("validation_report")
+
+    if report is None:
+        st.info("Belum ada workbook yang divalidasi.")
+        return
+
+    columns = st.columns(3)
+    columns[0].metric("Status", "Lolos" if report.is_complete else "Perlu perbaikan")
+    columns[1].metric("Blocking", report.blocking_count)
+    columns[2].metric("Warning", report.warning_count)
+
+    if report.issues:
+        st.dataframe(pd.DataFrame(report.as_records()), use_container_width=True)
+
+    if report.is_complete:
+        st.success("Data konsisten. Pipeline boleh dilanjutkan ke Agent A.")
+        return
+
+    st.error("Agent A diblokir sampai temuan blocking diperbaiki.")
+
+    if st.button("Susun pertanyaan perbaikan"):
+        text = run_text_agent(
+            stage="data_repair",
+            role=AgentRole.DATA_REPAIR,
+            payload=report.as_prompt_payload(),
         )
+        st.session_state["clarification_text"] = text
 
-        if uploaded is not None and st.button("Ekstrak dokumen"):
-            saved_path = persist_upload(uploaded)
+    if st.session_state.get("clarification_text"):
+        st.info(st.session_state["clarification_text"])
 
-            try:
-                document = extract_document(saved_path)
+    repairs_json = st.text_area("Blok PERBAIKAN dari chatbot", height=160, key="repairs_json")
 
-            except UnsupportedDocumentError as error:
-                st.error(str(error))
-                return
+    if repairs_json and st.button("Terapkan perbaikan"):
+        source = st.session_state["extracted_source"]
+        raw, rejected = apply_repairs(source.raw, json.loads(repairs_json))
 
-            except Exception as error:
-                st.error(f"Ekstraksi gagal: {error}")
-                return
+        if rejected:
+            st.warning(f"Alamat tidak dikenali: {', '.join(rejected)}")
 
-            st.session_state["extracted_document"] = document
-            st.session_state["agent_input"] = build_agent_input(document)
-
-    else:
-        pasted = st.text_area(
-            "Tempel dokumen dalam format tetap",
-            height=320,
-            placeholder="Nama pabrik: ...\nJenis proses: ...\nDeskripsi pabrik: ...\nJumlah pekerja: ...",
-        )
-
-        if pasted and st.button("Gunakan teks ini"):
-            st.session_state["extracted_document"] = None
-            st.session_state["agent_input"] = pasted
-
-    document = st.session_state["extracted_document"]
-
-    if document is not None:
-        st.divider()
-        st.markdown("**Field teks terbaca**")
-
-        field_rows = []
-        for key, value in document.text_fields.items():
-            field_rows.append({"field": key, "nilai": value})
-
-        if field_rows:
-            st.dataframe(pd.DataFrame(field_rows), use_container_width=True)
-        else:
-            st.warning("Tidak ada field teks yang terbaca dari dokumen.")
-
-        missing = document.missing_text_fields()
-        if missing:
-            st.warning(f"Field yang belum terbaca: {', '.join(missing)}")
-
-        st.markdown(f"**Tabel terdeteksi: {len(document.tables)}**")
-
-        if len(document.tables) < 3:
-            st.warning(
-                "Format baku mengharapkan tiga tabel. "
-                "Hasil Agent A kemungkinan tidak lengkap."
-            )
-
-        for table in document.tables:
-            with st.expander(f"Tabel {table.index} — {len(table.rows)} baris"):
-                st.dataframe(
-                    pd.DataFrame(table.rows, columns=table.headers),
-                    use_container_width=True,
-                )
-
-        with st.expander("Teks mentah hasil ekstraksi"):
-            st.text(document.raw_text)
-
-    if st.session_state["agent_input"]:
-        st.divider()
-        st.markdown("**Payload yang akan dikirim ke Agent A**")
-        edited = st.text_area(
-            "Bisa disunting sebelum dikirim",
-            value=st.session_state["agent_input"],
-            height=280,
-            key="agent_input_editor",
-        )
-        st.session_state["agent_input"] = edited
+        repaired = build_workbook(raw)
+        st.session_state["extracted_source"] = repaired
+        st.session_state["agent_input"] = build_workbook_agent_input(repaired)
+        st.session_state["validation_report"] = validate_workbook(repaired)
+        st.rerun()
 
 
 def tab_structure():

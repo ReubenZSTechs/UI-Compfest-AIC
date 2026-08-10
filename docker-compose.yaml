@@ -1,0 +1,161 @@
+services:
+
+  LLM:
+    image: vllm/vllm-openai:v0.26.0
+    container_name: llm-server
+    runtime: nvidia
+    volumes:
+      - ../../model_cache:/root/.cache/huggingface
+      - ../../models:/models
+    ports:
+      - "15000:15000"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - HF_HUB_OFFLINE=1
+      - VLLM_LOGGING_LEVEL=INFO
+      - VLLM_ATTENTION_BACKEND=FLASH_ATTN
+    command: >
+      --model /models/models--nvidia--Llama-3.1-8B-Instruct-NVFP4
+      --quantization modelopt_fp4
+      --hf-overrides '{"tie_word_embeddings": false}'
+      --served-model-name LLM
+      --max-model-len 65536
+      --gpu-memory-utilization 0.75
+      --kv-cache-dtype turboquant_4bit_nc
+      --port 15000
+    depends_on:
+      embedding:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1800s
+    restart: unless-stopped
+
+  
+  embedding:
+    image: vllm/vllm-openai:v0.26.0
+    container_name: embedding-server
+    runtime: nvidia
+    volumes:
+      - ../../model_cache:/root/.cache/huggingface
+      - ../../models:/models
+    ports:
+      - "15001:15001"
+    environment:
+      - HF_HUB_OFFLINE=1
+      - VLLM_LOGGING_LEVEL=INFO
+    command: >
+      --model /models/models--BAAI--bge-m3
+      --served_model_name embedding
+      --max_model_len 8192
+      --gpu-memory-utilization 0.15
+      --port 15001
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: ../deployment/docker/backend.Dockerfile
+    container_name: digital_twin_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - SECRET_KEY=${SECRET_KEY}
+      - HF_TOKEN=${HF_TOKEN}
+      - LLM_BRIDGE_URL=http://LLM:15000/v1
+      - EMBEDDING_BRIDGE_URL=http://embedding:15001/v1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    volumes:
+      - ../../backend/app:/app/app
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: digital_twin_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-digital_twin}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: digital_twin_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/frontend.Dockerfile
+      args:
+        VITE_API_URL: /api
+    container_name: compfest_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pgdata:
+  pgadmin_data:
+
+networks:
+  default:
+    name: compfest-net
+    external: true
