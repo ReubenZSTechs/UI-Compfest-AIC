@@ -1,0 +1,358 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0044",
+    "factory_name": "Synthetic Plant 44",
+    "process_type": "serial",
+    "declared_worker_count": 9,
+    "layout_description": "A serial production line laid out along the sequence Surface Treatment -> Palletizing -> Machining -> Quality Inspection, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Surface Treatment",
+      "Palletizing",
+      "Machining",
+      "Quality Inspection"
+    ],
+    "parallel_groups": []
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0044-001",
+      "asset_name": "Injection Molder 1",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 1,
+      "base_throughput_capacity": 92,
+      "operational_cost_per_hour": 12.96,
+      "environmental_factors": {
+        "noise_level_db": 60,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.79
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0044-002",
+      "asset_name": "Lathe Station 2",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 114,
+      "operational_cost_per_hour": 100.51,
+      "environmental_factors": {
+        "noise_level_db": 40,
+        "vibration_hazard_level": "high",
+        "physical_strain_index": 0.41
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0044-003",
+      "asset_name": "Belt Conveyor 3",
+      "category": "conveyor_automation",
+      "workflow_step": "Palletizing",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 266,
+      "operational_cost_per_hour": 59.68,
+      "environmental_factors": {
+        "noise_level_db": 79,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.87
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Palletizing' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0044-004",
+      "asset_name": "Hand-Pack Station 4",
+      "category": "manual_station",
+      "workflow_step": "Palletizing",
+      "is_automated": false,
+      "units_available": 4,
+      "base_throughput_capacity": 25,
+      "operational_cost_per_hour": 69.5,
+      "environmental_factors": {
+        "noise_level_db": 92,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.12
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Palletizing' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0044-005",
+      "asset_name": "Injection Molder 5",
+      "category": "machine",
+      "workflow_step": "Machining",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 95,
+      "operational_cost_per_hour": 62.44,
+      "environmental_factors": {
+        "noise_level_db": 55,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.87
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Machining' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0044-006",
+      "asset_name": "Vision Inspection System 6",
+      "category": "measuring_equipment",
+      "workflow_step": "Quality Inspection",
+      "is_automated": false,
+      "units_available": 1,
+      "base_throughput_capacity": 250,
+      "operational_cost_per_hour": 113.48,
+      "environmental_factors": {
+        "noise_level_db": 89,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.43
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a measuring equipment used at the 'Quality Inspection' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0044-007",
+      "asset_name": "Coordinate Measuring Machine 7",
+      "category": "measuring_equipment",
+      "workflow_step": "Quality Inspection",
+      "is_automated": false,
+      "units_available": 2,
+      "base_throughput_capacity": 116,
+      "operational_cost_per_hour": 53.32,
+      "environmental_factors": {
+        "noise_level_db": 69,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.56
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a measuring equipment used at the 'Quality Inspection' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0044-001",
+      "job_title": "Surface Treatment Operator",
+      "workflow_step": "Surface Treatment",
+      "assigned_asset_id": "AST-0044-002",
+      "assigned_worker_name": [
+        "WKR-0044-004"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.11,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.79,
+        "error_severity": "critical"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Lathe Station 2.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a medium physical, critical-severity task typical of the 'Surface Treatment' step."
+    },
+    {
+      "job_id": "JOB-0044-002",
+      "job_title": "Palletizing Operator",
+      "workflow_step": "Palletizing",
+      "assigned_asset_id": "AST-0044-004",
+      "assigned_worker_name": [
+        "WKR-0044-009",
+        "WKR-0044-002"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.49,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.45,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hand-Pack Station 4.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a medium physical, moderate-severity task typical of the 'Palletizing' step."
+    },
+    {
+      "job_id": "JOB-0044-003",
+      "job_title": "Machine Operator",
+      "workflow_step": "Machining",
+      "assigned_asset_id": "AST-0044-005",
+      "assigned_worker_name": [
+        "WKR-0044-002",
+        "WKR-0044-003"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.57,
+        "physical_demand_level": "low",
+        "task_complexity": 0.24,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Injection Molder 5.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, moderate-severity task typical of the 'Machining' step."
+    },
+    {
+      "job_id": "JOB-0044-004",
+      "job_title": "QC Inspector",
+      "workflow_step": "Quality Inspection",
+      "assigned_asset_id": "AST-0044-007",
+      "assigned_worker_name": [
+        "WKR-0044-005",
+        "WKR-0044-002"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.19,
+        "physical_demand_level": "high",
+        "task_complexity": 0.65,
+        "error_severity": "critical"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Coordinate Measuring Machine 7.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, critical-severity task typical of the 'Quality Inspection' step."
+    },
+    {
+      "job_id": "JOB-0044-005",
+      "job_title": "QC Inspector",
+      "workflow_step": "Quality Inspection",
+      "assigned_asset_id": "AST-0044-006",
+      "assigned_worker_name": [
+        "WKR-0044-002",
+        "WKR-0044-008"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.56,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.64,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Vision Inspection System 6.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a medium physical, moderate-severity task typical of the 'Quality Inspection' step."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0044-001",
+      "name": "Oscar Santoso",
+      "demographics": {
+        "age": 34,
+        "gender": "female",
+        "years_of_experience": 15,
+        "baseline_physical_stamina": 0.61,
+        "cognitive_resilience": 0.95
+      },
+      "shift_context": {
+        "hours_worked_today": 9.4,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0044-002",
+      "name": "Putri Saputra",
+      "demographics": {
+        "age": 36,
+        "gender": "male",
+        "years_of_experience": 11,
+        "baseline_physical_stamina": 0.9,
+        "cognitive_resilience": 0.94
+      },
+      "shift_context": {
+        "hours_worked_today": 1.3,
+        "consecutive_shifts": 2
+      }
+    },
+    {
+      "worker_id": "WKR-0044-003",
+      "name": "Kartika Halim",
+      "demographics": {
+        "age": 44,
+        "gender": "female",
+        "years_of_experience": 2,
+        "baseline_physical_stamina": 0.48,
+        "cognitive_resilience": 0.91
+      },
+      "shift_context": {
+        "hours_worked_today": 6.8,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0044-004",
+      "name": "Budi Pratama",
+      "demographics": {
+        "age": 18,
+        "gender": "male",
+        "years_of_experience": 17,
+        "baseline_physical_stamina": 0.37,
+        "cognitive_resilience": 0.56
+      },
+      "shift_context": {
+        "hours_worked_today": 5.7,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0044-005",
+      "name": "Citra Pratama",
+      "demographics": {
+        "age": 47,
+        "gender": "female",
+        "years_of_experience": 12,
+        "baseline_physical_stamina": 0.54,
+        "cognitive_resilience": 0.63
+      },
+      "shift_context": {
+        "hours_worked_today": 5.4,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0044-006",
+      "name": "Oscar Wijaya",
+      "demographics": {
+        "age": 29,
+        "gender": "female",
+        "years_of_experience": 2,
+        "baseline_physical_stamina": 0.94,
+        "cognitive_resilience": 0.95
+      },
+      "shift_context": {
+        "hours_worked_today": 7.7,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0044-007",
+      "name": "Made Halim",
+      "demographics": {
+        "age": 38,
+        "gender": "male",
+        "years_of_experience": 2,
+        "baseline_physical_stamina": 0.72,
+        "cognitive_resilience": 0.45
+      },
+      "shift_context": {
+        "hours_worked_today": 7.4,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0044-008",
+      "name": "Indra Hidayat",
+      "demographics": {
+        "age": 52,
+        "gender": "male",
+        "years_of_experience": 1,
+        "baseline_physical_stamina": 0.63,
+        "cognitive_resilience": 0.75
+      },
+      "shift_context": {
+        "hours_worked_today": 3.2,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0044-009",
+      "name": "Made Saputra",
+      "demographics": {
+        "age": 45,
+        "gender": "unspecified",
+        "years_of_experience": 11,
+        "baseline_physical_stamina": 0.45,
+        "cognitive_resilience": 0.45
+      },
+      "shift_context": {
+        "hours_worked_today": 0.2,
+        "consecutive_shifts": 6
+      }
+    }
+  ]
+}

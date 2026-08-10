@@ -18,8 +18,8 @@ from pathlib import Path
 
 random.seed(42)
 
-OUTPUT_DIR = Path("./training/data/formatted/syntetic_factories/")
-NUM_FACTORIES = 4
+OUTPUT_DIR = Path("./training/datasets/formatted/syntetic_factories/")
+NUM_FACTORIES = 100
 WORKER_POOL_SIZE_RANGE = (8, 14)
 
 STEP_POOL = [

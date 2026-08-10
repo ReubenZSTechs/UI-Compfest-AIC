@@ -1,4 +1,7 @@
-import { useState, useMemo } from "react";
+// frontend/src/pages/DigitalTwinPage.tsx
+
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useDigitalTwin } from "@/features/digital-twin/hooks/useDigitalTwin";
 import { useDigitalTwinStore } from "@/features/digital-twin/store/digitalTwinStore";
 import { AssetCard } from "@/features/digital-twin/components/AssetCard";
@@ -15,7 +18,37 @@ import "@/features/simulation/styles/tokens.css";
 import styles from "./DigitalTwinPage.module.css";
 
 export function DigitalTwinPage() {
-  const { data, isLoading, error } = useDigitalTwin();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const factoryId =
+    searchParams.get("factory_id") ||
+    searchParams.get("factoryId") ||
+    searchParams.get("simulation_id") ||
+    searchParams.get("job_id") ||
+    undefined;
+
+  const { data, isLoading, error } = useDigitalTwin(factoryId);
+
+  // Validasi keberadaan data hasil parsing
+  const hasParsedData = useMemo(() => {
+    if (!data) return false;
+    const hasFactory = Boolean(
+      data.factoryInfo?.factoryId || data.factoryInfo?.factoryName
+    );
+    const hasDesks = Array.isArray(data.jobDesks) && data.jobDesks.length > 0;
+    const hasWorkers = Array.isArray(data.workers) && data.workers.length > 0;
+    const hasAssets = Array.isArray(data.assets) && data.assets.length > 0;
+    return hasFactory || hasDesks || hasWorkers || hasAssets;
+  }, [data]);
+
+  // Route Guard: Alihkan ke halaman document parser jika data tidak valid/kosong
+  useEffect(() => {
+    if (!isLoading && (error || !hasParsedData || !factoryId)) {
+      alert("Hasil parsing belum tersedia. Silakan unggah dan proses dokumen terlebih dahulu.");
+      navigate("/document-parser", { replace: true });
+    }
+  }, [isLoading, error, hasParsedData, factoryId, navigate]);
 
   // State pencarian terpisah untuk masing-masing seksi
   const [assetSearchQuery, setAssetSearchQuery] = useState("");
@@ -26,21 +59,24 @@ export function DigitalTwinPage() {
   const selectedCategory = useDigitalTwinStore((s) => s.selectedCategory);
   const automationFilter = useDigitalTwinStore((s) => s.automationFilter);
 
-  // Peta worker_id -> current_station
+  // Peta workerId -> currentStation (null-safe)
   const workerStationMap = useMemo(() => {
     const map = new Map<string, string>();
-    data?.factory_flow_rightnow.staff_current_positions.forEach((pos) => {
-      map.set(pos.worker_id, pos.current_station);
+    data?.factoryFlowRightnow?.staffCurrentPositions?.forEach((pos) => {
+      if (pos?.workerId) {
+        map.set(pos.workerId, pos.currentStation ?? "");
+      }
     });
     return map;
   }, [data]);
 
-  // Filter Aset & Mesin (menggunakan assetSearchQuery)
+  // Filter Aset & Mesin
   const filteredAssets = useMemo(() => {
-    if (!data) return [];
+    if (!data?.assets) return [];
     return data.assets.filter((asset) => {
+      if (!asset) return false;
       const matchesStep = selectedWorkflowStep
-        ? asset.workflow_step === selectedWorkflowStep
+        ? asset.workflowStep === selectedWorkflowStep
         : true;
       const matchesCategory = selectedCategory
         ? asset.category === selectedCategory
@@ -49,91 +85,113 @@ export function DigitalTwinPage() {
         automationFilter === "all"
           ? true
           : automationFilter === "automated"
-            ? asset.is_automated
-            : !asset.is_automated;
+            ? asset.isAutomated
+            : !asset.isAutomated;
+
+      const query = assetSearchQuery.toLowerCase();
       const matchesSearch = assetSearchQuery
-        ? asset.asset_name.toLowerCase().includes(assetSearchQuery.toLowerCase()) ||
-          asset.asset_id.toLowerCase().includes(assetSearchQuery.toLowerCase())
+        ? (asset.assetName?.toLowerCase().includes(query) ?? false) ||
+          (asset.assetId?.toLowerCase().includes(query) ?? false)
         : true;
+
       return matchesStep && matchesCategory && matchesAutomation && matchesSearch;
     });
   }, [data, selectedWorkflowStep, selectedCategory, automationFilter, assetSearchQuery]);
 
-  // Filter Pekerja (menggunakan workerSearchQuery)
+  // Filter Pekerja
   const filteredWorkers = useMemo(() => {
-    if (!data) return [];
+    if (!data?.workers) return [];
     return data.workers.filter((worker) => {
+      if (!worker) return false;
       const matchesStep = selectedWorkflowStep
-        ? workerStationMap.get(worker.worker_id) === selectedWorkflowStep
+        ? workerStationMap.get(worker.workerId) === selectedWorkflowStep
         : true;
+
+      const query = workerSearchQuery.toLowerCase();
       const matchesSearch = workerSearchQuery
-        ? worker.name.toLowerCase().includes(workerSearchQuery.toLowerCase()) ||
-          worker.worker_id.toLowerCase().includes(workerSearchQuery.toLowerCase())
+        ? (worker.name?.toLowerCase().includes(query) ?? false) ||
+          (worker.workerId?.toLowerCase().includes(query) ?? false)
         : true;
+
       return matchesStep && matchesSearch;
     });
   }, [data, selectedWorkflowStep, workerSearchQuery, workerStationMap]);
 
-  // Filter Job Desk (menggunakan jobDeskSearchQuery)
+  // Filter Job Desk
   const filteredJobDesks = useMemo(() => {
-    if (!data) return [];
-    return data.job_desks.filter((job) => {
+    if (!data?.jobDesks) return [];
+    return data.jobDesks.filter((job) => {
+      if (!job) return false;
       const matchesStep = selectedWorkflowStep
-        ? job.workflow_step === selectedWorkflowStep
+        ? job.workflowStep === selectedWorkflowStep
         : true;
+
+      const query = jobDeskSearchQuery.toLowerCase();
       const matchesSearch = jobDeskSearchQuery
-        ? job.job_title.toLowerCase().includes(jobDeskSearchQuery.toLowerCase()) ||
-          job.job_id.toLowerCase().includes(jobDeskSearchQuery.toLowerCase())
+        ? (job.jobTitle?.toLowerCase().includes(query) ?? false) ||
+          (job.jobId?.toLowerCase().includes(query) ?? false)
         : true;
+
       return matchesStep && matchesSearch;
     });
   }, [data, selectedWorkflowStep, jobDeskSearchQuery]);
 
   const categories = useMemo<AssetCategory[]>(() => {
-    if (!data) return [];
-    return Array.from(new Set(data.assets.map((a) => a.category)));
+    if (!data?.assets) return [];
+    return Array.from(new Set(data.assets.map((a) => a?.category).filter(Boolean)));
   }, [data]);
 
   const workerNames = useMemo(() => {
-    if (!data) return {};
-    return Object.fromEntries(data.workers.map((w) => [w.worker_id, w.name]));
+    if (!data?.workers) return {};
+    return Object.fromEntries(
+      data.workers
+        .filter((w) => w?.workerId)
+        .map((w) => [w.workerId, w.name ?? w.workerId])
+    );
   }, [data]);
 
   const jobTitles = useMemo(() => {
-    if (!data) return {};
-    return Object.fromEntries(data.job_desks.map((j) => [j.job_id, j.job_title]));
+    if (!data?.jobDesks) return {};
+    return Object.fromEntries(
+      data.jobDesks
+        .filter((j) => j?.jobId)
+        .map((j) => [j.jobId, j.jobTitle ?? j.jobId])
+    );
   }, [data]);
 
   if (isLoading) {
-    return <div className={styles.stateMessage}>Memuat digital twin...</div>;
+    return <div className={styles.stateMessage}>Memeriksa ketersediaan data digital twin...</div>;
   }
 
-  if (error) {
-    return (
-      <div className={`${styles.stateMessage} ${styles.stateError}`}>
-        Gagal memuat data: {error.message}
-      </div>
-    );
+  // Guard guard bertahap: pastikan data tidak null sebelum masuk ke JSX
+  if (error || !hasParsedData || !data) {
+    return null; // Menunggu pemanggilan redirect oleh useEffect
   }
-
-  if (!data) return null;
 
   return (
     <div className={styles.page}>
       {/* Header */}
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>Digital Twin</span>
-          <h1 className={styles.factoryName}>{data.factory_info.factory_name}</h1>
-          <span className={styles.factoryId}>{data.factory_info.factory_id}</span>
+          <span className={styles.eyebrow}>
+            Digital Twin {factoryId ? `(ID: ${factoryId})` : ""}
+          </span>
+          <h1 className={styles.factoryName}>
+            {data.factoryInfo?.factoryName ?? "Digital Twin Pabrik"}
+          </h1>
+          <span className={styles.factoryId}>
+            {data.factoryInfo?.factoryId ?? "-"}
+          </span>
         </div>
         <div className={styles.snapshotInfo}>
           <span className={styles.readoutLabel}>Snapshot Terakhir</span>
           <time className={styles.snapshotTime}>
-            {new Date(data.factory_flow_rightnow.snapshot_timestamp).toLocaleString(
-              "id-ID",
-              { dateStyle: "medium", timeStyle: "short" }
-            )}
+            {data.factoryFlowRightnow?.snapshotTimestamp
+              ? new Date(data.factoryFlowRightnow.snapshotTimestamp).toLocaleString(
+                  "id-ID",
+                  { dateStyle: "medium", timeStyle: "short" }
+                )
+              : "-"}
           </time>
         </div>
       </header>
@@ -152,7 +210,7 @@ export function DigitalTwinPage() {
 
       {/* Filter Bar untuk Tahap Workflow & Otomasi */}
       <FilterBar
-        workflowSteps={data.factory_info.workflow_sequence}
+        workflowSteps={data.factoryInfo?.workflowSequence ?? []}
         categories={categories}
       />
 
@@ -163,7 +221,6 @@ export function DigitalTwinPage() {
             <h2 className={styles.sectionTitle}>Aset & Mesin</h2>
             <span className={styles.sectionCount}>{filteredAssets.length}</span>
           </div>
-          {/* SearchBar Khusus Aset */}
           <input
             type="text"
             placeholder="Cari aset atau ID..."
@@ -173,11 +230,13 @@ export function DigitalTwinPage() {
           />
         </div>
         {filteredAssets.length === 0 ? (
-          <p className={styles.emptyState}>Tidak ada aset yang cocok dengan pencarian/filter.</p>
+          <p className={styles.emptyState}>
+            Tidak ada aset yang cocok dengan pencarian/filter.
+          </p>
         ) : (
           <div className={styles.assetGrid}>
             {filteredAssets.map((asset) => (
-              <AssetCard key={asset.asset_id} asset={asset} />
+              <AssetCard key={asset.assetId} asset={asset} />
             ))}
           </div>
         )}
@@ -190,7 +249,6 @@ export function DigitalTwinPage() {
             <h2 className={styles.sectionTitle}>Pekerja</h2>
             <span className={styles.sectionCount}>{filteredWorkers.length}</span>
           </div>
-          {/* SearchBar Khusus Pekerja */}
           <input
             type="text"
             placeholder="Cari nama atau ID pekerja..."
@@ -200,11 +258,13 @@ export function DigitalTwinPage() {
           />
         </div>
         {filteredWorkers.length === 0 ? (
-          <p className={styles.emptyState}>Tidak ada pekerja yang cocok dengan pencarian/filter.</p>
+          <p className={styles.emptyState}>
+            Tidak ada pekerja yang cocok dengan pencarian/filter.
+          </p>
         ) : (
           <div className={styles.workerGrid}>
             {filteredWorkers.map((worker) => (
-              <WorkerCard key={worker.worker_id} worker={worker} />
+              <WorkerCard key={worker.workerId} worker={worker} />
             ))}
           </div>
         )}
@@ -217,7 +277,6 @@ export function DigitalTwinPage() {
             <h2 className={styles.sectionTitle}>Job Desk</h2>
             <span className={styles.sectionCount}>{filteredJobDesks.length}</span>
           </div>
-          {/* SearchBar Khusus Job Desk */}
           <input
             type="text"
             placeholder="Cari judul atau ID job desk..."
@@ -237,7 +296,7 @@ export function DigitalTwinPage() {
         <CompatibilityMatrix
           workers={filteredWorkers}
           jobDesks={filteredJobDesks}
-          evaluations={data.llm_compatibility_and_evaluations}
+          evaluations={data.llmCompatibilityAndEvaluations ?? []}
         />
       </section>
     </div>

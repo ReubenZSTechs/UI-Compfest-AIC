@@ -1,0 +1,403 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0007",
+    "factory_name": "Synthetic Plant 7",
+    "process_type": "parallel",
+    "declared_worker_count": 8,
+    "layout_description": "A parallel production line laid out along the sequence Surface Treatment -> Quality Inspection -> Machining -> Cutting -> Packaging, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Surface Treatment",
+      "Quality Inspection",
+      "Machining",
+      "Cutting",
+      "Packaging"
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "PG-07-01",
+        "steps": [
+          "Packaging",
+          "Quality Inspection"
+        ],
+        "reasoning": "Steps Packaging, Quality Inspection do not share equipment or line dependencies, so they can run concurrently without blocking one another."
+      }
+    ]
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0007-001",
+      "asset_name": "Injection Molder 1",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 46,
+      "operational_cost_per_hour": 95.76,
+      "environmental_factors": {
+        "noise_level_db": 76,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.33
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0007-002",
+      "asset_name": "Injection Molder 2",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 2,
+      "base_throughput_capacity": 190,
+      "operational_cost_per_hour": 14.37,
+      "environmental_factors": {
+        "noise_level_db": 77,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.35
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0007-003",
+      "asset_name": "Vision Inspection System 3",
+      "category": "measuring_equipment",
+      "workflow_step": "Quality Inspection",
+      "is_automated": false,
+      "units_available": 1,
+      "base_throughput_capacity": 178,
+      "operational_cost_per_hour": 69.28,
+      "environmental_factors": {
+        "noise_level_db": 76,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.74
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a measuring equipment used at the 'Quality Inspection' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0007-004",
+      "asset_name": "Vision Inspection System 4",
+      "category": "measuring_equipment",
+      "workflow_step": "Quality Inspection",
+      "is_automated": false,
+      "units_available": 4,
+      "base_throughput_capacity": 280,
+      "operational_cost_per_hour": 46.61,
+      "environmental_factors": {
+        "noise_level_db": 58,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.86
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a measuring equipment used at the 'Quality Inspection' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0007-005",
+      "asset_name": "Hydraulic Press 5",
+      "category": "machine",
+      "workflow_step": "Machining",
+      "is_automated": true,
+      "units_available": 2,
+      "base_throughput_capacity": 99,
+      "operational_cost_per_hour": 13.87,
+      "environmental_factors": {
+        "noise_level_db": 89,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.48
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Machining' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0007-006",
+      "asset_name": "Injection Molder 6",
+      "category": "machine",
+      "workflow_step": "Machining",
+      "is_automated": false,
+      "units_available": 2,
+      "base_throughput_capacity": 212,
+      "operational_cost_per_hour": 22.74,
+      "environmental_factors": {
+        "noise_level_db": 46,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.71
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Machining' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0007-007",
+      "asset_name": "CNC Mill 7",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 2,
+      "base_throughput_capacity": 247,
+      "operational_cost_per_hour": 75.22,
+      "environmental_factors": {
+        "noise_level_db": 83,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.43
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0007-008",
+      "asset_name": "Hand-Pack Station 8",
+      "category": "manual_station",
+      "workflow_step": "Packaging",
+      "is_automated": false,
+      "units_available": 2,
+      "base_throughput_capacity": 208,
+      "operational_cost_per_hour": 83.01,
+      "environmental_factors": {
+        "noise_level_db": 71,
+        "vibration_hazard_level": "high",
+        "physical_strain_index": 0.44
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Packaging' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0007-001",
+      "job_title": "Surface Treatment Operator",
+      "workflow_step": "Surface Treatment",
+      "assigned_asset_id": "AST-0007-002",
+      "assigned_worker_name": [
+        "WKR-0007-004"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.31,
+        "physical_demand_level": "low",
+        "task_complexity": 0.65,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Injection Molder 2.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, high-severity task typical of the 'Surface Treatment' step."
+    },
+    {
+      "job_id": "JOB-0007-002",
+      "job_title": "Surface Treatment Operator",
+      "workflow_step": "Surface Treatment",
+      "assigned_asset_id": "AST-0007-001",
+      "assigned_worker_name": [
+        "WKR-0007-002",
+        "WKR-0007-006"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.34,
+        "physical_demand_level": "high",
+        "task_complexity": 0.75,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Injection Molder 1.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, high-severity task typical of the 'Surface Treatment' step."
+    },
+    {
+      "job_id": "JOB-0007-003",
+      "job_title": "QC Inspector",
+      "workflow_step": "Quality Inspection",
+      "assigned_asset_id": "AST-0007-004",
+      "assigned_worker_name": [
+        "WKR-0007-002",
+        "WKR-0007-008"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.89,
+        "physical_demand_level": "high",
+        "task_complexity": 0.45,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Vision Inspection System 4.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, high-severity task typical of the 'Quality Inspection' step."
+    },
+    {
+      "job_id": "JOB-0007-004",
+      "job_title": "QC Inspector",
+      "workflow_step": "Quality Inspection",
+      "assigned_asset_id": "AST-0007-003",
+      "assigned_worker_name": [
+        "WKR-0007-006",
+        "WKR-0007-002"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.29,
+        "physical_demand_level": "low",
+        "task_complexity": 0.37,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Vision Inspection System 3.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Quality Inspection' step."
+    },
+    {
+      "job_id": "JOB-0007-005",
+      "job_title": "Machine Operator",
+      "workflow_step": "Machining",
+      "assigned_asset_id": "AST-0007-006",
+      "assigned_worker_name": [
+        "WKR-0007-003"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.5,
+        "physical_demand_level": "high",
+        "task_complexity": 0.81,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Injection Molder 6.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a high physical, low-severity task typical of the 'Machining' step."
+    },
+    {
+      "job_id": "JOB-0007-006",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0007-007",
+      "assigned_worker_name": [
+        "WKR-0007-002"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.23,
+        "physical_demand_level": "low",
+        "task_complexity": 0.9,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on CNC Mill 7.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Cutting' step."
+    },
+    {
+      "job_id": "JOB-0007-007",
+      "job_title": "Packaging Operator",
+      "workflow_step": "Packaging",
+      "assigned_asset_id": "AST-0007-008",
+      "assigned_worker_name": [
+        "WKR-0007-004",
+        "WKR-0007-003"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.64,
+        "physical_demand_level": "low",
+        "task_complexity": 0.63,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hand-Pack Station 8.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Packaging' step."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0007-001",
+      "name": "Dewi Permana",
+      "demographics": {
+        "age": 30,
+        "gender": "female",
+        "years_of_experience": 16,
+        "baseline_physical_stamina": 0.54,
+        "cognitive_resilience": 0.81
+      },
+      "shift_context": {
+        "hours_worked_today": 8.2,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0007-002",
+      "name": "Eka Pratama",
+      "demographics": {
+        "age": 27,
+        "gender": "male",
+        "years_of_experience": 3,
+        "baseline_physical_stamina": 0.42,
+        "cognitive_resilience": 0.41
+      },
+      "shift_context": {
+        "hours_worked_today": 7.6,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0007-003",
+      "name": "Farid Hidayat",
+      "demographics": {
+        "age": 54,
+        "gender": "female",
+        "years_of_experience": 14,
+        "baseline_physical_stamina": 0.61,
+        "cognitive_resilience": 0.95
+      },
+      "shift_context": {
+        "hours_worked_today": 5.6,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0007-004",
+      "name": "Kartika Halim",
+      "demographics": {
+        "age": 46,
+        "gender": "male",
+        "years_of_experience": 4,
+        "baseline_physical_stamina": 0.61,
+        "cognitive_resilience": 0.51
+      },
+      "shift_context": {
+        "hours_worked_today": 2.7,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0007-005",
+      "name": "Lestari Permana",
+      "demographics": {
+        "age": 37,
+        "gender": "male",
+        "years_of_experience": 2,
+        "baseline_physical_stamina": 0.33,
+        "cognitive_resilience": 0.56
+      },
+      "shift_context": {
+        "hours_worked_today": 2.9,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0007-006",
+      "name": "Citra Setiawan",
+      "demographics": {
+        "age": 50,
+        "gender": "male",
+        "years_of_experience": 19,
+        "baseline_physical_stamina": 0.71,
+        "cognitive_resilience": 0.97
+      },
+      "shift_context": {
+        "hours_worked_today": 7.4,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0007-007",
+      "name": "Oscar Setiawan",
+      "demographics": {
+        "age": 30,
+        "gender": "male",
+        "years_of_experience": 20,
+        "baseline_physical_stamina": 0.63,
+        "cognitive_resilience": 0.41
+      },
+      "shift_context": {
+        "hours_worked_today": 0.6,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0007-008",
+      "name": "Kartika Wijaya",
+      "demographics": {
+        "age": 59,
+        "gender": "male",
+        "years_of_experience": 16,
+        "baseline_physical_stamina": 0.47,
+        "cognitive_resilience": 0.61
+      },
+      "shift_context": {
+        "hours_worked_today": 4.4,
+        "consecutive_shifts": 4
+      }
+    }
+  ]
+}

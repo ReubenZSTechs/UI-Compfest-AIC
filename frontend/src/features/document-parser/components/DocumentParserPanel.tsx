@@ -11,14 +11,18 @@ function buildResultSummary(
 ): string | undefined {
   if (!result) return undefined;
 
+  const workersParsed = result.workersParsed ?? 0;
+  const jobDesksParsed = result.jobDesksParsed ?? 0;
+  const warnings = result.warnings ?? [];
+
   const hasMatrix = Boolean(result.compatibilityMatrix);
   const matrixText = hasMatrix ? ' & Matriks Kompatibilitas terbentuk' : '';
 
-  const base = `${result.workersParsed} pekerja & ${result.jobDesksParsed} job desk tersimpan${matrixText}.`;
+  const base = `${workersParsed} pekerja & ${jobDesksParsed} job desk tersimpan${matrixText}.`;
 
-  if (result.warnings.length === 0) return base;
+  if (warnings.length === 0) return base;
 
-  return `${base} (${result.warnings.length} peringatan -- lihat detail di bawah)`;
+  return `${base} (${warnings.length} peringatan -- lihat detail di bawah)`;
 }
 
 export function DocumentParserPanel() {
@@ -41,6 +45,10 @@ export function DocumentParserPanel() {
   const resultSummary = useMemo(() => buildResultSummary(result), [result]);
   const isRunning = jobStatus === 'running';
 
+  // Safe fallback untuk list peringatan dan langkah-langkah
+  const safeWarnings = result?.warnings ?? [];
+  const safeSteps = steps ?? [];
+
   return (
     <div className={styles.panel}>
       <div className={styles.dropzones}>
@@ -50,12 +58,11 @@ export function DocumentParserPanel() {
           eyebrow="Tahap 1 & 2"
           title="Template Dokumen Pabrik"
           description="Unggah dokumen struktur pabrik (nama, workflow, aset, job desk)."
-          // Diperbarui agar browser mengizinkan PDF, Word, Markdown, dan Text
           accept=".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
           acceptLabel="PDF, DOCX, MD, TXT"
           accent="automated"
-          file={templateSlot.file}
-          errorMessage={templateSlot.errorMessage}
+          file={templateSlot?.file}
+          errorMessage={templateSlot?.errorMessage}
           disabled={isRunning}
           onFileSelect={selectTemplate}
           onClear={clearTemplate}
@@ -70,8 +77,8 @@ export function DocumentParserPanel() {
           accept=".zip,application/zip,application/x-zip-compressed,application/x-zip"
           acceptLabel="ZIP"
           accent="manual"
-          file={cvBundleSlot.file}
-          errorMessage={cvBundleSlot.errorMessage}
+          file={cvBundleSlot?.file}
+          errorMessage={cvBundleSlot?.errorMessage}
           disabled={isRunning}
           onFileSelect={selectCvBundle}
           onClear={clearCvBundle}
@@ -102,16 +109,16 @@ export function DocumentParserPanel() {
 
       {/* Indikator Progres Steps & Banner Error/Sukses */}
       <ParseStatusBanner
-        steps={steps}
+        steps={safeSteps}
         jobStatus={jobStatus}
         resultSummary={resultSummary}
         errorMessage={errorMessage}
       />
 
       {/* Rincian Peringatan Non-Fatal */}
-      {jobStatus === 'success' && result && result.warnings.length > 0 && (
+      {jobStatus === 'success' && safeWarnings.length > 0 && (
         <ul className={styles.warningList}>
-          {result.warnings.map((warning, index) => (
+          {safeWarnings.map((warning, index) => (
             <li key={`${warning}-${index}`}>{warning}</li>
           ))}
         </ul>

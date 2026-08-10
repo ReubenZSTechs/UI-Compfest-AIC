@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import type { ParseJobResult } from '../types/documentParser.types';
+import type {
+  ParseJobResult,
+  FactoryAsset,
+  JobDesk,
+  WorkerRecord,
+  CompatibilityWorkerRecord,
+} from '../types/documentParser.types';
 import styles from './ParsedDataInspector.module.css';
 
 interface ParsedDataInspectorProps {
@@ -12,15 +18,18 @@ type TabType = 'overview' | 'factory' | 'workers' | 'compatibility' | 'raw';
 export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
-  const factoryStructure = result.factoryStructure as any;
+  const factoryStructure = result.factoryStructure;
   const factoryInfo = factoryStructure?.factory_info;
-  
-  // Handling fallback array job descriptions / job desks & assets
-  const jobDesks: any[] = factoryStructure?.job_descriptions ?? factoryStructure?.job_desks ?? [];
-  const assets: any[] = factoryStructure?.assets ?? [];
-  const parallelGroups: any[] = factoryInfo?.parallel_groups ?? [];
-  const workers: any[] = result.workerProfile?.workers ?? result.workerProfile as any ?? [];
-  const matrixData = result.compatibilityMatrix as any;
+
+  // Handling fallback array untuk job desks/descriptions, assets, parallel groups, dan workers
+  const jobDesks: JobDesk[] =
+    factoryStructure?.job_desks ??
+    factoryStructure?.job_descriptions ??
+    [];
+  const assets: FactoryAsset[] = factoryStructure?.assets ?? [];
+  const parallelGroups = factoryInfo?.parallel_groups ?? [];
+  const workers: WorkerRecord[] = result.workerProfile?.workers ?? [];
+  const matrixData = result.compatibilityMatrix;
 
   // Nama pabrik dari backend
   const factoryDisplayName =
@@ -29,7 +38,7 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
     result.factoryId ||
     'Digital Twin Plant';
 
-  // Jumlah job desk efektif (fallback jika backend mengembalikan jobDesksParsed: 0)
+  // Jumlah job desk & pekerja efektif (fallback jika backend mengembalikan nilai 0)
   const effectiveJobDesksCount = Math.max(result.jobDesksParsed || 0, jobDesks.length);
   const effectiveWorkersCount = Math.max(result.workersParsed || 0, workers.length);
 
@@ -68,8 +77,8 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
             {matrixData ? 'Terbentuk' : 'Belum Ada'}
           </span>
           <span className={styles.metricSub}>
-            {matrixData?.meta?.pair_count 
-              ? `${matrixData.meta.pair_count} Pasangan Dievaluasi` 
+            {matrixData?.meta?.evaluated_pairs !== undefined
+              ? `${matrixData.meta.evaluated_pairs} Pasangan Dievaluasi`
               : `${result.warnings.length} Peringatan`}
           </span>
         </div>
@@ -122,11 +131,23 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
             <div className={styles.sectionBlock}>
               <h3>Informasi Umum Job & Pabrik</h3>
               <ul className={styles.infoList}>
-                <li><strong>Job ID:</strong> <code>{result.jobId}</code></li>
-                <li><strong>Factory ID:</strong> <code>{result.factoryId ?? 'N/A'}</code></li>
-                <li><strong>Tipe Proses:</strong> {factoryInfo?.process_type ? factoryInfo.process_type.toUpperCase() : '-'}</li>
-                <li><strong>Jumlah Pekerja Terdeklarasi:</strong> {factoryInfo?.declared_worker_count ?? '-'} Orang</li>
-                <li><strong>Deskripsi Tata Letak:</strong> {factoryInfo?.layout_description || '-'}</li>
+                <li>
+                  <strong>Simulation ID:</strong> <code>{result.simulationId || result.jobId}</code>
+                </li>
+                <li>
+                  <strong>Factory ID:</strong> <code>{result.factoryId ?? 'N/A'}</code>
+                </li>
+                <li>
+                  <strong>Tipe Proses:</strong>{' '}
+                  {factoryInfo?.process_type ? factoryInfo.process_type.toUpperCase() : '-'}
+                </li>
+                <li>
+                  <strong>Jumlah Pekerja Terdeklarasi:</strong>{' '}
+                  {factoryInfo?.declared_worker_count ?? '-'} Orang
+                </li>
+                <li>
+                  <strong>Deskripsi Tata Letak:</strong> {factoryInfo?.layout_description || '-'}
+                </li>
               </ul>
             </div>
 
@@ -154,19 +175,19 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
           </div>
         )}
 
-        {/* TAB 2: FABRIK, ASET & JOB DESK */}
+        {/* TAB 2: PABRIK, ASET & JOB DESK */}
         {activeTab === 'factory' && (
           <div className={styles.factoryPanel}>
             {/* Sub-bagian 1: Informasi Tata Letak & Grup Paralel */}
             <div className={styles.sectionBlock}>
               <h3>Tata Letak Pabrik & Alur Paralel</h3>
               <p>{factoryInfo?.layout_description || 'Tidak ada deskripsi tata letak.'}</p>
-              
+
               {parallelGroups.length > 0 && (
                 <div className={styles.sectionBlock}>
                   <h4>Grup Proses Paralel ({parallelGroups.length})</h4>
                   <ul className={styles.infoList}>
-                    {parallelGroups.map((grp: any, i: number) => (
+                    {parallelGroups.map((grp, i) => (
                       <li key={grp.group_id || i}>
                         <strong>{grp.group_id}:</strong> Tahap <code>{grp.steps?.join(', ')}</code>
                         <br />
@@ -197,7 +218,7 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
                     </tr>
                   </thead>
                   <tbody>
-                    {assets.map((ast: any, idx: number) => (
+                    {assets.map((ast, idx) => (
                       <tr key={ast.asset_id || idx}>
                         <td>
                           <strong>{ast.asset_name}</strong>
@@ -218,8 +239,8 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
                         <td>
                           {ast.environmental_factors ? (
                             <small>
-                              Kebisingan: <strong>{ast.environmental_factors.noise_level_db} dB</strong> | 
-                              Getaran: <strong>{ast.environmental_factors.vibration_hazard_level}</strong>
+                              Kebisingan: <strong>{ast.environmental_factors.noise_level_db ?? '-'} dB</strong> |{' '}
+                              Getaran: <strong>{ast.environmental_factors.vibration_hazard_level ?? '-'}</strong>
                             </small>
                           ) : (
                             '-'
@@ -249,21 +270,21 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
                     </tr>
                   </thead>
                   <tbody>
-                    {jobDesks.map((jd: any, idx: number) => (
-                      <tr key={jd.job_id || jd.id || idx}>
+                    {jobDesks.map((jd, idx) => (
+                      <tr key={jd.job_id || idx}>
                         <td>
-                          <strong>{jd.job_title || jd.title || jd.name || jd.job_id}</strong>
+                          <strong>{jd.job_title || jd.job_id}</strong>
                           <br />
-                          <small className={styles.mutedText}>{jd.job_id || jd.id}</small>
+                          <small className={styles.mutedText}>{jd.job_id}</small>
                         </td>
                         <td><code>{jd.workflow_step || '-'}</code></td>
                         <td><code>{jd.assigned_asset_id || '-'}</code></td>
                         <td>
                           {jd.demands ? (
                             <small>
-                              Fisik: <strong>{jd.demands.physical_demand_level}</strong> | 
-                              Fokus: <strong>{jd.demands.required_cognitive_focus}</strong> | 
-                              Kompleksitas: <strong>{jd.demands.task_complexity}</strong>
+                              Fisik: <strong>{jd.demands.physical_demand_level ?? '-'}</strong> |{' '}
+                              Fokus: <strong>{jd.demands.required_cognitive_focus ?? '-'}</strong> |{' '}
+                              Kompleksitas: <strong>{jd.demands.task_complexity ?? '-'}</strong>
                             </small>
                           ) : (
                             '-'
@@ -287,36 +308,40 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
               <p className={styles.emptyText}>Tidak ada data pekerja terurai.</p>
             ) : (
               <div className={styles.workersGrid}>
-                {workers.map((w: any, idx: number) => {
+                {workers.map((w, idx) => {
                   const demo = w.demographics || {};
                   const shift = w.shift_context || {};
-                  const expYears = demo.years_of_experience ?? demo.experience_years ?? w.years_of_experience ?? 0;
-                  const skillsList: string[] = w.skills || w.certifications || w.capabilities || [];
+                  const expYears = demo.years_of_experience ?? 0;
+                  const skillsList: string[] = w.skills ?? w.certifications ?? w.capabilities ?? [];
 
                   return (
-                    <div key={w.worker_id || w.id || idx} className={styles.workerCard}>
+                    <div key={w.worker_id || idx} className={styles.workerCard}>
                       <div className={styles.workerHeader}>
                         <span className={styles.workerAvatar}>
                           {(w.name || 'W')[0].toUpperCase()}
                         </span>
                         <div>
                           <h4 className={styles.workerName}>{w.name || w.worker_id}</h4>
-                          <span className={styles.workerRole}>ID: {w.worker_id || w.id}</span>
+                          <span className={styles.workerRole}>ID: {w.worker_id}</span>
                         </div>
                       </div>
                       <div className={styles.workerBody}>
                         <p><strong>Pengalaman:</strong> {expYears} Tahun</p>
                         <p><strong>Demografi:</strong> Usia {demo.age ?? '-'} Thn | Gender: {demo.gender ?? '-'}</p>
                         <p><strong>Shift Hari Ini:</strong> {shift.hours_worked_today ?? 0} Jam (Shift Berturut: {shift.consecutive_shifts ?? 0})</p>
-                        
+
                         <div style={{ marginTop: '0.5rem' }}>
                           <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.75rem', fontWeight: 600 }}>Metrik Fisiologis:</p>
                           <div className={styles.chipGroup}>
                             {demo.baseline_physical_stamina !== undefined && (
-                              <span className={styles.skillChip}>Stamina: {(demo.baseline_physical_stamina * 100).toFixed(0)}%</span>
+                              <span className={styles.skillChip}>
+                                Stamina: {(demo.baseline_physical_stamina * 100).toFixed(0)}%
+                              </span>
                             )}
                             {demo.cognitive_resilience !== undefined && (
-                              <span className={styles.skillChip}>Resiliensi: {(demo.cognitive_resilience * 100).toFixed(0)}%</span>
+                              <span className={styles.skillChip}>
+                                Resiliensi: {(demo.cognitive_resilience * 100).toFixed(0)}%
+                              </span>
                             )}
                           </div>
                         </div>
@@ -325,7 +350,7 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
                           <div style={{ marginTop: '0.5rem' }}>
                             <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.75rem', fontWeight: 600 }}>Keterampilan & Sertifikasi:</p>
                             <div className={styles.chipGroup}>
-                              {skillsList.map((sk: string, sIdx: number) => (
+                              {skillsList.map((sk, sIdx) => (
                                 <span key={sIdx} className={styles.skillChip}>{sk}</span>
                               ))}
                             </div>
@@ -351,9 +376,9 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
                 {matrixData.meta && (
                   <div className={styles.sectionBlock}>
                     <p>
-                      <strong>Total Pasangan Dievaluasi:</strong> {matrixData.meta.evaluated_pairs ?? 0} | 
-                      <strong> Jumlah Pekerja:</strong> {matrixData.meta.worker_count ?? 0} | 
-                      <strong> Jumlah Pekerjaan:</strong> {matrixData.meta.job_count ?? 0}
+                      <strong>Total Pasangan Dievaluasi:</strong> {matrixData.meta.evaluated_pairs ?? 0} |{' '}
+                      <strong>Jumlah Pekerja:</strong> {matrixData.meta.worker_count ?? 0} |{' '}
+                      <strong>Jumlah Pekerjaan:</strong> {matrixData.meta.job_count ?? 0}
                     </p>
                   </div>
                 )}
@@ -370,20 +395,20 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(matrixData.compatibility_matrix).map(([wrkId, item]: [string, any]) => {
+                      {Object.entries(matrixData.compatibility_matrix).map(([wrkId, item]: [string, CompatibilityWorkerRecord]) => {
                         const bestJobId = item.best_job_id;
-                        const bestJobEval = item.jobs?.[bestJobId]?.evaluations;
+                        const bestJobEval = bestJobId ? item.jobs?.[bestJobId]?.evaluations : undefined;
                         return (
                           <tr key={wrkId}>
                             <td>
-                              <strong>{item.worker_name}</strong>
+                              <strong>{item.worker_name || wrkId}</strong>
                               <br />
                               <small className={styles.mutedText}>{wrkId}</small>
                             </td>
                             <td>
-                              <code>{bestJobId}</code>
+                              <code>{bestJobId || '-'}</code>
                               <br />
-                              <small>{item.jobs?.[bestJobId]?.job_title || '-'}</small>
+                              <small>{bestJobId ? item.jobs?.[bestJobId]?.job_title || '-' : '-'}</small>
                             </td>
                             <td>
                               <strong>

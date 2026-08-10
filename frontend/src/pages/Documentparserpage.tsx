@@ -39,8 +39,14 @@ export function DocumentParserPage() {
     }
   };
 
+  // --- PERUBAHAN DI SINI ---
   const handleProceedToDigitalTwin = () => {
-    navigate(ROUTES.DIGITAL_TWIN);
+    const targetId = result?.simulationId || result?.jobId;
+    if (targetId) {
+      navigate(`${ROUTES.DIGITAL_TWIN}?simulation_id=${targetId}`);
+    } else {
+      navigate(ROUTES.DIGITAL_TWIN);
+    }
   };
 
   return (

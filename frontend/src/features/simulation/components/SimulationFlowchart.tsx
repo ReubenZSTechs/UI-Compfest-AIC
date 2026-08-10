@@ -20,15 +20,15 @@ export function SimulationFlowchart({ workerNames = {}, jobTitles = {} }: Simula
 
   const steps = useMemo(
     () =>
-      [...(data?.live_simulation_state.step_breakdown ?? [])].sort(
+      [...(data?.live_simulation_state?.step_breakdown ?? [])].sort(
         (a, b) => stepOrdinal(a.step_id) - stepOrdinal(b.step_id),
       ),
     [data],
   );
 
-  const assignments = data?.live_simulation_state.current_assignments ?? [];
-  const activeTransfers = data?.live_simulation_state.active_transfers ?? [];
-  const bottleneckIds = new Set(data?.live_simulation_state.system_bottlenecks ?? []);
+  const assignments = data?.live_simulation_state?.current_assignments ?? [];
+  const activeTransfers = data?.live_simulation_state?.active_transfers ?? [];
+  const bottleneckIds = new Set(data?.live_simulation_state?.system_bottlenecks ?? []);
 
   if (status === "idle" && !data) {
     return (
@@ -41,7 +41,7 @@ export function SimulationFlowchart({ workerNames = {}, jobTitles = {} }: Simula
     );
   }
 
-  if (!data) return null;
+  if (!data?.live_simulation_state) return null;
 
   const firstStep = steps[0];
   const warehouseTransfer = firstStep
@@ -51,7 +51,9 @@ export function SimulationFlowchart({ workerNames = {}, jobTitles = {} }: Simula
   return (
     <div className={styles.flowchart}>
       <div className={styles.stepGroup}>
-        <WarehouseNode warehouse={data.live_simulation_state.warehouse} />
+        {data.live_simulation_state.warehouse && (
+          <WarehouseNode warehouse={data.live_simulation_state.warehouse} />
+        )}
         {firstStep && <StepConnector transfer={warehouseTransfer} isBottleneckAdjacent={bottleneckIds.has(firstStep.step_id)} />}
       </div>
 

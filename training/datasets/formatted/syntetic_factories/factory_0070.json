@@ -1,0 +1,366 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0070",
+    "factory_name": "Synthetic Plant 70",
+    "process_type": "parallel",
+    "declared_worker_count": 9,
+    "layout_description": "A parallel production line laid out along the sequence Raw Material Intake -> Assembly -> Cutting -> Surface Treatment, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Raw Material Intake",
+      "Assembly",
+      "Cutting",
+      "Surface Treatment"
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "PG-70-01",
+        "steps": [
+          "Raw Material Intake",
+          "Assembly"
+        ],
+        "reasoning": "Steps Raw Material Intake, Assembly do not share equipment or line dependencies, so they can run concurrently without blocking one another."
+      }
+    ]
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0070-001",
+      "asset_name": "Hand-Pack Station 1",
+      "category": "manual_station",
+      "workflow_step": "Raw Material Intake",
+      "is_automated": false,
+      "units_available": 3,
+      "base_throughput_capacity": 134,
+      "operational_cost_per_hour": 56.67,
+      "environmental_factors": {
+        "noise_level_db": 79,
+        "vibration_hazard_level": "high",
+        "physical_strain_index": 0.76
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Raw Material Intake' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0070-002",
+      "asset_name": "Hydraulic Press 2",
+      "category": "machine",
+      "workflow_step": "Assembly",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 88,
+      "operational_cost_per_hour": 6.97,
+      "environmental_factors": {
+        "noise_level_db": 50,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.38
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Assembly' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0070-003",
+      "asset_name": "Manual Assembly Bench 3",
+      "category": "manual_station",
+      "workflow_step": "Assembly",
+      "is_automated": false,
+      "units_available": 3,
+      "base_throughput_capacity": 209,
+      "operational_cost_per_hour": 65.03,
+      "environmental_factors": {
+        "noise_level_db": 79,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.78
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Assembly' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0070-004",
+      "asset_name": "CNC Mill 4",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 1,
+      "base_throughput_capacity": 143,
+      "operational_cost_per_hour": 108.36,
+      "environmental_factors": {
+        "noise_level_db": 51,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.69
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0070-005",
+      "asset_name": "Lathe Station 5",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": false,
+      "units_available": 1,
+      "base_throughput_capacity": 96,
+      "operational_cost_per_hour": 115.24,
+      "environmental_factors": {
+        "noise_level_db": 55,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.7
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0070-006",
+      "asset_name": "CNC Mill 6",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 2,
+      "base_throughput_capacity": 75,
+      "operational_cost_per_hour": 89.25,
+      "environmental_factors": {
+        "noise_level_db": 81,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.26
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0070-007",
+      "asset_name": "Hydraulic Press 7",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 69,
+      "operational_cost_per_hour": 48.69,
+      "environmental_factors": {
+        "noise_level_db": 74,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.26
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0070-001",
+      "job_title": "Material Handler",
+      "workflow_step": "Raw Material Intake",
+      "assigned_asset_id": "AST-0070-001",
+      "assigned_worker_name": [
+        "WKR-0070-008",
+        "WKR-0070-004"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.47,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.58,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hand-Pack Station 1.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a medium physical, moderate-severity task typical of the 'Raw Material Intake' step."
+    },
+    {
+      "job_id": "JOB-0070-002",
+      "job_title": "Assembly Technician",
+      "workflow_step": "Assembly",
+      "assigned_asset_id": "AST-0070-002",
+      "assigned_worker_name": [
+        "WKR-0070-004"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.5,
+        "physical_demand_level": "low",
+        "task_complexity": 0.55,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hydraulic Press 2.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, moderate-severity task typical of the 'Assembly' step."
+    },
+    {
+      "job_id": "JOB-0070-003",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0070-004",
+      "assigned_worker_name": [
+        "WKR-0070-003",
+        "WKR-0070-004"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.18,
+        "physical_demand_level": "low",
+        "task_complexity": 0.32,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on CNC Mill 4.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, moderate-severity task typical of the 'Cutting' step."
+    },
+    {
+      "job_id": "JOB-0070-004",
+      "job_title": "Surface Treatment Operator",
+      "workflow_step": "Surface Treatment",
+      "assigned_asset_id": "AST-0070-006",
+      "assigned_worker_name": [
+        "WKR-0070-004",
+        "WKR-0070-002"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.2,
+        "physical_demand_level": "low",
+        "task_complexity": 0.78,
+        "error_severity": "low"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on CNC Mill 6.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, low-severity task typical of the 'Surface Treatment' step."
+    },
+    {
+      "job_id": "JOB-0070-005",
+      "job_title": "Surface Treatment Operator",
+      "workflow_step": "Surface Treatment",
+      "assigned_asset_id": "AST-0070-007",
+      "assigned_worker_name": [
+        "WKR-0070-001"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.24,
+        "physical_demand_level": "low",
+        "task_complexity": 0.74,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hydraulic Press 7.",
+      "metric_derivation_reasoning": "Demand levels sampled to reflect a low physical, moderate-severity task typical of the 'Surface Treatment' step."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0070-001",
+      "name": "Joko Halim",
+      "demographics": {
+        "age": 43,
+        "gender": "unspecified",
+        "years_of_experience": 4,
+        "baseline_physical_stamina": 0.59,
+        "cognitive_resilience": 0.7
+      },
+      "shift_context": {
+        "hours_worked_today": 2.7,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0070-002",
+      "name": "Dewi Wibowo",
+      "demographics": {
+        "age": 59,
+        "gender": "female",
+        "years_of_experience": 8,
+        "baseline_physical_stamina": 0.3,
+        "cognitive_resilience": 0.38
+      },
+      "shift_context": {
+        "hours_worked_today": 5.9,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0070-003",
+      "name": "Indra Kusuma",
+      "demographics": {
+        "age": 29,
+        "gender": "female",
+        "years_of_experience": 18,
+        "baseline_physical_stamina": 0.71,
+        "cognitive_resilience": 0.98
+      },
+      "shift_context": {
+        "hours_worked_today": 2.5,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0070-004",
+      "name": "Budi Pratama",
+      "demographics": {
+        "age": 20,
+        "gender": "female",
+        "years_of_experience": 7,
+        "baseline_physical_stamina": 0.78,
+        "cognitive_resilience": 0.39
+      },
+      "shift_context": {
+        "hours_worked_today": 2.2,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0070-005",
+      "name": "Andi Pratama",
+      "demographics": {
+        "age": 18,
+        "gender": "male",
+        "years_of_experience": 3,
+        "baseline_physical_stamina": 0.54,
+        "cognitive_resilience": 0.61
+      },
+      "shift_context": {
+        "hours_worked_today": 1.5,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0070-006",
+      "name": "Dewi Halim",
+      "demographics": {
+        "age": 44,
+        "gender": "male",
+        "years_of_experience": 10,
+        "baseline_physical_stamina": 0.66,
+        "cognitive_resilience": 0.49
+      },
+      "shift_context": {
+        "hours_worked_today": 6.6,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0070-007",
+      "name": "Eka Pratama",
+      "demographics": {
+        "age": 40,
+        "gender": "male",
+        "years_of_experience": 12,
+        "baseline_physical_stamina": 0.77,
+        "cognitive_resilience": 0.96
+      },
+      "shift_context": {
+        "hours_worked_today": 2.4,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0070-008",
+      "name": "Indra Wibowo",
+      "demographics": {
+        "age": 34,
+        "gender": "male",
+        "years_of_experience": 1,
+        "baseline_physical_stamina": 0.62,
+        "cognitive_resilience": 0.34
+      },
+      "shift_context": {
+        "hours_worked_today": 8.9,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0070-009",
+      "name": "Oscar Permana",
+      "demographics": {
+        "age": 31,
+        "gender": "male",
+        "years_of_experience": 9,
+        "baseline_physical_stamina": 0.92,
+        "cognitive_resilience": 0.4
+      },
+      "shift_context": {
+        "hours_worked_today": 2.8,
+        "consecutive_shifts": 3
+      }
+    }
+  ]
+}
