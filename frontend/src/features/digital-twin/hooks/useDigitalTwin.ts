@@ -1,9 +1,8 @@
-// frontend/src/features/digital-twin/hooks/useDigitalTwin.ts
 import { useEffect } from "react";
 import { useDigitalTwinStore } from "../store/digitalTwinStore";
 
 export function useDigitalTwin(factoryId?: string) {
-  const { data, isLoading, error, fetchTwin } = useDigitalTwinStore();
+  const { data, isLoading, isFetched, error, fetchTwin } = useDigitalTwinStore();
 
   useEffect(() => {
     fetchTwin(factoryId);
@@ -12,6 +11,7 @@ export function useDigitalTwin(factoryId?: string) {
   return {
     data,
     isLoading,
+    isFetched,
     error,
     refetch: (id?: string) => fetchTwin(id ?? factoryId),
 

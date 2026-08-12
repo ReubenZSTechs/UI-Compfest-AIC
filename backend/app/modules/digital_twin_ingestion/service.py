@@ -32,6 +32,8 @@ class DigitalTwinService:
         """
         query = select(models.Factory).options(
             selectinload(models.Factory.assets),
+            selectinload(models.Factory.process_stages),
+            selectinload(models.Factory.shifts),
             selectinload(models.Factory.job_desks),
             selectinload(models.Factory.workers),
             selectinload(models.Factory.flow_snapshots).selectinload(
@@ -54,9 +56,20 @@ class DigitalTwinService:
                 factory_info=schemas.FactoryInfo(
                     factory_id=factory_id or "",
                     factory_name="",
+                    process_type="serial",
+                    declared_worker_count=0,
+                    registered_worker_count=0,
+                    layout_description="",
                     workflow_sequence=[],
+                    process_edges=[],
+                    entry_stages=[],
+                    terminal_stages=[],
+                    parallel_groups=[],
+                    lanes=[],
                 ),
                 assets=[],
+                process_stages=[],
+                shifts=[],
                 job_desks=[],
                 workers=[],
                 factory_flow_rightnow=None,
@@ -117,37 +130,86 @@ class DigitalTwinService:
             factory_info=schemas.FactoryInfo(
                 factory_id=factory.factory_id,
                 factory_name=factory.factory_name,
-                workflow_sequence=factory.workflow_sequence,
-                process_type=factory.process_type,
-                declared_worker_count=factory.declared_worker_count,
-                layout_description=factory.layout_description,
+                process_type=factory.process_type or "serial",
+                declared_worker_count=factory.declared_worker_count or 0,
+                registered_worker_count=factory.registered_worker_count or 0,
+                layout_description=factory.layout_description or "",
+                workflow_sequence=factory.workflow_sequence or [],
+                process_edges=[
+                    schemas.ProcessEdge(**pe) for pe in (factory.process_edges or [])
+                ],
+                entry_stages=factory.entry_stages or [],
+                terminal_stages=factory.terminal_stages or [],
                 parallel_groups=(
                     [schemas.ParallelGroup(**pg) for pg in factory.parallel_groups]
                     if factory.parallel_groups
-                    else None
+                    else []
                 ),
+                lanes=factory.lanes or [],
             ),
             assets=[
                 schemas.Asset(
                     asset_id=a.asset_id,
                     asset_name=a.asset_name,
                     category=a.category,
-                    workflow_step=a.workflow_step,
-                    is_automated=a.is_automated,
-                    base_throughput_capacity=a.base_throughput_capacity,
-                    operational_cost_per_hour=a.operational_cost_per_hour,
-                    environmental_factors=schemas.EnvironmentalFactors(**(a.environmental_factors or {})),
-                    metric_derivation_reasoning=a.metric_derivation_reasoning,
                     units_available=a.units_available,
+                    capacity_per_unit=schemas.Quantity(**(a.capacity_per_unit or {})),
+                    total_capacity=schemas.Quantity(**(a.total_capacity or {})),
+                    automation_level=a.automation_level,
+                    is_automated=a.is_automated,
+                    operational_cost_per_hour=a.operational_cost_per_hour,
+                    currency=a.currency,
+                    environmental_factors=schemas.AssetEnvironmentalFactors(
+                        **(a.environmental_factors or {})
+                    ),
+                    metric_derivation_reasoning=a.metric_derivation_reasoning,
                 )
                 for a in factory.assets
+            ],
+            process_stages=[
+                schemas.ProcessStage(
+                    stage_id=s.stage_id,
+                    stage_name=s.stage_name,
+                    lane=s.lane,
+                    next_stage_id=s.next_stage_id,
+                    is_terminal=s.is_terminal,
+                    asset_id=s.asset_id,
+                    operator_task=s.operator_task,
+                    material_input=s.material_input or [],
+                    material_output=s.material_output or [],
+                    material_per_batch=[
+                        schemas.Quantity(**q) for q in (s.material_per_batch or [])
+                    ],
+                    flow_type=s.flow_type,
+                    cycle_time_seconds=s.cycle_time_seconds,
+                    throughput=schemas.Quantity(**(s.throughput or {})),
+                    throughput_per_hour=s.throughput_per_hour,
+                    automation_level=s.automation_level,
+                    qc_requirement=s.qc_requirement,
+                    metric_derivation_reasoning=s.metric_derivation_reasoning,
+                )
+                for s in factory.process_stages
+            ],
+            shifts=[
+                schemas.Shift(
+                    shift_id=sh.shift_id,
+                    start_time=sh.start_time,
+                    end_time=sh.end_time,
+                    duration_hours=sh.duration_hours,
+                    crosses_midnight=sh.crosses_midnight,
+                )
+                for sh in factory.shifts
             ],
             job_desks=[
                 schemas.JobDesk(
                     job_id=j.job_id,
+                    allocation_id=j.allocation_id,
                     job_title=j.job_title,
-                    workflow_step=j.workflow_step,
+                    stage_id=j.stage_id,
                     assigned_asset_id=j.assigned_asset_id,
+                    assigned_worker_ids=j.assigned_worker_ids or [],
+                    shift_id=j.shift_id,
+                    headcount=j.headcount,
                     demands=schemas.Demands(**(j.demands or {})),
                     qc_requirement=j.qc_requirement,
                     metric_derivation_reasoning=j.metric_derivation_reasoning,
@@ -174,6 +236,10 @@ class DigitalTwinService:
     async def get_assets(self, factory_id: str | None = None) -> list[schemas.Asset]:
         twin = await self.get_full_twin(factory_id)
         return twin.assets
+
+    async def get_process_stages(self, factory_id: str | None = None) -> list[schemas.ProcessStage]:
+        twin = await self.get_full_twin(factory_id)
+        return twin.process_stages
 
     async def get_workers(self, factory_id: str | None = None) -> list[schemas.Worker]:
         twin = await self.get_full_twin(factory_id)

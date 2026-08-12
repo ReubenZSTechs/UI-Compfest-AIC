@@ -13,12 +13,11 @@ services:
       - compfest-net
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
-      interval: 10s
+      interval: 50s
       timeout: 5s
       retries: 5
       start_period: 10s
 
 networks:
-  default:
-    name: compfest-net
+  compfest-net:
     external: true

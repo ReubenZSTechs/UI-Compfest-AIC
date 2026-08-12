@@ -19,7 +19,7 @@ services:
       --quantization modelopt_fp4
       --hf-overrides '{"tie_word_embeddings": false}'
       --served-model-name LLM
-      --max-model-len 65536
+      --max-model-len 80000
       --gpu-memory-utilization 0.75
       --kv-cache-dtype turboquant_4bit_nc
       --port 15000

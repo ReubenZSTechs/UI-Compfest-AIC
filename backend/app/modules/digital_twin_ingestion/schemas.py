@@ -2,6 +2,7 @@
 """
 Skema data Pydantic modul Digital Twin Ingestion.
 Sesuai dengan Standar Kontrak Data Digital Twin System.
+Selaras dengan backend/app/agent/schemas/factory_md.schema.json
 """
 
 from __future__ import annotations
@@ -21,20 +22,48 @@ class BaseDTModel(BaseModel):
     )
 
 
+# --- Tipe bersama ---
+
+class Quantity(BaseDTModel):
+    raw: str
+    value: float | None = None
+    unit: str | None = None
+    unit_class: Literal["mass", "volume", "count", "power", "noise"] | None = None
+    basis: str | None = None
+
+
+AutomationLevel = Literal["manual", "semi_automated", "automated"]
+
+
+# --- factory_info ---
+
+class ProcessEdge(BaseDTModel):
+    from_stage_id: str
+    to_stage_id: str
+
+
 class ParallelGroup(BaseDTModel):
     group_id: str
+    depth: int
     steps: list[str] = Field(default_factory=list)
+    lanes: list[str] = Field(default_factory=list)
+    converges_to: str | None = None
     reasoning: str | None = None
 
 
 class FactoryInfo(BaseDTModel):
     factory_id: str
     factory_name: str
+    process_type: Literal["serial", "parallel", "hybrid"]
+    declared_worker_count: int
+    registered_worker_count: int
+    layout_description: str
     workflow_sequence: list[str] = Field(default_factory=list)
-    process_type: str | None = None
-    declared_worker_count: int | None = None
-    layout_description: str | None = None
-    parallel_groups: list[ParallelGroup] | None = None
+    process_edges: list[ProcessEdge] = Field(default_factory=list)
+    entry_stages: list[str] = Field(default_factory=list)
+    terminal_stages: list[str] = Field(default_factory=list)
+    parallel_groups: list[ParallelGroup] = Field(default_factory=list)
+    lanes: list[str] = Field(default_factory=list)
 
 
 VibrationHazardLevel = Literal["low", "medium", "high"]
@@ -49,8 +78,11 @@ class RealtimeMetrics(BaseDTModel):
     burnout_hazard_risk: BurnoutHazardRisk
 
 
-class EnvironmentalFactors(BaseDTModel):
-    noise_level_db: float
+# --- assets ---
+
+class AssetEnvironmentalFactors(BaseDTModel):
+    power_consumption_watt: float | None = None
+    noise_level_db: float | None = None
     vibration_hazard_level: VibrationHazardLevel
     physical_strain_index: float
 
@@ -58,15 +90,57 @@ class EnvironmentalFactors(BaseDTModel):
 class Asset(BaseDTModel):
     asset_id: str
     asset_name: str
-    category: str
-    workflow_step: str
+    category: Literal[
+        "machine",
+        "measuring_equipment",
+        "conveyor_automation",
+        "environmental_chamber",
+        "manual_station",
+    ]
+    units_available: int
+    capacity_per_unit: Quantity
+    total_capacity: Quantity
+    automation_level: AutomationLevel
     is_automated: bool
-    base_throughput_capacity: float
     operational_cost_per_hour: float
-    environmental_factors: EnvironmentalFactors
+    currency: str
+    environmental_factors: AssetEnvironmentalFactors
     metric_derivation_reasoning: str | None = None
-    units_available: int | None = None
 
+
+# --- process_stages ---
+
+class ProcessStage(BaseDTModel):
+    stage_id: str
+    stage_name: str
+    lane: str
+    next_stage_id: str | None = None
+    is_terminal: bool
+    asset_id: str
+    operator_task: str
+    material_input: list[str] = Field(default_factory=list)
+    material_output: list[str] = Field(default_factory=list)
+    material_per_batch: list[Quantity] = Field(default_factory=list)
+    flow_type: Literal["batch", "continuous"]
+    cycle_time_seconds: float
+    throughput: Quantity
+    throughput_per_hour: float | None = None
+    automation_level: AutomationLevel
+    qc_requirement: str
+    metric_derivation_reasoning: str | None = None
+
+
+# --- shifts ---
+
+class Shift(BaseDTModel):
+    shift_id: str
+    start_time: str
+    end_time: str
+    duration_hours: float
+    crosses_midnight: bool
+
+
+# --- job_descriptions ---
 
 class Demands(BaseDTModel):
     required_cognitive_focus: float
@@ -77,13 +151,19 @@ class Demands(BaseDTModel):
 
 class JobDesk(BaseDTModel):
     job_id: str
+    allocation_id: str
     job_title: str
-    workflow_step: str
+    stage_id: str
     assigned_asset_id: str
+    assigned_worker_ids: list[str] = Field(default_factory=list)
+    shift_id: str
+    headcount: int
     demands: Demands
     qc_requirement: str
     metric_derivation_reasoning: str | None = None
 
+
+# --- workers (tidak berubah, tetap dari Agent B) ---
 
 class Demographics(BaseDTModel):
     age: int
@@ -108,6 +188,8 @@ class Worker(BaseDTModel):
     capabilities: list[str] | None = None
 
 
+# --- floor_state (tidak berubah) ---
+
 class StaffPosition(BaseDTModel):
     worker_id: str
     name: str
@@ -123,6 +205,8 @@ class FactoryFlowRightNow(BaseDTModel):
     note: str | None = None
     staff_current_positions: list[StaffPosition] = Field(default_factory=list)
 
+
+# --- compatibility (tidak berubah) ---
 
 class Evaluations(BaseDTModel):
     overall_compatibility_score: float
@@ -140,11 +224,15 @@ class CompatibilityEvaluation(BaseDTModel):
     llm_reasoning: str | None = ""
 
 
+# --- gabungan ---
+
 class DigitalTwin(BaseDTModel):
     simulation_id: str | None = None
     job_id: str | None = None
     factory_info: FactoryInfo
     assets: list[Asset] = Field(default_factory=list)
+    process_stages: list[ProcessStage] = Field(default_factory=list)
+    shifts: list[Shift] = Field(default_factory=list)
     job_desks: list[JobDesk] = Field(default_factory=list)
     workers: list[Worker] = Field(default_factory=list)
     factory_flow_rightnow: FactoryFlowRightNow | None = None

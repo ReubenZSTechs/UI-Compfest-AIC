@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.modules.documents import service
 from app.modules.documents.exceptions import DocumentParserPipelineError
+
 from app.modules.documents.schemas import (
     ParseJobResult,
     ProcessCombinedDocumentsResponse,
@@ -23,6 +24,7 @@ from app.modules.documents.schemas import (
     Step4Response,
     Step5Request,
     Step5Response,
+    FactoryListItemResponse
 )
 
 router = APIRouter()
@@ -48,7 +50,8 @@ def _handle_error(err: DocumentParserPipelineError) -> HTTPException:
     summary="Tahap 1 & 2 Terpadu: Ekstraksi Dokumen & Generasi Struktur Pabrik",
 )
 async def process_factory_document(
-    template: UploadFile = File(..., description="Dokumen template pabrik (.pdf, .docx, .md, .txt)"),
+    # FIX: Update dokumentasi endpoint untuk memasukkan .xlsx, .xls, .csv
+    template: UploadFile = File(..., description="Dokumen template pabrik (.xlsx, .xls, .csv, .pdf, .docx, .md, .txt)"),
     db: AsyncSession = Depends(get_db),
 ) -> ProcessFactoryDocumentResponse:
     """Menerima berkas template pabrik, mengekstraksi data tabel/teks, mengeksekusi Agent A, dan meng-ingest log/data."""
@@ -68,7 +71,8 @@ async def process_factory_document(
     summary="Kombinasi Tahap 1, 2, 4, & 5: Pemrosesan Dokumen Pabrik, ZIP Pekerja, & Matriks Kompatibilitas Sekaligus",
 )
 async def process_combined_documents(
-    template: UploadFile = File(..., description="Dokumen template pabrik (.pdf, .docx, .md, .txt)"),
+    # FIX: Update dokumentasi endpoint untuk memasukkan .xlsx, .xls, .csv
+    template: UploadFile = File(..., description="Dokumen template pabrik (.xlsx, .xls, .csv, .pdf, .docx, .md, .txt)"),
     worker_zip: UploadFile = File(..., description="Arsip ZIP berisi CV/catatan pekerja (.zip)"),
     strict: bool = Query(
         False,
@@ -213,3 +217,20 @@ async def get_parse_job_detail(
             detail=f"Parse job dengan ID '{job_id}' tidak ditemukan.",
         )
     return ParseJobResult.model_validate(job)
+
+# 
+
+@router.get(
+    "/factories",
+    response_model=list[FactoryListItemResponse],
+    response_model_by_alias=True,
+    summary="Ambil Daftar Factory Terdaftar",
+)
+async def get_factory_list(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+) -> list[FactoryListItemResponse]:
+    """Mengambil daftar factory yang telah berhasil diparsing melalui service layer."""
+    items = await service.get_parsed_factories_list(db, limit=limit, offset=offset)
+    return [FactoryListItemResponse.model_validate(item) for item in items]

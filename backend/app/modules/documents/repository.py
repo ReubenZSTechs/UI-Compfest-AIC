@@ -1,337 +1,387 @@
+# backend/app/modules/documents/repository.py
 """
-backend/app/modules/documents/service.py
+Persist hasil pemrosesan modular (Tahap 1-5 dari document-parser) ke database
+`digital_twin_ingestion` serta pencatatan audit trail ke tabel `document_parse_jobs`.
 
-Layanan modul document-parser terisolasi (Tahap 1+2 Terpadu, Tahap 4, Tahap 5, Kombinasi 1-5,
-serta Persistensi ke Database untuk Inisiasi Simulasi Digital Twin).
+Disesuaikan agar konsisten dengan Standar Kontrak Data Digital Twin System:
+1. Fallback job_descriptions -> job_desks.
+2. Worker profile boleh berupa list datar ATAU dict {"workers": [...]}.
+3. Compatibility matrix diterima baik dalam bentuk sudah diratakan
+   (llm_compatibility_and_evaluations) maupun bentuk mentah bertingkat
+   ({worker_id: {jobs: {job_id: {...}}}}); keduanya dinormalisasi ke bentuk flat
+   sebelum disimpan.
+4. Validasi worker_id pada setiap evaluasi kompatibilitas terhadap daftar worker
+   yang valid, untuk mencegah ForeignKeyViolationError di PostgreSQL.
 """
 
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
 from typing import Any
 
-from fastapi import UploadFile
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.concurrency import run_in_threadpool
 
-from app.services.agent_registry_service import AgentRole, get_agent_registry
-from app.services.cross_reference_job_worker_service import (
-    CompatibilityEvaluationError,
-    generate_compatibility_matrix,
+from app.modules.digital_twin_ingestion.models import (
+    Asset,
+    CompatibilityEvaluation,
+    Factory,
+    JobDesk,
+    Worker,
 )
-from app.services.cv_pdf_parser_service import (
-    build_worker_agent_input,
-)
-from app.services.extract_input_field_service import (
-    UnsupportedDocumentError,
-    build_agent_input,
-    extract_document,
-)
-from app.services.extract_worker_archive_service import (
-    ArchiveError,
-    extract_worker_uploads,
-)
-
-from . import repository
-from .exceptions import DocumentParserPipelineError
-
-TEMPLATE_SUFFIXES = {".pdf", ".docx", ".md", ".markdown", ".txt"}
-WORKER_SUFFIXES = {".zip"}
+from app.modules.documents.exceptions import DocumentParserPipelineError
+from app.modules.documents.models import DocumentParseJob
 
 
-def _validate_suffix(filename: str, allowed_suffixes: set[str], label: str) -> None:
-    suffix = Path(filename).suffix.lower()
-    if suffix not in allowed_suffixes:
-        allowed_fmt = ", ".join(sorted(allowed_suffixes))
-        raise DocumentParserPipelineError(
-            "upload",
-            f"{label}: format {suffix or '(tidak ada)'} tidak didukung. Ekstensi yang diizinkan: {allowed_fmt}",
-        )
+def _read_jobs(twin: dict[str, Any]) -> list[dict[str, Any]]:
+    """Ekstrak job_desks dengan fallback ke key alternatif 'job_descriptions'."""
+    return twin.get("job_desks") or twin.get("job_descriptions") or []
 
 
-# --- Tahap 1 & 2 Terpadu: Ekstraksi Dokumen & Generasi Struktur Pabrik ---
-
-async def process_factory_document_pipeline(template: UploadFile) -> dict[str, Any]:
+def _unwrap_worker_profile(payload: Any) -> dict[str, Any]:
     """
-    Menggabungkan Tahap 1 (Ekstraksi Dokumen Pabrik) dan Tahap 2 (Agent A)
-    menjadi satu kesatuan alur proses.
+    Menguraikan payload worker profile menjadi dict ternormalisasi {"workers": [...]}.
+
+    Mendukung ketiga bentuk yang diizinkan Standar Kontrak Data:
+    - list datar berisi worker langsung
+    - dict {"workers": [...]}
+    - dict terbungkus {"worker_profile": {...}} (rekursif)
     """
-    filename = template.filename or "template.pdf"
-    _validate_suffix(filename, TEMPLATE_SUFFIXES, "template")
+    data: Any = payload
+    while isinstance(data, dict) and "worker_profile" in data:
+        data = data["worker_profile"]
 
-    warnings: list[str] = []
+    if isinstance(data, list):
+        return {"workers": data}
 
-    # 1. Ekstraksi File Dokumen
-    with tempfile.TemporaryDirectory(prefix="doc_pipeline_") as tmp_dir:
-        tmp_path = Path(tmp_dir) / filename
-        tmp_path.write_bytes(await template.read())
+    if isinstance(data, dict):
+        workers = data.get("workers", [])
+        if isinstance(workers, dict) and "workers" in workers:
+            workers = workers["workers"]
+        if not isinstance(workers, list):
+            workers = []
+        return {"workers": workers}
 
-        try:
-            document = await run_in_threadpool(extract_document, tmp_path)
-        except UnsupportedDocumentError as error:
-            raise DocumentParserPipelineError("extract", str(error)) from error
-
-    # Validasi kelengkapan dokumen mentah
-    if len(document.tables) < 3:
-        warnings.append(
-            f"Dokumen template hanya berisi {len(document.tables)} tabel (diharapkan 3)."
-        )
-
-    missing_tables = document.missing_tables()
-    if missing_tables:
-        warnings.append(
-            f"Tabel yang tidak terdeteksi: {', '.join(f'Tabel {t}' for t in missing_tables)}"
-        )
-
-    missing_fields = document.missing_text_fields()
-    if missing_fields:
-        warnings.append(f"Field template belum terbaca: {', '.join(missing_fields)}")
-
-    # 2. Formulasi prompt untuk Agent A
-    agent_input = build_agent_input(document)
-
-    # 3. Eksekusi Agent A (Struktur Pabrik)
-    registry = get_agent_registry()
-    factory_agent = registry.get(AgentRole.FACTORY_STRUCTURE)
-
-    try:
-        twin = await run_in_threadpool(
-            factory_agent.generate_structured, user_prompt=agent_input
-        )
-    except Exception as error:
-        raise DocumentParserPipelineError(
-            "llm_parse", f"Agent struktur pabrik gagal: {error}"
-        ) from error
-
-    # 4. Return Hasil Terpadu
-    return {
-        "extraction_summary": {
-            "extracted_fields": document.text_fields,
-            "tables_count": len(document.tables),
-            "raw_text": document.raw_text,
-            "warnings": warnings,
-        },
-        "agent_input": agent_input,
-        "factory_structure": twin,
-    }
+    return {"workers": []}
 
 
-# --- Tahap 4: Ekstraksi ZIP CV & Agent B (Profil Pekerja) ---
+def _collect_worker_ids(profile_data: dict[str, Any]) -> set[str]:
+    """Kumpulkan seluruh worker_id valid -- konsisten dengan service.build_digital_twin_from_results()."""
+    ids: set[str] = set()
+    for w in profile_data.get("workers", []):
+        if not isinstance(w, dict):
+            continue
+        w_id = w.get("worker_id") or w.get("id") or w.get("worker_code")
+        if w_id:
+            ids.add(str(w_id))
+    return ids
 
-async def step_4_extract_worker_profiles(
-    worker_zip: UploadFile,
-    strict: bool = False,
-) -> dict[str, Any]:
+
+def _flatten_compatibility_matrix(matrix_payload: Any) -> list[dict[str, Any]]:
     """
-    Menerima arsip ZIP berisi banyak CV, mengekstraksinya menggunakan
-    `extract_worker_uploads`, lalu memanggil Agent B.
+    Menormalkan payload compatibility matrix ke bentuk flat list
+    [{worker_id, job_id, asset_id, evaluations, llm_reasoning}, ...],
+    sesuai format `llm_compatibility_and_evaluations` pada Standar Kontrak Data.
     """
-    filename = worker_zip.filename or "workers.zip"
-    _validate_suffix(filename, WORKER_SUFFIXES, "worker_zip")
+    if isinstance(matrix_payload, list):
+        return [e for e in matrix_payload if isinstance(e, dict)]
 
-    with tempfile.TemporaryDirectory(prefix="worker_step4_") as tmp_dir:
-        tmp_path = Path(tmp_dir) / filename
-        tmp_path.write_bytes(await worker_zip.read())
+    if not isinstance(matrix_payload, dict):
+        return []
 
-        try:
-            worker_document, archive_reports = await run_in_threadpool(
-                extract_worker_uploads,
-                [tmp_path],
-                strict=strict,
+    flat = matrix_payload.get("llm_compatibility_and_evaluations")
+    if isinstance(flat, list):
+        return [e for e in flat if isinstance(e, dict)]
+
+    data: Any = matrix_payload
+    while isinstance(data, dict) and isinstance(data.get("compatibility_matrix"), (dict, list)):
+        data = data["compatibility_matrix"]
+
+    if isinstance(data, list):
+        return [e for e in data if isinstance(e, dict)]
+
+    if not isinstance(data, dict):
+        return []
+
+    flat = data.get("llm_compatibility_and_evaluations")
+    if isinstance(flat, list):
+        return [e for e in flat if isinstance(e, dict)]
+
+    # Bentuk mentah bertingkat: { worker_id: { jobs: { job_id: {...} } } }
+    result: list[dict[str, Any]] = []
+    for worker_id, record in data.items():
+        if worker_id == "meta" or not isinstance(record, dict):
+            continue
+        jobs_map = record.get("jobs", {})
+        if not isinstance(jobs_map, dict):
+            continue
+        for job_id, entry in jobs_map.items():
+            if not isinstance(entry, dict):
+                continue
+            result.append(
+                {
+                    "worker_id": worker_id,
+                    "job_id": job_id,
+                    "asset_id": entry.get("asset_id"),
+                    "evaluations": entry.get("evaluations", {}),
+                    "llm_reasoning": entry.get("llm_reasoning", ""),
+                }
             )
-        except (ArchiveError, UnsupportedDocumentError) as error:
-            raise DocumentParserPipelineError("extract", str(error)) from error
-        except Exception as error:
-            raise DocumentParserPipelineError(
-                "extract", f"Gagal mengekstraksi arsip ZIP pekerja: {error}"
-            ) from error
+    return result
 
-        worker_agent_input = build_worker_agent_input(worker_document)
 
-    # Panggil Agent B (WORKER_PROFILE)
-    registry = get_agent_registry()
-    worker_agent = registry.get(AgentRole.WORKER_PROFILE)
+async def persist_factory_structure(
+    session: AsyncSession, twin: dict[str, Any], warnings: list[str]
+) -> str:
+    """Tahap 2 -> tabel `factories`, `assets`, dan `job_desks`.
+    Melakukan upsert berdasarkan primary key agar re-parse dokumen yang sama
+    memperbarui data lama tanpa duplikasi."""
+    info = twin.get("factory_info", {})
+    factory_id = info["factory_id"]
 
-    try:
-        worker_profile = await run_in_threadpool(
-            worker_agent.generate_structured, user_prompt=worker_agent_input
+    factory = await session.get(Factory, factory_id)
+    if factory is None:
+        factory = Factory(factory_id=factory_id)
+        session.add(factory)
+
+    factory.factory_name = info.get("factory_name", factory_id)
+    factory.workflow_sequence = info.get("workflow_sequence", [])
+    if "process_type" in info:
+        factory.process_type = info.get("process_type")
+    if "declared_worker_count" in info:
+        factory.declared_worker_count = info.get("declared_worker_count")
+    if "layout_description" in info:
+        factory.layout_description = info.get("layout_description")
+    if "parallel_groups" in info:
+        factory.parallel_groups = info.get("parallel_groups")
+
+    for asset_data in twin.get("assets", []):
+        asset_id = asset_data["asset_id"]
+        asset = await session.get(Asset, asset_id)
+        if asset is None:
+            asset = Asset(asset_id=asset_id)
+            session.add(asset)
+        asset.factory_id = factory_id
+        asset.asset_name = asset_data.get("asset_name", asset_id)
+        asset.category = asset_data.get("category", "unknown")
+        asset.workflow_step = asset_data.get("workflow_step", "")
+        asset.is_automated = bool(asset_data.get("is_automated", False))
+        asset.base_throughput_capacity = float(asset_data.get("base_throughput_capacity", 0))
+        asset.operational_cost_per_hour = float(asset_data.get("operational_cost_per_hour", 0))
+        asset.environmental_factors = asset_data.get("environmental_factors", {})
+        asset.metric_derivation_reasoning = asset_data.get("metric_derivation_reasoning", "")
+        if "units_available" in asset_data:
+            asset.units_available = asset_data.get("units_available")
+
+    for job_data in _read_jobs(twin):
+        job_id = job_data["job_id"]
+        job = await session.get(JobDesk, job_id)
+        if job is None:
+            job = JobDesk(job_id=job_id)
+            session.add(job)
+        job.factory_id = factory_id
+        job.job_title = job_data.get("job_title", job_id)
+        job.workflow_step = job_data.get("workflow_step", "")
+        job.assigned_asset_id = job_data["assigned_asset_id"]
+        job.demands = job_data.get("demands", {})
+        job.qc_requirement = job_data.get("qc_requirement", "")
+        job.metric_derivation_reasoning = job_data.get("metric_derivation_reasoning", "")
+
+    await session.flush()
+    return factory_id
+
+
+async def persist_worker_profile(
+    session: AsyncSession, factory_id: str, worker_payload: Any
+) -> int:
+    """Tahap 4 -> tabel `workers`. Upsert berdasarkan worker_id."""
+    profile_data = _unwrap_worker_profile(worker_payload)
+    worker_list = profile_data.get("workers", [])
+
+    count = 0
+    for worker_data in worker_list:
+        if not isinstance(worker_data, dict):
+            continue
+        worker_id = worker_data.get("worker_id") or worker_data.get("id") or worker_data.get("worker_code")
+        if not worker_id:
+            continue
+        worker_id = str(worker_id)
+        worker = await session.get(Worker, worker_id)
+        if worker is None:
+            worker = Worker(worker_id=worker_id)
+            session.add(worker)
+        worker.factory_id = factory_id
+        worker.name = worker_data.get("name") or worker_id
+        worker.demographics = worker_data.get("demographics", {})
+        worker.shift_context = worker_data.get("shift_context", {})
+        if "skills" in worker_data:
+            worker.skills = worker_data.get("skills")
+        if "certifications" in worker_data:
+            worker.certifications = worker_data.get("certifications")
+        if "capabilities" in worker_data:
+            worker.capabilities = worker_data.get("capabilities")
+        count += 1
+
+    await session.flush()
+    return count
+
+
+async def persist_compatibility_matrix(
+    session: AsyncSession,
+    factory_id: str,
+    matrix_payload: Any,
+    valid_worker_ids: set[str] | None = None,
+    warnings: list[str] | None = None,
+) -> int:
+    """Tahap 5 -> tabel `compatibility_evaluations`."""
+    await session.execute(
+        delete(CompatibilityEvaluation).where(
+            CompatibilityEvaluation.factory_id == factory_id
         )
-    except Exception as error:
-        raise DocumentParserPipelineError(
-            "llm_parse", f"Agent profil pekerja gagal: {error}"
-        ) from error
-
-    return {
-        "worker_profile": worker_profile,
-        "worker_agent_input": worker_agent_input,
-        "candidates_found": len(worker_document.candidates),
-        "rejected_blocks_count": len(worker_document.rejected_blocks),
-        "archive_reports": [
-            {
-                "archive_name": r.archive_name,
-                "accepted_count": r.accepted_count(),
-                "skipped": r.skipped,
-                "failed": r.failed,
-            }
-            for r in archive_reports
-        ],
-    }
-
-
-# --- Tahap 5: Matriks Kompatibilitas ---
-
-async def step_5_generate_compatibility_matrix(
-    factory_structure: dict[str, Any],
-    worker_profile: dict[str, Any],
-    max_workers: int = 4,
-    max_attempts: int = 3,
-    strict_compatibility: bool = False,
-) -> dict[str, Any]:
-    """Memetakan pencocokan job desk pabrik dengan profil pekerja."""
-    # 1. Ekstrak list pekerja dari dict worker_profile
-    worker_list = worker_profile.get("workers", [])
-
-    # 2. Ambil agent pencocokan dari registry
-    registry = get_agent_registry()
-    compatibility_agent = registry.get(AgentRole.WORKER_COMPATIBILITY)
-
-    # 3. Eksekusi evaluasi kompatibilitas
-    try:
-        matrix = await run_in_threadpool(
-            generate_compatibility_matrix,
-            factory=factory_structure,
-            workers=worker_list,
-            agent=compatibility_agent,
-            max_workers=max_workers,
-            max_attempts=max_attempts,
-            strict=strict_compatibility,
-        )
-    except CompatibilityEvaluationError as error:
-        raise DocumentParserPipelineError("compatibility", str(error)) from error
-    except Exception as error:
-        raise DocumentParserPipelineError(
-            "compatibility", f"Gagal membuat matriks kompatibilitas: {error}"
-        ) from error
-
-    return {
-        "compatibility_matrix": matrix,
-        "warnings": [],
-    }
-
-
-# --- Fungsi Kombinasi: Tahap 1+2, Tahap 4, & Tahap 5 (Pure Parsing) ---
-
-async def process_combined_documents_pipeline(
-    template: UploadFile,
-    worker_zip: UploadFile,
-    strict: bool = False,
-    max_workers: int = 4,
-    max_attempts: int = 3,
-) -> dict[str, Any]:
-    """
-    Menggabungkan pemrosesan dokumen pabrik (Tahap 1+2), pemrosesan ZIP CV worker (Tahap 4),
-    dan pembentukan matriks kompatibilitas (Tahap 5) dalam satu alur eksekusi sekaligus.
-    """
-    # 1. Jalankan Tahap 1 & 2 (Pabrik)
-    factory_result = await process_factory_document_pipeline(template)
-
-    # 2. Jalankan Tahap 4 (Pekerja)
-    worker_result = await step_4_extract_worker_profiles(worker_zip, strict=strict)
-
-    # 3. Jalankan Tahap 5 (Matriks Kompatibilitas)
-    compatibility_result = await step_5_generate_compatibility_matrix(
-        factory_structure=factory_result["factory_structure"],
-        worker_profile=worker_result["worker_profile"],
-        max_workers=max_workers,
-        max_attempts=max_attempts,
-        strict_compatibility=strict,
     )
 
+    flat_evals = _flatten_compatibility_matrix(matrix_payload)
+    persisted = 0
+    for entry in flat_evals:
+        worker_id = entry.get("worker_id")
+        job_id = entry.get("job_id")
+        if not worker_id or not job_id:
+            continue
+        worker_id = str(worker_id)
+
+        if valid_worker_ids is not None and worker_id not in valid_worker_ids:
+            if warnings is not None:
+                warnings.append(
+                    f"Evaluasi kompatibilitas untuk worker_id '{worker_id}' diabaikan "
+                    f"karena worker_id tidak terdaftar pada tabel workers."
+                )
+            continue
+
+        session.add(
+            CompatibilityEvaluation(
+                factory_id=factory_id,
+                worker_id=worker_id,
+                job_id=job_id,
+                asset_id=entry.get("asset_id"),
+                evaluations=entry.get("evaluations", {}),
+                llm_reasoning=entry.get("llm_reasoning", ""),
+            )
+        )
+        persisted += 1
+
+    await session.flush()
+    return persisted
+
+
+async def persist_completed_pipeline(
+    session: AsyncSession,
+    *,
+    factory_structure: dict[str, Any],
+    worker_profile: Any,
+    compatibility_matrix: Any,
+    template_filename: str | None = None,
+    cv_bundle_filename: str | None = None,
+    warnings: list[str] | None = None,
+) -> dict[str, Any]:
+    """Menyimpan hasil akhir 5 tahap ke tabel relasional dan merekam audit trail sukses ke `document_parse_jobs`."""
+    accumulated_warnings = list(warnings or [])
+
+    factory_id = await persist_factory_structure(
+        session, factory_structure, accumulated_warnings
+    )
+
+    stored_worker_profile = _unwrap_worker_profile(worker_profile)
+    workers_parsed = await persist_worker_profile(session, factory_id, stored_worker_profile)
+    valid_worker_ids = _collect_worker_ids(stored_worker_profile)
+
+    stored_compatibility_matrix = {
+        "llm_compatibility_and_evaluations": _flatten_compatibility_matrix(compatibility_matrix)
+    }
+    await persist_compatibility_matrix(
+        session,
+        factory_id,
+        stored_compatibility_matrix,
+        valid_worker_ids=valid_worker_ids,
+        warnings=accumulated_warnings,
+    )
+
+    job_desks_parsed = len(_read_jobs(factory_structure))
+
+    job = DocumentParseJob(
+        factory_id=factory_id,
+        status="success",
+        template_filename=template_filename,
+        cv_bundle_filename=cv_bundle_filename,
+        workers_parsed=workers_parsed,
+        job_desks_parsed=job_desks_parsed,
+        warnings=accumulated_warnings,
+        error_stage=None,
+        error_message=None,
+        error_details=None,
+        factory_structure=factory_structure,
+        worker_profile=stored_worker_profile,
+        compatibility_matrix=stored_compatibility_matrix,
+        floor_state=None,  # Tahap 6 skipped
+    )
+    session.add(job)
+    await session.commit()
+
     return {
-        # Hasil Pabrik (Tahap 1 & 2)
-        "extraction_summary": factory_result["extraction_summary"],
-        "agent_input": factory_result["agent_input"],
-        "factory_structure": factory_result["factory_structure"],
-        # Hasil Worker (Tahap 4)
-        "worker_profile": worker_result["worker_profile"],
-        "worker_agent_input": worker_result["worker_agent_input"],
-        "candidates_found": worker_result["candidates_found"],
-        "rejected_blocks_count": worker_result["rejected_blocks_count"],
-        "archive_reports": worker_result["archive_reports"],
-        # Hasil Kompatibilitas (Tahap 5)
-        "compatibility_matrix": compatibility_result["compatibility_matrix"],
+        "job_id": str(job.id),
+        "factory_id": factory_id,
+        "workers_parsed": workers_parsed,
+        "job_desks_parsed": job_desks_parsed,
+        "warnings": accumulated_warnings,
     }
 
 
-# --- High-Level Orchestrator: Parsing & Direct DB Persistence ---
-
-async def process_and_persist_combined_documents(
+async def persist_combined_pipeline(
     session: AsyncSession,
-    template: UploadFile,
-    worker_zip: UploadFile,
-    strict: bool = False,
-    max_workers: int = 4,
-    max_attempts: int = 3,
+    combined_result: dict[str, Any],
+    template_filename: str | None = None,
+    cv_bundle_filename: str | None = None,
 ) -> dict[str, Any]:
-    """
-    Menjalankan alur lengkap dari unggahan file, LLM parsing, menyimpan hasilnya 
-    ke database relasional & tabel `document_parse_jobs`, lalu mengembalikan `simulation_id` 
-    (job_id) agar Frontend dapat memicu simulasi pada Digital Twin Engine.
-    """
-    template_filename = template.filename or "template.pdf"
-    cv_bundle_filename = worker_zip.filename or "workers.zip"
+    """Convenience method untuk menyimpan output langsung dari `process_combined_documents_pipeline` (Tahap 1, 2, 4, & 5)."""
+    factory_structure = combined_result.get("factory_structure", {})
+    worker_profile = combined_result.get("worker_profile", {})
+    compatibility_matrix = combined_result.get("compatibility_matrix", {})
+    extraction_warnings = combined_result.get("extraction_summary", {}).get("warnings", [])
 
-    try:
-        # 1. Eksekusi Parsing LLM (Tahap 1, 2, 4, & 5)
-        combined_result = await process_combined_documents_pipeline(
-            template=template,
-            worker_zip=worker_zip,
-            strict=strict,
-            max_workers=max_workers,
-            max_attempts=max_attempts,
-        )
+    return await persist_completed_pipeline(
+        session,
+        factory_structure=factory_structure,
+        worker_profile=worker_profile,
+        compatibility_matrix=compatibility_matrix,
+        template_filename=template_filename,
+        cv_bundle_filename=cv_bundle_filename,
+        warnings=extraction_warnings,
+    )
 
-        # 2. Persistensi Data ke DB Relasional (factories, assets, job_desks, workers, dll) & Job Audit Trail
-        persist_summary = await repository.persist_combined_pipeline(
-            session=session,
-            combined_result=combined_result,
+
+async def record_failed_parse_job(
+    session: AsyncSession,
+    *,
+    error: DocumentParserPipelineError,
+    template_filename: str | None = None,
+    cv_bundle_filename: str | None = None,
+    factory_id: str | None = None,
+) -> None:
+    """Mencatat riwayat kegagalan proses ke `document_parse_jobs`."""
+    session.add(
+        DocumentParseJob(
+            factory_id=factory_id,
+            status="error",
             template_filename=template_filename,
             cv_bundle_filename=cv_bundle_filename,
+            workers_parsed=0,
+            job_desks_parsed=0,
+            warnings=[],
+            error_stage=error.stage,
+            error_message=error.message,
+            error_details=error.details or None,
+            factory_structure=None,
+            worker_profile=None,
+            compatibility_matrix=None,
+            floor_state=None,
         )
-
-        # 3. Kembalikan Payload Utama berisi `simulation_id` untuk Frontend
-        return {
-            "simulation_id": persist_summary["job_id"],  # Digunakan oleh Digital Twin Engine
-            "factory_id": persist_summary["factory_id"],
-            "status": "success",
-            "workers_parsed": persist_summary["workers_parsed"],
-            "job_desks_parsed": persist_summary["job_desks_parsed"],
-            "warnings": persist_summary["warnings"],
-            "data": combined_result,
-        }
-
-    except DocumentParserPipelineError as error:
-        # Rollback transaksi yang gagal lalu rekam log kegagalan ke document_parse_jobs
-        await session.rollback()
-        await repository.record_failed_parse_job(
-            session=session,
-            error=error,
-            template_filename=template_filename,
-            cv_bundle_filename=cv_bundle_filename,
-        )
-        raise error
-
-    except Exception as error:
-        # Tangkap error yang tak terduga, jadikan DocumentParserPipelineError, lalu rekam ke DB
-        await session.rollback()
-        pipeline_error = DocumentParserPipelineError(
-            "system_error", f"Terjadi kesalahan sistem saat memproses dokumen: {str(error)}"
-        )
-        await repository.record_failed_parse_job(
-            session=session,
-            error=pipeline_error,
-            template_filename=template_filename,
-            cv_bundle_filename=cv_bundle_filename,
-        )
-        raise pipeline_error from error
+    )
+    await session.commit()

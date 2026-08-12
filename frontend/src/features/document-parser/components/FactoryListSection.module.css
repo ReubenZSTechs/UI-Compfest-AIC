@@ -1,0 +1,128 @@
+/* frontend/src/features/document-parser/components/FactoryListSection.module.css */
+.factoryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.factoryCard {
+  background-color: var(--twin-surface);
+  border: 1px solid var(--twin-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--twin-font-sans);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.factoryCard:hover {
+  transform: translateY(-2px);
+  border-color: var(--twin-border-hover);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.factoryIdBadge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--twin-font-mono);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background-color: var(--twin-surface-raised);
+  color: var(--twin-text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.factoryTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--twin-text-primary);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.4;
+}
+
+.factoryStats {
+  font-size: 0.875rem;
+  color: var(--twin-text-muted);
+  margin: 0 0 0.5rem 0;
+}
+
+.factoryTimestamp {
+  font-size: 0.75rem;
+  color: var(--twin-text-faint);
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.factoryCardActions {
+  margin-top: auto;
+}
+
+.parseButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--twin-font-sans);
+  border-radius: 8px;
+  border: none;
+  background-color: var(--twin-accent-automated);
+  color: var(--twin-bg);
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.parseButton:hover {
+  opacity: 0.85;
+}
+
+.fullWidthButton {
+  width: 100%;
+}
+
+.resetButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: var(--twin-font-sans);
+  border-radius: 8px;
+  border: 1px solid var(--twin-border);
+  background-color: transparent;
+  color: var(--twin-text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.resetButton:hover {
+  background-color: var(--twin-surface-raised);
+  border-color: var(--twin-border-hover);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  background-color: var(--twin-surface);
+  border: 1px dashed var(--twin-border);
+  border-radius: 12px;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.emptyStateText {
+  font-size: 0.95rem;
+  color: var(--twin-text-muted);
+  margin-bottom: 1.25rem;
+}

@@ -8,7 +8,7 @@ Sesuai dengan Standar Kontrak Data Digital Twin System.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 from pydantic.alias_generators import to_camel
@@ -132,3 +132,14 @@ class ParseJobResult(BaseDocumentSchema):
     worker_profile: dict[str, Any] | None = None
     compatibility_matrix: dict[str, Any] | list[dict[str, Any]] | None = None
     floor_state: dict[str, Any] | None = None
+
+
+class FactoryListItemResponse(BaseModel):
+    factory_id: str = Field(..., alias="factoryId")
+    factory_name: str = Field(..., alias="factoryName")
+    workers_count: int = Field(..., alias="workersCount")
+    job_desks_count: int = Field(..., alias="jobDesksCount")
+    created_at: Optional[str] = Field(None, alias="createdAt")
+
+    class Config:
+        populate_by_name = True

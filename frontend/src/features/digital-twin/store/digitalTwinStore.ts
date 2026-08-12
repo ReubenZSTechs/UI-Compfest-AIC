@@ -8,6 +8,7 @@ interface DigitalTwinState {
   // Data & fetch lifecycle
   data: DigitalTwin | null;
   isLoading: boolean;
+  isFetched: boolean; // Flag penanda bahwa minimal satu kali fetch telah selesai
   error: Error | null;
   simulationId?: string;
   fetchTwin: (simulationId?: string) => Promise<void>;
@@ -39,20 +40,22 @@ interface DigitalTwinState {
 export const useDigitalTwinStore = create<DigitalTwinState>((set) => ({
   data: null,
   isLoading: false,
+  isFetched: false,
   error: null,
   simulationId: undefined,
 
   fetchTwin: async (simulationId?: string) => {
-    set({ isLoading: true, error: null, simulationId });
+    set({ isLoading: true, isFetched: false, error: null, simulationId });
     try {
       const response = await digitalTwinApi.getFullTwin(simulationId);
       // Memastikan data bernilai null jika API mengembalikan null/undefined
-      set({ data: response ?? null, isLoading: false });
+      set({ data: response ?? null, isLoading: false, isFetched: true });
     } catch (err) {
       set({
         data: null, // Reset data ke null jika request gagal
         error: err instanceof Error ? err : new Error("Gagal memuat digital twin"),
         isLoading: false,
+        isFetched: true,
       });
     }
   },
