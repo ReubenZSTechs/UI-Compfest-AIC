@@ -39,6 +39,17 @@ def read_jobs(factory: dict[str, Any]) -> list[dict[str, Any]]:
     return factory.get("job_descriptions") or factory.get("job_desks") or []
 
 
+def read_stage_id(job: dict[str, Any]) -> str:
+    for key in ("stage_id", "workflow_step"):
+        value = job.get(key)
+        if value:
+            return str(value)
+
+    raise KeyError(
+        f"Job {job.get('job_id') or job.get('allocation_id') or '?'} tidak memuat stage_id maupun workflow_step"
+    )
+
+
 def index_assets(factory: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {asset["asset_id"]: asset for asset in factory.get("assets", [])}
 
@@ -55,7 +66,7 @@ def build_pair_prompt(worker: dict[str, Any], job: dict[str, Any],
         "job": {
             "job_id": job["job_id"],
             "job_title": job["job_title"],
-            "workflow_step": job["workflow_step"],
+            "workflow_step": read_stage_id(job),
             "demands": job["demands"],
             "qc_requirement": job.get("qc_requirement", ""),
             "metric_derivation_reasoning": job.get("metric_derivation_reasoning", ""),
@@ -134,7 +145,7 @@ def evaluate_pair(agent: Any, worker: dict[str, Any], job: dict[str, Any],
 
             entry = {
                 "job_title": job["job_title"],
-                "workflow_step": job["workflow_step"],
+                "stage_id": read_stage_id(job=job),
                 "asset_id": asset["asset_id"],
                 "attempts": attempt,
                 "evaluations": validate_evaluations(result.get("evaluations")),

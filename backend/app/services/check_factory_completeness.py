@@ -38,6 +38,20 @@ class CompletenessReport:
 
 PLACEHOLDER_VALUES = {"", "-", "n/a", "na", "tbd", "unknown", "tidak diketahui", "null"}
 
+def _job_stage_id(job: dict) -> str | None:
+    for key in ("stage_id", "workflow_step"):
+        value = job.get(key)
+        if value:
+            return value
+    return None
+
+
+def _job_worker_ids(job: dict) -> list:
+    ids = job.get("assigned_worker_ids")
+    if ids:
+        return ids
+    return job.get("assigned_worker_names") or []
+
 
 class FactoryCompletenessChecker:
     def __init__(self, twin: dict):
@@ -85,12 +99,12 @@ class FactoryCompletenessChecker:
                 )
 
         process_type = info.get("process_type")
-        if process_type not in ("serial", "parallel"):
+        if process_type not in ("serial", "parallel", "hybrid"):
             self._add(
                 path="factory_info.process_type",
                 severity=GapSeverity.BLOCKING,
-                message="process_type harus bernilai serial atau parallel.",
-                question="Apakah proses produksi berjalan serial (satu tahap setelah tahap lain) atau parallel (beberapa tahap bersamaan)?",
+                message="process_type harus bernilai serial, parallel, atau hybrid.",
+                question="Apakah proses produksi berjalan serial (satu tahap setelah tahap lain), parallel (beberapa tahap bersamaan), atau hybrid (campuran, ada jalur paralel yang menyatu kembali)?",
             )
 
         worker_count = info.get("declared_worker_count")
@@ -111,7 +125,8 @@ class FactoryCompletenessChecker:
                 question="Bisa sebutkan tahapan produksi dari bahan baku sampai barang jadi secara berurutan?",
             )
 
-        if process_type == "parallel" and self._is_blank(info.get("parallel_groups")):
+        
+        if process_type in ("parallel", "hybrid") and self._is_blank(info.get("parallel_groups")):
             self._add(
                 path="factory_info.parallel_groups",
                 severity=GapSeverity.WARNING,
@@ -122,40 +137,51 @@ class FactoryCompletenessChecker:
     def check_step_coverage(self) -> None:
         info = self.twin.get("factory_info") or {}
         sequence = info.get("workflow_sequence") or []
-        assets = self.twin.get("assets") or []
-        job_descriptions = self.twin.get("job_descriptions") or []
+        stages = self.twin.get("process_stages") or []
+        job_descriptions = self.twin.get("job_descriptions") or self.twin.get("job_desks") or []
 
-        asset_steps = set()
-        for asset in assets:
-            asset_steps.add(asset.get("workflow_step"))
+        stage_by_id = {}
+        for stage in stages:
+            stage_id = stage.get("stage_id")
+            if stage_id:
+                stage_by_id[stage_id] = stage
 
         job_steps = set()
         for job in job_descriptions:
-            job_steps.add(job.get("workflow_step"))
+            job_steps.add(_job_stage_id(job))
 
         for step in sequence:
-            if step not in asset_steps:
+            stage = stage_by_id.get(step)
+
+            if stage is None:
                 self._add(
-                    path=f"assets[workflow_step={step}]",
+                    path=f"process_stages[stage_id={step}]",
                     severity=GapSeverity.BLOCKING,
-                    message=f"Tahapan {step} tidak punya aset.",
+                    message=f"Tahapan {step} ada di workflow_sequence tetapi tidak ditemukan di process_stages.",
+                    question=f"Detail tahapan {step} (aset, tugas operator, throughput) belum tercatat. Bisa dilengkapi?",
+                )
+            elif self._is_blank(stage.get("asset_id")):
+                self._add(
+                    path=f"process_stages.{step}.asset_id",
+                    severity=GapSeverity.BLOCKING,
+                    message=f"Tahapan {step} tidak punya asset_id.",
                     question=f"Alat atau mesin apa yang dipakai pada tahapan {step}? Tulis 'manual' bila tanpa alat.",
                 )
 
             if step not in job_steps:
                 self._add(
-                    path=f"job_descriptions[workflow_step={step}]",
+                    path=f"job_descriptions[stage_id={step}]",
                     severity=GapSeverity.BLOCKING,
                     message=f"Tahapan {step} tidak punya job desk.",
                     question=f"Apa deskripsi pekerjaan operator pada tahapan {step}?",
                 )
 
-        for step in asset_steps:
-            if step not in sequence:
+        for step in job_steps:
+            if step and step not in sequence:
                 self._add(
-                    path=f"assets[workflow_step={step}]",
+                    path=f"job_descriptions[stage_id={step}]",
                     severity=GapSeverity.WARNING,
-                    message=f"Aset merujuk tahapan {step} yang tidak ada di workflow_sequence.",
+                    message=f"Job desk merujuk tahapan {step} yang tidak ada di workflow_sequence.",
                     question=f"Apakah tahapan {step} memang bagian dari alur produksi?",
                 )
 
@@ -223,9 +249,9 @@ class FactoryCompletenessChecker:
                     question=f"Alat mana yang dipakai pada pekerjaan {title}?",
                 )
 
-            if self._is_blank(job.get("assigned_worker_names")):
+            if self._is_blank(_job_worker_ids(job)):
                 self._add(
-                    path=f"job_descriptions.{job_id}.assigned_worker_names",
+                    path=f"job_descriptions.{job_id}.assigned_worker_ids",
                     severity=GapSeverity.WARNING,
                     message="Belum ada pekerja yang ditugaskan.",
                     question=f"Siapa pekerja yang bertugas pada {title}?",
@@ -254,22 +280,22 @@ class FactoryCompletenessChecker:
         if not isinstance(declared, int):
             return
 
-        assigned_names = set()
-        for job in self.twin.get("job_descriptions") or []:
-            for name in job.get("assigned_worker_names") or []:
-                assigned_names.add(name.strip().lower())
+        assigned_ids = set()
+        for job in self.twin.get("job_descriptions") or self.twin.get("job_desks") or []:
+            for worker_id in _job_worker_ids(job):
+                assigned_ids.add(str(worker_id).strip().lower())
 
-        if not assigned_names:
+        if not assigned_ids:
             return
 
-        if len(assigned_names) < declared:
-            missing = declared - len(assigned_names)
+        if len(assigned_ids) < declared:
+            missing = declared - len(assigned_ids)
             self._add(
-                path="job_descriptions.assigned_worker_names",
+                path="job_descriptions.assigned_worker_ids",
                 severity=GapSeverity.WARNING,
                 message=(
                     f"Jumlah pekerja dideklarasikan {declared} "
-                    f"tetapi hanya {len(assigned_names)} nama yang ditugaskan."
+                    f"tetapi hanya {len(assigned_ids)} worker_id yang ditugaskan."
                 ),
                 question=f"Ada {missing} pekerja yang belum ditempatkan. Siapa saja mereka dan di tahapan mana?",
             )

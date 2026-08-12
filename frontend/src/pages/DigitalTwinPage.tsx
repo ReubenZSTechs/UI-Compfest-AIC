@@ -28,7 +28,7 @@ export function DigitalTwinPage() {
     searchParams.get("job_id") ||
     undefined;
 
-  const { data, isLoading, error } = useDigitalTwin(factoryId);
+  const { data, isLoading, isFetched, error } = useDigitalTwin(factoryId);
 
   // Validasi keberadaan data hasil parsing
   const hasParsedData = useMemo(() => {
@@ -42,13 +42,23 @@ export function DigitalTwinPage() {
     return hasFactory || hasDesks || hasWorkers || hasAssets;
   }, [data]);
 
-  // Route Guard: Alihkan ke halaman document parser jika data tidak valid/kosong
+  // Route Guard: Alihkan ke halaman document parser hanya jika proses fetch selesai & data memang kosong/error
   useEffect(() => {
-    if (!isLoading && (error || !hasParsedData || !factoryId)) {
+    // 1. Jika URL tidak memiliki factoryId, langsung redirect
+    if (!factoryId) {
       alert("Hasil parsing belum tersedia. Silakan unggah dan proses dokumen terlebih dahulu.");
       navigate("/document-parser", { replace: true });
+      return;
     }
-  }, [isLoading, error, hasParsedData, factoryId, navigate]);
+
+    // 2. Tunggu hingga pemanggilan API selesai (isFetched === true dan !isLoading)
+    if (isFetched && !isLoading) {
+      if (error || !hasParsedData) {
+        alert("Hasil parsing belum tersedia. Silakan unggah dan proses dokumen terlebih dahulu.");
+        navigate("/document-parser", { replace: true });
+      }
+    }
+  }, [isFetched, isLoading, error, hasParsedData, factoryId, navigate]);
 
   // State pencarian terpisah untuk masing-masing seksi
   const [assetSearchQuery, setAssetSearchQuery] = useState("");
@@ -159,13 +169,14 @@ export function DigitalTwinPage() {
     );
   }, [data]);
 
-  if (isLoading) {
+  // Tampilkan loading screen selama request API masih berlangsung
+  if (isLoading || !isFetched) {
     return <div className={styles.stateMessage}>Memeriksa ketersediaan data digital twin...</div>;
   }
 
-  // Guard guard bertahap: pastikan data tidak null sebelum masuk ke JSX
+  // Guard bertahap: tunggu redirect dari useEffect jika data error atau kosong
   if (error || !hasParsedData || !data) {
-    return null; // Menunggu pemanggilan redirect oleh useEffect
+    return null;
   }
 
   return (

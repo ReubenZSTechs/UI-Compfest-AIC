@@ -7,14 +7,16 @@ Sesuai dengan Standar Kontrak Data Digital Twin System.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.modules.digital_twin_ingestion.models import Factory
+
+if TYPE_CHECKING:
+    from app.modules.digital_twin_ingestion.models import Factory
 
 
 class DocumentParseJob(Base):
@@ -69,4 +71,4 @@ class DocumentParseJob(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    factory: Mapped["Factory"] = relationship()
+    factory: Mapped[Factory | None] = relationship()

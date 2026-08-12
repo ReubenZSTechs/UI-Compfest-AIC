@@ -21,6 +21,14 @@
   border-bottom: 1px solid var(--twin-border, #2a2f3a);
 }
 
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 1rem;
+}
+
 .eyebrow {
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -45,7 +53,99 @@
   max-width: 65ch;
 }
 
-/* --- Grid & Actions --- */
+/* --- TAMPILAN 1: FACTORY LIST & CARDS --- */
+.factorySection {
+  margin-top: 1.5rem;
+}
+
+.emptyState {
+  padding: 3.5rem 2rem;
+  text-align: center;
+  background: var(--twin-surface-low, #121824);
+  border: 1px dashed var(--twin-border, #2a2f3a);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.emptyStateText {
+  color: var(--twin-text-muted, #94a3b8);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.factoryGrid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.factoryCard {
+  padding: 1.25rem;
+  border: 1px solid var(--twin-border, #2a2f3a);
+  border-radius: 8px;
+  background-color: var(--twin-surface-low, #121824);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.factoryCard:hover {
+  border-color: var(--twin-border-hover, #475569);
+  background-color: var(--twin-surface-raised, #1e293b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.factoryIdBadge {
+  display: inline-block;
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--twin-accent-automated, #14b8a6);
+  background: var(--twin-surface-inset, #0b0f17);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--twin-border, #2a2f3a);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.factoryTitle {
+  margin: 0.5rem 0 0.35rem 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--twin-text-primary, #f8fafc);
+}
+
+.factoryStats {
+  font-size: 0.85rem;
+  color: var(--twin-text-secondary, #cbd5e1);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.factoryTimestamp {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.725rem;
+  color: var(--twin-text-muted, #64748b);
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.factoryCardActions {
+  margin-top: 1.25rem;
+}
+
+/* --- Grid Upload & Actions --- */
 .uploadGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -59,6 +159,7 @@
   flex-wrap: wrap;
 }
 
+/* --- BUTTON STYLES --- */
 .parseButton {
   font-family: var(--twin-font-mono, monospace);
   font-size: 0.8rem;
@@ -90,6 +191,22 @@
 
 .parseButton:not(:disabled):active {
   transform: translateY(0);
+}
+
+/* Variant Tombol Hijau / Selesai */
+.successButton {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.successButton:hover {
+  background: #15803d;
+}
+
+/* Variant Tombol Full Width untuk Card */
+.fullWidthButton {
+  width: 100%;
+  text-align: center;
 }
 
 .resetButton {

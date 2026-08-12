@@ -468,3 +468,29 @@ def build_worker_agent_input(document: ExtractedWorkerDocument) -> str:
     header = f"Jumlah kandidat terbaca: {len(document.candidates)}"
     payloads = [candidate_payload(candidate) for candidate in document.candidates]
     return "\n\n".join([header] + payloads)
+
+def build_worker_agent_input(document: ExtractedWorkerDocument) -> str:
+    header = f"Jumlah kandidat terbaca: {len(document.candidates)}"
+    payloads = [candidate_payload(candidate) for candidate in document.candidates]
+    return "\n\n".join([header] + payloads)
+
+
+def build_worker_agent_input_chunks(
+    document: ExtractedWorkerDocument, chunk_size: int = 4
+) -> list[str]:
+    """
+    Sama seperti build_worker_agent_input, tapi membagi kandidat menjadi
+    beberapa batch agar setiap panggilan LLM tidak melebihi max_tokens
+    saat jumlah kandidat dalam satu ZIP banyak.
+    """
+    candidates = document.candidates
+    if not candidates:
+        return []
+
+    chunks: list[str] = []
+    for i in range(0, len(candidates), chunk_size):
+        batch = candidates[i : i + chunk_size]
+        header = f"Jumlah kandidat terbaca: {len(batch)}"
+        payloads = [candidate_payload(candidate) for candidate in batch]
+        chunks.append("\n\n".join([header] + payloads))
+    return chunks
