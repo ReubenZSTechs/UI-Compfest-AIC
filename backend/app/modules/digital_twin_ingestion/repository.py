@@ -1,26 +1,18 @@
-# backend/app/modules/digital_twin_ingestion/repository.py
 """
 Perubahan pada revisi ini:
-1. FIX BUG KRITIS (FK violation `compatibility_evaluations.worker_id`): baris `workers`
-   sebelumnya tidak pernah di-`flush()` sebelum `compatibility_evaluations` di-insert,
-   karena satu-satunya flush di antara keduanya berada di dalam blok
-   `if data.factory_flow_rightnow is not None:` yang SELALU dilewati pada pipeline
-   kombinasi Tahap 1+2+4+5 (blok itu hanya diisi oleh Tahap 6 / Agent C). Akibatnya
-   Postgres menolak insert compatibility_evaluations karena worker_id yang
-   direferensikan belum benar-benar tersimpan di tabel `workers`.
-   -> Ditambahkan `await self.db.flush()` eksplisit segera setelah loop `workers`,
-      sebelum loop `llm_compatibility_and_evaluations`, terlepas dari apakah blok
-      factory_flow_rightnow dieksekusi atau tidak.
-2. FIX: `await self.db.commit()` di akhir method DIHAPUS. Method ini dipanggil oleh
-   `documents/service.py` di dalam `async with db.begin_nested():` (savepoint
-   terisolasi). Memanggil `commit()` di dalam savepoint tersebut tidak tepat --
-   kontrol commit seharusnya sepenuhnya milik caller, yang memang sudah melakukan
-   `await db.commit()` setelah blok ingestion selesai (menyatukan commit data
-   Digital Twin dengan update audit trail `document_parse_jobs` secara atomik).
-   Sebagai gantinya, method ini melakukan `flush()` di akhir agar seluruh objek
-   tersimpan ke transaksi aktif (baik itu savepoint maupun sesi utama), namun
-   commit final tetap menjadi tanggung jawab caller.
+1. FIX BUG KRITIS (FK violation `compatibility_evaluations.worker_id`): ... (tetap seperti sebelumnya)
+2. FIX: commit() dihapus ... (tetap seperti sebelumnya)
+3. FIX BUG BARU: `factory_id` hasil LLM kini di-generate ULANG agar selalu unik per
+   proses parsing. Sebelumnya, re-upload dokumen sumber yang identik menghasilkan
+   `factory_id` yang sama persis dari LLM, menyebabkan UniqueViolationError pada
+   `pk_factories`. Sekarang setiap parsing SELALU menghasilkan Digital Twin baru
+   yang independen -- dokumen yang sama tidak lagi menimpa/bentrok dengan hasil
+   parsing sebelumnya.
+4. FIX: Asset, ProcessStage, Shift, JobDesk kini menggunakan PK komposit
+   (factory_id, entity_id) mengikuti pola Worker -- entity_id generik hasil LLM
+   (ast-01, stg-01, dst.) hanya perlu unik di dalam satu factory, bukan global.
 """
+import secrets
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,11 +33,27 @@ class DigitalTwinRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def _generate_unique_factory_id(self, base_id: str) -> str:
+        """
+        Memastikan factory_id yang dipakai untuk parsing kali ini selalu unik,
+        bahkan bila LLM menghasilkan factory_id yang identik dengan parsing
+        sebelumnya (mis. dokumen sumber yang sama diunggah berulang kali).
+        Setiap parsing harus menghasilkan Digital Twin yang independen.
+        """
+        candidate = base_id
+        while True:
+            existing = await self.db.get(models.Factory, candidate)
+            if existing is None:
+                return candidate
+            candidate = f"{base_id}-{secrets.token_hex(3)}"
+
     async def save_full_snapshot(self, data: schemas.DigitalTwin) -> None:
         info = data.factory_info
 
+        factory_id = await self._generate_unique_factory_id(info.factory_id)
+
         factory = models.Factory(
-            factory_id=info.factory_id,
+            factory_id=factory_id,
             factory_name=info.factory_name,
             process_type=info.process_type,
             declared_worker_count=info.declared_worker_count,
@@ -141,16 +149,10 @@ class DigitalTwinRepository:
                 capabilities=w.capabilities,
             ))
 
-        # FIX: job_desks & workers wajib di-flush di sini, TIDAK BOLEH bergantung pada
-        # flush kondisional di dalam blok factory_flow_rightnow di bawah (blok itu
-        # sering dilewati pada pipeline kombinasi Tahap 1+2+4+5). Tanpa flush ini,
-        # insert `compatibility_evaluations` (yang mereferensikan worker_id) akan
-        # gagal dengan ForeignKeyViolationError karena worker belum benar-benar
-        # tersimpan di tabel `workers` pada saat itu.
+        # job_desks & workers wajib di-flush di sini sebelum compatibility_evaluations
+        # di-insert (lihat catatan FIX #1 di atas).
         await self.db.flush()
 
-        # factory_flow_rightnow opsional: pipeline Tahap 1+2+4+5 tidak mengisi ini
-        # (hanya Tahap 6 / Agent C yang mengisi floor_state). Lewati bila None.
         if data.factory_flow_rightnow is not None:
             snapshot = models.FactoryFlowSnapshot(
                 factory_id=factory.factory_id,
@@ -163,6 +165,7 @@ class DigitalTwinRepository:
             for sp in data.factory_flow_rightnow.staff_current_positions:
                 self.db.add(models.StaffPosition(
                     snapshot_id=snapshot.id,
+                    factory_id=factory.factory_id,
                     worker_id=sp.worker_id,
                     current_station=sp.current_station,
                     current_asset_id=sp.current_asset_id,
@@ -181,12 +184,4 @@ class DigitalTwinRepository:
                 llm_reasoning=ev.llm_reasoning,
             ))
 
-        # FIX: commit() dihapus dari sini -- kontrol transaksi/commit sepenuhnya
-        # menjadi tanggung jawab caller (documents/service.py), yang memanggil
-        # method ini di dalam `async with db.begin_nested():` (savepoint terisolasi)
-        # lalu melakukan `await db.commit()` sendiri setelah blok ingestion selesai,
-        # menyatukan commit data Digital Twin dengan update audit trail
-        # `document_parse_jobs` secara atomik. flush() di sini memastikan seluruh
-        # objek pending tersimpan ke transaksi aktif tanpa mengunci/menutup transaksi
-        # tersebut lebih awal.
         await self.db.flush()

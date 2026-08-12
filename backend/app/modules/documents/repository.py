@@ -205,7 +205,7 @@ async def persist_worker_profile(
         if not worker_id:
             continue
         worker_id = str(worker_id)
-        worker = await session.get(Worker, worker_id)
+        worker = await session.get(Worker, (factory_id, worker_id))
         if worker is None:
             worker = Worker(worker_id=worker_id)
             session.add(worker)

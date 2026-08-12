@@ -1,3 +1,5 @@
+// frontend/src/features/simulation/api/simulationApi.ts
+
 // Real API — fetch config sekali dari backend, lalu jalankan tick loop lokal.
 // Tick logic di file ini SENGAJA identik dengan `simulationApi.mock.ts` kamu;
 // bedanya cuma satu: semua tabel/kapasitas/worker seed sekarang datang dari

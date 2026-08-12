@@ -103,9 +103,9 @@ export function DocumentParserPage() {
               id="template-upload"
               eyebrow="01 — Template Pabrik"
               title="Template Dokumen Pabrik"
-              description="Formulir workflow, aset, dan job desk (PDF, DOCX, MD, TXT)."
-              accept=".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
-              acceptLabel="PDF, DOCX, MD, TXT"
+              description="Formulir workflow, aset, dan job desk (PDF, DOCX, MD, TXT, XLSX, XLS, CSV)."
+              accept=".pdf,.docx,.md,.markdown,.txt,.xlsx,.xls,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+              acceptLabel="PDF, DOCX, MD, TXT, XLSX, XLS, CSV"
               accent="automated"
               file={templateSlot.file}
               errorMessage={templateSlot.errorMessage}
