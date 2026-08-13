@@ -1,0 +1,1469 @@
+{
+  "meta": {
+    "generated_at": "2026-08-13T05:41:40.394717+00:00",
+    "worker_count": 14,
+    "job_count": 7,
+    "pair_count": 98,
+    "evaluated_pairs": 98,
+    "retries": 0,
+    "failed_pairs": []
+  },
+  "compatibility_matrix": {
+    "WKR-0006-001": {
+      "worker_name": "Andi Kusuma",
+      "best_job_id": "JOB-0006-005",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.7594,
+            "throughput_multiplier": 0.8853,
+            "error_multiplier": 1.0742,
+            "fatigue_accumulation_rate": 0.4599,
+            "stress_sensitivity_factor": 0.6242
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.28 (demand=0.55 vs stamina=0.27), cognitive_gap=0.12 (focus_needed=0.45 vs resilience=0.33), complexity_gap=0.17 (task=0.17 vs experience_norm=0.00), fatigue_load=0.08, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.8357,
+            "throughput_multiplier": 0.9659,
+            "error_multiplier": 1.1496,
+            "fatigue_accumulation_rate": 0.486,
+            "stress_sensitivity_factor": 0.6143
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.25 vs stamina=0.27), cognitive_gap=0.15 (focus_needed=0.48 vs resilience=0.33), complexity_gap=0.58 (task=0.58 vs experience_norm=0.00), fatigue_load=0.08, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9583,
+            "throughput_multiplier": 0.9542,
+            "error_multiplier": 1.0929,
+            "fatigue_accumulation_rate": 0.4202,
+            "stress_sensitivity_factor": 0.5293
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.25 vs stamina=0.27), cognitive_gap=0.06 (focus_needed=0.39 vs resilience=0.33), complexity_gap=0.27 (task=0.27 vs experience_norm=0.00), fatigue_load=0.08, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9399,
+            "throughput_multiplier": 1.0038,
+            "error_multiplier": 1.0818,
+            "fatigue_accumulation_rate": 0.3,
+            "stress_sensitivity_factor": 0.5474
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.25 vs stamina=0.27), cognitive_gap=0.10 (focus_needed=0.43 vs resilience=0.33), complexity_gap=0.19 (task=0.19 vs experience_norm=0.00), fatigue_load=0.08, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9794,
+            "throughput_multiplier": 1.0106,
+            "error_multiplier": 1.0346,
+            "fatigue_accumulation_rate": 0.3983,
+            "stress_sensitivity_factor": 0.5344
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.25 vs stamina=0.27), cognitive_gap=0.07 (focus_needed=0.40 vs resilience=0.33), complexity_gap=0.12 (task=0.12 vs experience_norm=0.00), fatigue_load=0.08, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9496,
+            "throughput_multiplier": 0.9623,
+            "error_multiplier": 1.0597,
+            "fatigue_accumulation_rate": 0.3626,
+            "stress_sensitivity_factor": 0.6027
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.25 vs stamina=0.27), cognitive_gap=0.06 (focus_needed=0.39 vs resilience=0.33), complexity_gap=0.19 (task=0.19 vs experience_norm=0.00), fatigue_load=0.08, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.7109,
+            "throughput_multiplier": 0.8819,
+            "error_multiplier": 1.2255,
+            "fatigue_accumulation_rate": 0.4667,
+            "stress_sensitivity_factor": 0.6231
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.28 (demand=0.55 vs stamina=0.27), cognitive_gap=0.16 (focus_needed=0.49 vs resilience=0.33), complexity_gap=0.32 (task=0.32 vs experience_norm=0.00), fatigue_load=0.08, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-002": {
+      "worker_name": "Eka Wibowo",
+      "best_job_id": "JOB-0006-001",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0957,
+            "error_multiplier": 1.0297,
+            "fatigue_accumulation_rate": 0.5736,
+            "stress_sensitivity_factor": 0.5706
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.10 (demand=0.55 vs stamina=0.45), cognitive_gap=-0.15 (focus_needed=0.45 vs resilience=0.60), complexity_gap=-0.83 (task=0.17 vs experience_norm=1.00), fatigue_load=0.26, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9841,
+            "throughput_multiplier": 1.0408,
+            "error_multiplier": 1.0087,
+            "fatigue_accumulation_rate": 0.4416,
+            "stress_sensitivity_factor": 0.572
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.12 (focus_needed=0.48 vs resilience=0.60), complexity_gap=-0.42 (task=0.58 vs experience_norm=1.00), fatigue_load=0.26, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0891,
+            "error_multiplier": 1.0761,
+            "fatigue_accumulation_rate": 0.5157,
+            "stress_sensitivity_factor": 0.4943
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.21 (focus_needed=0.39 vs resilience=0.60), complexity_gap=-0.73 (task=0.27 vs experience_norm=1.00), fatigue_load=0.26, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.1235,
+            "error_multiplier": 1.0592,
+            "fatigue_accumulation_rate": 0.3268,
+            "stress_sensitivity_factor": 0.5384
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.17 (focus_needed=0.43 vs resilience=0.60), complexity_gap=-0.81 (task=0.19 vs experience_norm=1.00), fatigue_load=0.26, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.1507,
+            "error_multiplier": 1.0576,
+            "fatigue_accumulation_rate": 0.4568,
+            "stress_sensitivity_factor": 0.4745
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.20 (focus_needed=0.40 vs resilience=0.60), complexity_gap=-0.88 (task=0.12 vs experience_norm=1.00), fatigue_load=0.26, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0709,
+            "error_multiplier": 1.0104,
+            "fatigue_accumulation_rate": 0.4755,
+            "stress_sensitivity_factor": 0.5688
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.21 (focus_needed=0.39 vs resilience=0.60), complexity_gap=-0.81 (task=0.19 vs experience_norm=1.00), fatigue_load=0.26, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9474,
+            "throughput_multiplier": 0.9861,
+            "error_multiplier": 1.0691,
+            "fatigue_accumulation_rate": 0.466,
+            "stress_sensitivity_factor": 0.5389
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.10 (demand=0.55 vs stamina=0.45), cognitive_gap=-0.11 (focus_needed=0.49 vs resilience=0.60), complexity_gap=-0.68 (task=0.32 vs experience_norm=1.00), fatigue_load=0.26, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-003": {
+      "worker_name": "Oscar Permana",
+      "best_job_id": "JOB-0006-001",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.001,
+            "error_multiplier": 1.029,
+            "fatigue_accumulation_rate": 0.6256,
+            "stress_sensitivity_factor": 0.5774
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.03 (demand=0.55 vs stamina=0.52), cognitive_gap=-0.14 (focus_needed=0.45 vs resilience=0.59), complexity_gap=-0.30 (task=0.17 vs experience_norm=0.47), fatigue_load=0.46, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9392,
+            "throughput_multiplier": 0.9978,
+            "error_multiplier": 1.0913,
+            "fatigue_accumulation_rate": 0.6012,
+            "stress_sensitivity_factor": 0.5541
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.27 (demand=0.25 vs stamina=0.52), cognitive_gap=-0.11 (focus_needed=0.48 vs resilience=0.59), complexity_gap=0.11 (task=0.58 vs experience_norm=0.47), fatigue_load=0.46, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9867,
+            "throughput_multiplier": 1.0088,
+            "error_multiplier": 1.1107,
+            "fatigue_accumulation_rate": 0.5171,
+            "stress_sensitivity_factor": 0.4997
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.27 (demand=0.25 vs stamina=0.52), cognitive_gap=-0.20 (focus_needed=0.39 vs resilience=0.59), complexity_gap=-0.20 (task=0.27 vs experience_norm=0.47), fatigue_load=0.46, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9971,
+            "throughput_multiplier": 1.0585,
+            "error_multiplier": 1.0291,
+            "fatigue_accumulation_rate": 0.4007,
+            "stress_sensitivity_factor": 0.5657
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.27 (demand=0.25 vs stamina=0.52), cognitive_gap=-0.16 (focus_needed=0.43 vs resilience=0.59), complexity_gap=-0.28 (task=0.19 vs experience_norm=0.47), fatigue_load=0.46, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0506,
+            "error_multiplier": 1.0929,
+            "fatigue_accumulation_rate": 0.5253,
+            "stress_sensitivity_factor": 0.5379
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.27 (demand=0.25 vs stamina=0.52), cognitive_gap=-0.19 (focus_needed=0.40 vs resilience=0.59), complexity_gap=-0.35 (task=0.12 vs experience_norm=0.47), fatigue_load=0.46, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0922,
+            "error_multiplier": 1.093,
+            "fatigue_accumulation_rate": 0.4902,
+            "stress_sensitivity_factor": 0.5386
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.27 (demand=0.25 vs stamina=0.52), cognitive_gap=-0.20 (focus_needed=0.39 vs resilience=0.59), complexity_gap=-0.28 (task=0.19 vs experience_norm=0.47), fatigue_load=0.46, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9571,
+            "throughput_multiplier": 0.9844,
+            "error_multiplier": 1.0731,
+            "fatigue_accumulation_rate": 0.5906,
+            "stress_sensitivity_factor": 0.5365
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.03 (demand=0.55 vs stamina=0.52), cognitive_gap=-0.10 (focus_needed=0.49 vs resilience=0.59), complexity_gap=-0.15 (task=0.32 vs experience_norm=0.47), fatigue_load=0.46, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-004": {
+      "worker_name": "Andi Saputra",
+      "best_job_id": "JOB-0006-002",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9098,
+            "throughput_multiplier": 1.0241,
+            "error_multiplier": 1.0551,
+            "fatigue_accumulation_rate": 0.5877,
+            "stress_sensitivity_factor": 0.5259
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.26 (demand=0.55 vs stamina=0.29), cognitive_gap=-0.12 (focus_needed=0.45 vs resilience=0.57), complexity_gap=-0.83 (task=0.17 vs experience_norm=1.00), fatigue_load=0.22, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0117,
+            "error_multiplier": 1.0682,
+            "fatigue_accumulation_rate": 0.5021,
+            "stress_sensitivity_factor": 0.5259
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.04 (demand=0.25 vs stamina=0.29), cognitive_gap=-0.09 (focus_needed=0.48 vs resilience=0.57), complexity_gap=-0.42 (task=0.58 vs experience_norm=1.00), fatigue_load=0.22, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0329,
+            "error_multiplier": 1.0216,
+            "fatigue_accumulation_rate": 0.4841,
+            "stress_sensitivity_factor": 0.4807
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.04 (demand=0.25 vs stamina=0.29), cognitive_gap=-0.18 (focus_needed=0.39 vs resilience=0.57), complexity_gap=-0.73 (task=0.27 vs experience_norm=1.00), fatigue_load=0.22, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0868,
+            "error_multiplier": 1.0154,
+            "fatigue_accumulation_rate": 0.3746,
+            "stress_sensitivity_factor": 0.5344
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.04 (demand=0.25 vs stamina=0.29), cognitive_gap=-0.14 (focus_needed=0.43 vs resilience=0.57), complexity_gap=-0.81 (task=0.19 vs experience_norm=1.00), fatigue_load=0.22, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.996,
+            "throughput_multiplier": 1.0496,
+            "error_multiplier": 1.0144,
+            "fatigue_accumulation_rate": 0.4519,
+            "stress_sensitivity_factor": 0.5492
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.04 (demand=0.25 vs stamina=0.29), cognitive_gap=-0.17 (focus_needed=0.40 vs resilience=0.57), complexity_gap=-0.88 (task=0.12 vs experience_norm=1.00), fatigue_load=0.22, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9506,
+            "throughput_multiplier": 1.031,
+            "error_multiplier": 1.0111,
+            "fatigue_accumulation_rate": 0.4761,
+            "stress_sensitivity_factor": 0.5265
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.04 (demand=0.25 vs stamina=0.29), cognitive_gap=-0.18 (focus_needed=0.39 vs resilience=0.57), complexity_gap=-0.81 (task=0.19 vs experience_norm=1.00), fatigue_load=0.22, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.8672,
+            "throughput_multiplier": 1.0187,
+            "error_multiplier": 1.0202,
+            "fatigue_accumulation_rate": 0.5025,
+            "stress_sensitivity_factor": 0.4996
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.26 (demand=0.55 vs stamina=0.29), cognitive_gap=-0.08 (focus_needed=0.49 vs resilience=0.57), complexity_gap=-0.68 (task=0.32 vs experience_norm=1.00), fatigue_load=0.22, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-005": {
+      "worker_name": "Kartika Setiawan",
+      "best_job_id": "JOB-0006-004",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9393,
+            "throughput_multiplier": 0.9181,
+            "error_multiplier": 1.1272,
+            "fatigue_accumulation_rate": 0.653,
+            "stress_sensitivity_factor": 0.598
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.10 (demand=0.55 vs stamina=0.45), cognitive_gap=-0.01 (focus_needed=0.45 vs resilience=0.46), complexity_gap=-0.10 (task=0.17 vs experience_norm=0.27), fatigue_load=0.55, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.8857,
+            "throughput_multiplier": 0.9503,
+            "error_multiplier": 1.1406,
+            "fatigue_accumulation_rate": 0.6425,
+            "stress_sensitivity_factor": 0.5478
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=0.02 (focus_needed=0.48 vs resilience=0.46), complexity_gap=0.31 (task=0.58 vs experience_norm=0.27), fatigue_load=0.55, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9692,
+            "throughput_multiplier": 1.0397,
+            "error_multiplier": 1.0445,
+            "fatigue_accumulation_rate": 0.5976,
+            "stress_sensitivity_factor": 0.4816
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.07 (focus_needed=0.39 vs resilience=0.46), complexity_gap=0.00 (task=0.27 vs experience_norm=0.27), fatigue_load=0.55, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 0.9796,
+            "error_multiplier": 1.1272,
+            "fatigue_accumulation_rate": 0.4502,
+            "stress_sensitivity_factor": 0.535
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.03 (focus_needed=0.43 vs resilience=0.46), complexity_gap=-0.08 (task=0.19 vs experience_norm=0.27), fatigue_load=0.55, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0034,
+            "error_multiplier": 1.0578,
+            "fatigue_accumulation_rate": 0.6618,
+            "stress_sensitivity_factor": 0.4616
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.06 (focus_needed=0.40 vs resilience=0.46), complexity_gap=-0.15 (task=0.12 vs experience_norm=0.27), fatigue_load=0.55, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9559,
+            "throughput_multiplier": 1.0186,
+            "error_multiplier": 1.102,
+            "fatigue_accumulation_rate": 0.5798,
+            "stress_sensitivity_factor": 0.5472
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.20 (demand=0.25 vs stamina=0.45), cognitive_gap=-0.07 (focus_needed=0.39 vs resilience=0.46), complexity_gap=-0.08 (task=0.19 vs experience_norm=0.27), fatigue_load=0.55, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9378,
+            "throughput_multiplier": 0.9161,
+            "error_multiplier": 1.128,
+            "fatigue_accumulation_rate": 0.6105,
+            "stress_sensitivity_factor": 0.5607
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.10 (demand=0.55 vs stamina=0.45), cognitive_gap=0.03 (focus_needed=0.49 vs resilience=0.46), complexity_gap=0.05 (task=0.32 vs experience_norm=0.27), fatigue_load=0.55, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-006": {
+      "worker_name": "Joko Hidayat",
+      "best_job_id": "JOB-0006-003",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9957,
+            "throughput_multiplier": 1.0449,
+            "error_multiplier": 1.1775,
+            "fatigue_accumulation_rate": 0.6953,
+            "stress_sensitivity_factor": 0.5993
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.55 vs stamina=0.57), cognitive_gap=0.12 (focus_needed=0.45 vs resilience=0.33), complexity_gap=-0.83 (task=0.17 vs experience_norm=1.00), fatigue_load=0.72, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.913,
+            "throughput_multiplier": 1.0403,
+            "error_multiplier": 1.1146,
+            "fatigue_accumulation_rate": 0.7097,
+            "stress_sensitivity_factor": 0.5528
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.32 (demand=0.25 vs stamina=0.57), cognitive_gap=0.15 (focus_needed=0.48 vs resilience=0.33), complexity_gap=-0.42 (task=0.58 vs experience_norm=1.00), fatigue_load=0.72, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.1027,
+            "error_multiplier": 1.149,
+            "fatigue_accumulation_rate": 0.6488,
+            "stress_sensitivity_factor": 0.5597
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.32 (demand=0.25 vs stamina=0.57), cognitive_gap=0.06 (focus_needed=0.39 vs resilience=0.33), complexity_gap=-0.73 (task=0.27 vs experience_norm=1.00), fatigue_load=0.72, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9733,
+            "throughput_multiplier": 1.0775,
+            "error_multiplier": 1.1452,
+            "fatigue_accumulation_rate": 0.5638,
+            "stress_sensitivity_factor": 0.6007
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.32 (demand=0.25 vs stamina=0.57), cognitive_gap=0.10 (focus_needed=0.43 vs resilience=0.33), complexity_gap=-0.81 (task=0.19 vs experience_norm=1.00), fatigue_load=0.72, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9923,
+            "throughput_multiplier": 1.1634,
+            "error_multiplier": 1.1504,
+            "fatigue_accumulation_rate": 0.6955,
+            "stress_sensitivity_factor": 0.5696
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.32 (demand=0.25 vs stamina=0.57), cognitive_gap=0.07 (focus_needed=0.40 vs resilience=0.33), complexity_gap=-0.88 (task=0.12 vs experience_norm=1.00), fatigue_load=0.72, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9526,
+            "throughput_multiplier": 1.1085,
+            "error_multiplier": 1.1734,
+            "fatigue_accumulation_rate": 0.6508,
+            "stress_sensitivity_factor": 0.5532
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.32 (demand=0.25 vs stamina=0.57), cognitive_gap=0.06 (focus_needed=0.39 vs resilience=0.33), complexity_gap=-0.81 (task=0.19 vs experience_norm=1.00), fatigue_load=0.72, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9773,
+            "throughput_multiplier": 1.0189,
+            "error_multiplier": 1.162,
+            "fatigue_accumulation_rate": 0.741,
+            "stress_sensitivity_factor": 0.5728
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.55 vs stamina=0.57), cognitive_gap=0.16 (focus_needed=0.49 vs resilience=0.33), complexity_gap=-0.68 (task=0.32 vs experience_norm=1.00), fatigue_load=0.72, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-007": {
+      "worker_name": "Gita Wibowo",
+      "best_job_id": "JOB-0006-001",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0532,
+            "error_multiplier": 1.0509,
+            "fatigue_accumulation_rate": 0.5967,
+            "stress_sensitivity_factor": 0.5754
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.03 (demand=0.55 vs stamina=0.58), cognitive_gap=0.02 (focus_needed=0.45 vs resilience=0.43), complexity_gap=-0.76 (task=0.17 vs experience_norm=0.93), fatigue_load=0.50, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0947,
+            "error_multiplier": 1.1319,
+            "fatigue_accumulation_rate": 0.6138,
+            "stress_sensitivity_factor": 0.5246
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.33 (demand=0.25 vs stamina=0.58), cognitive_gap=0.05 (focus_needed=0.48 vs resilience=0.43), complexity_gap=-0.35 (task=0.58 vs experience_norm=0.93), fatigue_load=0.50, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9909,
+            "throughput_multiplier": 1.1135,
+            "error_multiplier": 1.0341,
+            "fatigue_accumulation_rate": 0.5744,
+            "stress_sensitivity_factor": 0.5155
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.33 (demand=0.25 vs stamina=0.58), cognitive_gap=-0.04 (focus_needed=0.39 vs resilience=0.43), complexity_gap=-0.66 (task=0.27 vs experience_norm=0.93), fatigue_load=0.50, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.1496,
+            "error_multiplier": 1.0343,
+            "fatigue_accumulation_rate": 0.4355,
+            "stress_sensitivity_factor": 0.5107
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.33 (demand=0.25 vs stamina=0.58), cognitive_gap=0.00 (focus_needed=0.43 vs resilience=0.43), complexity_gap=-0.74 (task=0.19 vs experience_norm=0.93), fatigue_load=0.50, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9561,
+            "throughput_multiplier": 1.1125,
+            "error_multiplier": 1.1006,
+            "fatigue_accumulation_rate": 0.5723,
+            "stress_sensitivity_factor": 0.462
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.33 (demand=0.25 vs stamina=0.58), cognitive_gap=-0.03 (focus_needed=0.40 vs resilience=0.43), complexity_gap=-0.81 (task=0.12 vs experience_norm=0.93), fatigue_load=0.50, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.1447,
+            "error_multiplier": 1.1032,
+            "fatigue_accumulation_rate": 0.507,
+            "stress_sensitivity_factor": 0.5544
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.33 (demand=0.25 vs stamina=0.58), cognitive_gap=-0.04 (focus_needed=0.39 vs resilience=0.43), complexity_gap=-0.74 (task=0.19 vs experience_norm=0.93), fatigue_load=0.50, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0158,
+            "error_multiplier": 1.053,
+            "fatigue_accumulation_rate": 0.5435,
+            "stress_sensitivity_factor": 0.5928
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.03 (demand=0.55 vs stamina=0.58), cognitive_gap=0.06 (focus_needed=0.49 vs resilience=0.43), complexity_gap=-0.61 (task=0.32 vs experience_norm=0.93), fatigue_load=0.50, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-008": {
+      "worker_name": "Nia Halim",
+      "best_job_id": "JOB-0006-002",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9531,
+            "throughput_multiplier": 1.0035,
+            "error_multiplier": 1.0162,
+            "fatigue_accumulation_rate": 0.3866,
+            "stress_sensitivity_factor": 0.5216
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.06 (demand=0.55 vs stamina=0.49), cognitive_gap=0.01 (focus_needed=0.45 vs resilience=0.44), complexity_gap=-0.36 (task=0.17 vs experience_norm=0.53), fatigue_load=0.04, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0889,
+            "error_multiplier": 1.0507,
+            "fatigue_accumulation_rate": 0.3975,
+            "stress_sensitivity_factor": 0.5365
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.24 (demand=0.25 vs stamina=0.49), cognitive_gap=0.04 (focus_needed=0.48 vs resilience=0.44), complexity_gap=0.05 (task=0.58 vs experience_norm=0.53), fatigue_load=0.04, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9708,
+            "throughput_multiplier": 1.0333,
+            "error_multiplier": 1.0393,
+            "fatigue_accumulation_rate": 0.3436,
+            "stress_sensitivity_factor": 0.4618
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.24 (demand=0.25 vs stamina=0.49), cognitive_gap=-0.05 (focus_needed=0.39 vs resilience=0.44), complexity_gap=-0.26 (task=0.27 vs experience_norm=0.53), fatigue_load=0.04, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9823,
+            "throughput_multiplier": 1.105,
+            "error_multiplier": 1.009,
+            "fatigue_accumulation_rate": 0.3,
+            "stress_sensitivity_factor": 0.597
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.24 (demand=0.25 vs stamina=0.49), cognitive_gap=-0.01 (focus_needed=0.43 vs resilience=0.44), complexity_gap=-0.34 (task=0.19 vs experience_norm=0.53), fatigue_load=0.04, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9788,
+            "throughput_multiplier": 1.1211,
+            "error_multiplier": 1.0328,
+            "fatigue_accumulation_rate": 0.3047,
+            "stress_sensitivity_factor": 0.4706
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.24 (demand=0.25 vs stamina=0.49), cognitive_gap=-0.04 (focus_needed=0.40 vs resilience=0.44), complexity_gap=-0.41 (task=0.12 vs experience_norm=0.53), fatigue_load=0.04, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0747,
+            "error_multiplier": 1.0459,
+            "fatigue_accumulation_rate": 0.3,
+            "stress_sensitivity_factor": 0.6079
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.24 (demand=0.25 vs stamina=0.49), cognitive_gap=-0.05 (focus_needed=0.39 vs resilience=0.44), complexity_gap=-0.34 (task=0.19 vs experience_norm=0.53), fatigue_load=0.04, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9331,
+            "throughput_multiplier": 0.9796,
+            "error_multiplier": 1.0501,
+            "fatigue_accumulation_rate": 0.4032,
+            "stress_sensitivity_factor": 0.5309
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.06 (demand=0.55 vs stamina=0.49), cognitive_gap=0.05 (focus_needed=0.49 vs resilience=0.44), complexity_gap=-0.21 (task=0.32 vs experience_norm=0.53), fatigue_load=0.04, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-009": {
+      "worker_name": "Citra Wibowo",
+      "best_job_id": "JOB-0006-005",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9441,
+            "throughput_multiplier": 0.9147,
+            "error_multiplier": 1.0253,
+            "fatigue_accumulation_rate": 0.5883,
+            "stress_sensitivity_factor": 0.547
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.14 (demand=0.55 vs stamina=0.41), cognitive_gap=-0.01 (focus_needed=0.45 vs resilience=0.46), complexity_gap=-0.03 (task=0.17 vs experience_norm=0.20), fatigue_load=0.41, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9175,
+            "throughput_multiplier": 0.9665,
+            "error_multiplier": 1.1077,
+            "fatigue_accumulation_rate": 0.5351,
+            "stress_sensitivity_factor": 0.5856
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.16 (demand=0.25 vs stamina=0.41), cognitive_gap=0.02 (focus_needed=0.48 vs resilience=0.46), complexity_gap=0.38 (task=0.58 vs experience_norm=0.20), fatigue_load=0.41, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.964,
+            "throughput_multiplier": 0.9608,
+            "error_multiplier": 1.0368,
+            "fatigue_accumulation_rate": 0.6178,
+            "stress_sensitivity_factor": 0.4746
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.16 (demand=0.25 vs stamina=0.41), cognitive_gap=-0.07 (focus_needed=0.39 vs resilience=0.46), complexity_gap=0.07 (task=0.27 vs experience_norm=0.20), fatigue_load=0.41, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9876,
+            "throughput_multiplier": 0.972,
+            "error_multiplier": 1.1061,
+            "fatigue_accumulation_rate": 0.4532,
+            "stress_sensitivity_factor": 0.5288
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.16 (demand=0.25 vs stamina=0.41), cognitive_gap=-0.03 (focus_needed=0.43 vs resilience=0.46), complexity_gap=-0.01 (task=0.19 vs experience_norm=0.20), fatigue_load=0.41, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0192,
+            "error_multiplier": 1.0851,
+            "fatigue_accumulation_rate": 0.5721,
+            "stress_sensitivity_factor": 0.5496
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.16 (demand=0.25 vs stamina=0.41), cognitive_gap=-0.06 (focus_needed=0.40 vs resilience=0.46), complexity_gap=-0.08 (task=0.12 vs experience_norm=0.20), fatigue_load=0.41, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9976,
+            "throughput_multiplier": 0.9745,
+            "error_multiplier": 1.0792,
+            "fatigue_accumulation_rate": 0.5611,
+            "stress_sensitivity_factor": 0.5501
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.16 (demand=0.25 vs stamina=0.41), cognitive_gap=-0.07 (focus_needed=0.39 vs resilience=0.46), complexity_gap=-0.01 (task=0.19 vs experience_norm=0.20), fatigue_load=0.41, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.8729,
+            "throughput_multiplier": 0.9065,
+            "error_multiplier": 1.1403,
+            "fatigue_accumulation_rate": 0.5428,
+            "stress_sensitivity_factor": 0.602
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.14 (demand=0.55 vs stamina=0.41), cognitive_gap=0.03 (focus_needed=0.49 vs resilience=0.46), complexity_gap=0.12 (task=0.32 vs experience_norm=0.20), fatigue_load=0.41, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-010": {
+      "worker_name": "Dewi Wibowo",
+      "best_job_id": "JOB-0006-002",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9492,
+            "throughput_multiplier": 1.0447,
+            "error_multiplier": 1.0303,
+            "fatigue_accumulation_rate": 0.4655,
+            "stress_sensitivity_factor": 0.5586
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.15 (demand=0.55 vs stamina=0.40), cognitive_gap=-0.18 (focus_needed=0.45 vs resilience=0.63), complexity_gap=-0.56 (task=0.17 vs experience_norm=0.73), fatigue_load=0.16, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0337,
+            "error_multiplier": 1.0686,
+            "fatigue_accumulation_rate": 0.4219,
+            "stress_sensitivity_factor": 0.5914
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.15 (demand=0.25 vs stamina=0.40), cognitive_gap=-0.15 (focus_needed=0.48 vs resilience=0.63), complexity_gap=-0.15 (task=0.58 vs experience_norm=0.73), fatigue_load=0.16, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9634,
+            "throughput_multiplier": 1.0195,
+            "error_multiplier": 1.012,
+            "fatigue_accumulation_rate": 0.4816,
+            "stress_sensitivity_factor": 0.5102
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.15 (demand=0.25 vs stamina=0.40), cognitive_gap=-0.24 (focus_needed=0.39 vs resilience=0.63), complexity_gap=-0.46 (task=0.27 vs experience_norm=0.73), fatigue_load=0.16, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0304,
+            "error_multiplier": 0.9778,
+            "fatigue_accumulation_rate": 0.3,
+            "stress_sensitivity_factor": 0.5854
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.15 (demand=0.25 vs stamina=0.40), cognitive_gap=-0.20 (focus_needed=0.43 vs resilience=0.63), complexity_gap=-0.54 (task=0.19 vs experience_norm=0.73), fatigue_load=0.16, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0912,
+            "error_multiplier": 1.0355,
+            "fatigue_accumulation_rate": 0.4137,
+            "stress_sensitivity_factor": 0.5021
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.15 (demand=0.25 vs stamina=0.40), cognitive_gap=-0.23 (focus_needed=0.40 vs resilience=0.63), complexity_gap=-0.61 (task=0.12 vs experience_norm=0.73), fatigue_load=0.16, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0647,
+            "error_multiplier": 1.051,
+            "fatigue_accumulation_rate": 0.4442,
+            "stress_sensitivity_factor": 0.597
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.15 (demand=0.25 vs stamina=0.40), cognitive_gap=-0.24 (focus_needed=0.39 vs resilience=0.63), complexity_gap=-0.54 (task=0.19 vs experience_norm=0.73), fatigue_load=0.16, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9606,
+            "throughput_multiplier": 0.9563,
+            "error_multiplier": 0.9895,
+            "fatigue_accumulation_rate": 0.4205,
+            "stress_sensitivity_factor": 0.5654
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.15 (demand=0.55 vs stamina=0.40), cognitive_gap=-0.14 (focus_needed=0.49 vs resilience=0.63), complexity_gap=-0.41 (task=0.32 vs experience_norm=0.73), fatigue_load=0.16, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-011": {
+      "worker_name": "Joko Halim",
+      "best_job_id": "JOB-0006-004",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.8692,
+            "throughput_multiplier": 0.942,
+            "error_multiplier": 1.1272,
+            "fatigue_accumulation_rate": 0.6803,
+            "stress_sensitivity_factor": 0.6242
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.30 (demand=0.55 vs stamina=0.25), cognitive_gap=0.04 (focus_needed=0.45 vs resilience=0.41), complexity_gap=-0.03 (task=0.17 vs experience_norm=0.20), fatigue_load=0.56, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.8983,
+            "throughput_multiplier": 0.9579,
+            "error_multiplier": 1.1553,
+            "fatigue_accumulation_rate": 0.6492,
+            "stress_sensitivity_factor": 0.5433
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.00 (demand=0.25 vs stamina=0.25), cognitive_gap=0.07 (focus_needed=0.48 vs resilience=0.41), complexity_gap=0.38 (task=0.58 vs experience_norm=0.20), fatigue_load=0.56, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9557,
+            "throughput_multiplier": 0.9763,
+            "error_multiplier": 1.0794,
+            "fatigue_accumulation_rate": 0.6608,
+            "stress_sensitivity_factor": 0.4731
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.00 (demand=0.25 vs stamina=0.25), cognitive_gap=-0.02 (focus_needed=0.39 vs resilience=0.41), complexity_gap=0.07 (task=0.27 vs experience_norm=0.20), fatigue_load=0.56, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0155,
+            "error_multiplier": 1.0976,
+            "fatigue_accumulation_rate": 0.5546,
+            "stress_sensitivity_factor": 0.5875
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.00 (demand=0.25 vs stamina=0.25), cognitive_gap=0.02 (focus_needed=0.43 vs resilience=0.41), complexity_gap=-0.01 (task=0.19 vs experience_norm=0.20), fatigue_load=0.56, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9957,
+            "throughput_multiplier": 0.9552,
+            "error_multiplier": 1.0614,
+            "fatigue_accumulation_rate": 0.6986,
+            "stress_sensitivity_factor": 0.4598
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.00 (demand=0.25 vs stamina=0.25), cognitive_gap=-0.01 (focus_needed=0.40 vs resilience=0.41), complexity_gap=-0.08 (task=0.12 vs experience_norm=0.20), fatigue_load=0.56, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.998,
+            "throughput_multiplier": 0.9272,
+            "error_multiplier": 1.0684,
+            "fatigue_accumulation_rate": 0.6604,
+            "stress_sensitivity_factor": 0.5315
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.00 (demand=0.25 vs stamina=0.25), cognitive_gap=-0.02 (focus_needed=0.39 vs resilience=0.41), complexity_gap=-0.01 (task=0.19 vs experience_norm=0.20), fatigue_load=0.56, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.8183,
+            "throughput_multiplier": 0.8587,
+            "error_multiplier": 1.17,
+            "fatigue_accumulation_rate": 0.6775,
+            "stress_sensitivity_factor": 0.5466
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.30 (demand=0.55 vs stamina=0.25), cognitive_gap=0.08 (focus_needed=0.49 vs resilience=0.41), complexity_gap=0.12 (task=0.32 vs experience_norm=0.20), fatigue_load=0.56, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-012": {
+      "worker_name": "Lestari Wijaya",
+      "best_job_id": "JOB-0006-002",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9121,
+            "throughput_multiplier": 1.0082,
+            "error_multiplier": 1.112,
+            "fatigue_accumulation_rate": 0.7576,
+            "stress_sensitivity_factor": 0.5797
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.16 (demand=0.55 vs stamina=0.39), cognitive_gap=-0.02 (focus_needed=0.45 vs resilience=0.47), complexity_gap=-0.36 (task=0.17 vs experience_norm=0.53), fatigue_load=0.65, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 0.9764,
+            "error_multiplier": 1.1455,
+            "fatigue_accumulation_rate": 0.6698,
+            "stress_sensitivity_factor": 0.5198
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.14 (demand=0.25 vs stamina=0.39), cognitive_gap=0.01 (focus_needed=0.48 vs resilience=0.47), complexity_gap=0.05 (task=0.58 vs experience_norm=0.53), fatigue_load=0.65, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9772,
+            "throughput_multiplier": 1.0714,
+            "error_multiplier": 1.0919,
+            "fatigue_accumulation_rate": 0.6932,
+            "stress_sensitivity_factor": 0.5211
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.14 (demand=0.25 vs stamina=0.39), cognitive_gap=-0.08 (focus_needed=0.39 vs resilience=0.47), complexity_gap=-0.26 (task=0.27 vs experience_norm=0.53), fatigue_load=0.65, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0084,
+            "error_multiplier": 1.0652,
+            "fatigue_accumulation_rate": 0.5033,
+            "stress_sensitivity_factor": 0.5372
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.14 (demand=0.25 vs stamina=0.39), cognitive_gap=-0.04 (focus_needed=0.43 vs resilience=0.47), complexity_gap=-0.34 (task=0.19 vs experience_norm=0.53), fatigue_load=0.65, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.992,
+            "throughput_multiplier": 1.013,
+            "error_multiplier": 1.1185,
+            "fatigue_accumulation_rate": 0.7079,
+            "stress_sensitivity_factor": 0.4816
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.14 (demand=0.25 vs stamina=0.39), cognitive_gap=-0.07 (focus_needed=0.40 vs resilience=0.47), complexity_gap=-0.41 (task=0.12 vs experience_norm=0.53), fatigue_load=0.65, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9517,
+            "throughput_multiplier": 1.0207,
+            "error_multiplier": 1.0483,
+            "fatigue_accumulation_rate": 0.6045,
+            "stress_sensitivity_factor": 0.5636
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.14 (demand=0.25 vs stamina=0.39), cognitive_gap=-0.08 (focus_needed=0.39 vs resilience=0.47), complexity_gap=-0.34 (task=0.19 vs experience_norm=0.53), fatigue_load=0.65, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9074,
+            "throughput_multiplier": 0.923,
+            "error_multiplier": 1.1144,
+            "fatigue_accumulation_rate": 0.6573,
+            "stress_sensitivity_factor": 0.5595
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.16 (demand=0.55 vs stamina=0.39), cognitive_gap=0.02 (focus_needed=0.49 vs resilience=0.47), complexity_gap=-0.21 (task=0.32 vs experience_norm=0.53), fatigue_load=0.65, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-013": {
+      "worker_name": "Andi Setiawan",
+      "best_job_id": "JOB-0006-003",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9486,
+            "throughput_multiplier": 1.0025,
+            "error_multiplier": 1.0412,
+            "fatigue_accumulation_rate": 0.468,
+            "stress_sensitivity_factor": 0.5717
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.05 (demand=0.55 vs stamina=0.50), cognitive_gap=0.08 (focus_needed=0.45 vs resilience=0.37), complexity_gap=-0.36 (task=0.17 vs experience_norm=0.53), fatigue_load=0.17, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9182,
+            "throughput_multiplier": 1.0275,
+            "error_multiplier": 1.0921,
+            "fatigue_accumulation_rate": 0.4071,
+            "stress_sensitivity_factor": 0.6127
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.25 (demand=0.25 vs stamina=0.50), cognitive_gap=0.11 (focus_needed=0.48 vs resilience=0.37), complexity_gap=0.05 (task=0.58 vs experience_norm=0.53), fatigue_load=0.17, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0274,
+            "error_multiplier": 1.0064,
+            "fatigue_accumulation_rate": 0.4635,
+            "stress_sensitivity_factor": 0.5405
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.25 (demand=0.25 vs stamina=0.50), cognitive_gap=0.02 (focus_needed=0.39 vs resilience=0.37), complexity_gap=-0.26 (task=0.27 vs experience_norm=0.53), fatigue_load=0.17, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9819,
+            "throughput_multiplier": 1.0881,
+            "error_multiplier": 0.9981,
+            "fatigue_accumulation_rate": 0.3,
+            "stress_sensitivity_factor": 0.6124
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.25 (demand=0.25 vs stamina=0.50), cognitive_gap=0.06 (focus_needed=0.43 vs resilience=0.37), complexity_gap=-0.34 (task=0.19 vs experience_norm=0.53), fatigue_load=0.17, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0479,
+            "error_multiplier": 1.0478,
+            "fatigue_accumulation_rate": 0.4388,
+            "stress_sensitivity_factor": 0.4867
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.25 (demand=0.25 vs stamina=0.50), cognitive_gap=0.03 (focus_needed=0.40 vs resilience=0.37), complexity_gap=-0.41 (task=0.12 vs experience_norm=0.53), fatigue_load=0.17, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9726,
+            "throughput_multiplier": 1.1038,
+            "error_multiplier": 1.0063,
+            "fatigue_accumulation_rate": 0.3486,
+            "stress_sensitivity_factor": 0.5622
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.25 (demand=0.25 vs stamina=0.50), cognitive_gap=0.02 (focus_needed=0.39 vs resilience=0.37), complexity_gap=-0.34 (task=0.19 vs experience_norm=0.53), fatigue_load=0.17, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9022,
+            "throughput_multiplier": 0.9569,
+            "error_multiplier": 1.0917,
+            "fatigue_accumulation_rate": 0.4556,
+            "stress_sensitivity_factor": 0.5653
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.05 (demand=0.55 vs stamina=0.50), cognitive_gap=0.12 (focus_needed=0.49 vs resilience=0.37), complexity_gap=-0.21 (task=0.32 vs experience_norm=0.53), fatigue_load=0.17, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    },
+    "WKR-0006-014": {
+      "worker_name": "Farid Kusuma",
+      "best_job_id": "JOB-0006-003",
+      "jobs": {
+        "JOB-0006-001": {
+          "job_title": "Material Handler",
+          "workflow_step": "",
+          "asset_id": "AST-0006-001",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.8793,
+            "throughput_multiplier": 0.9943,
+            "error_multiplier": 1.086,
+            "fatigue_accumulation_rate": 0.6224,
+            "stress_sensitivity_factor": 0.5367
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.23 (demand=0.55 vs stamina=0.32), cognitive_gap=-0.10 (focus_needed=0.45 vs resilience=0.55), complexity_gap=-0.83 (task=0.17 vs experience_norm=1.00), fatigue_load=0.35, env_strain=0.71, noise_norm=0.23, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-002": {
+          "job_title": "Machine Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-002",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9646,
+            "throughput_multiplier": 1.0552,
+            "error_multiplier": 1.0284,
+            "fatigue_accumulation_rate": 0.5729,
+            "stress_sensitivity_factor": 0.572
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.07 (demand=0.25 vs stamina=0.32), cognitive_gap=-0.07 (focus_needed=0.48 vs resilience=0.55), complexity_gap=-0.42 (task=0.58 vs experience_norm=1.00), fatigue_load=0.35, env_strain=0.57, noise_norm=0.62, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-003": {
+          "job_title": "Cutting Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-003",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0857,
+            "error_multiplier": 1.0264,
+            "fatigue_accumulation_rate": 0.6091,
+            "stress_sensitivity_factor": 0.5325
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.07 (demand=0.25 vs stamina=0.32), cognitive_gap=-0.16 (focus_needed=0.39 vs resilience=0.55), complexity_gap=-0.73 (task=0.27 vs experience_norm=1.00), fatigue_load=0.35, env_strain=0.55, noise_norm=0.22, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-004": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-006",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.0824,
+            "error_multiplier": 1.0286,
+            "fatigue_accumulation_rate": 0.4021,
+            "stress_sensitivity_factor": 0.5186
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.07 (demand=0.25 vs stamina=0.32), cognitive_gap=-0.12 (focus_needed=0.43 vs resilience=0.55), complexity_gap=-0.81 (task=0.19 vs experience_norm=1.00), fatigue_load=0.35, env_strain=0.07, noise_norm=0.70, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-005": {
+          "job_title": "QC Inspector",
+          "workflow_step": "",
+          "asset_id": "AST-0006-005",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9761,
+            "throughput_multiplier": 1.084,
+            "error_multiplier": 1.0527,
+            "fatigue_accumulation_rate": 0.5224,
+            "stress_sensitivity_factor": 0.5264
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.07 (demand=0.25 vs stamina=0.32), cognitive_gap=-0.15 (focus_needed=0.40 vs resilience=0.55), complexity_gap=-0.88 (task=0.12 vs experience_norm=1.00), fatigue_load=0.35, env_strain=0.50, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-006": {
+          "job_title": "Packaging Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-007",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 1.0,
+            "throughput_multiplier": 1.028,
+            "error_multiplier": 1.0947,
+            "fatigue_accumulation_rate": 0.4915,
+            "stress_sensitivity_factor": 0.5674
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.07 (demand=0.25 vs stamina=0.32), cognitive_gap=-0.16 (focus_needed=0.39 vs resilience=0.55), complexity_gap=-0.81 (task=0.19 vs experience_norm=1.00), fatigue_load=0.35, env_strain=0.39, noise_norm=0.35, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        },
+        "JOB-0006-007": {
+          "job_title": "Palletizing Operator",
+          "workflow_step": "",
+          "asset_id": "AST-0006-009",
+          "attempts": 1,
+          "evaluations": {
+            "overall_compatibility_score": 0.9211,
+            "throughput_multiplier": 0.9967,
+            "error_multiplier": 1.0755,
+            "fatigue_accumulation_rate": 0.5556,
+            "stress_sensitivity_factor": 0.5334
+          },
+          "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.23 (demand=0.55 vs stamina=0.32), cognitive_gap=-0.06 (focus_needed=0.49 vs resilience=0.55), complexity_gap=-0.68 (task=0.32 vs experience_norm=1.00), fatigue_load=0.35, env_strain=0.59, noise_norm=0.08, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+        }
+      }
+    }
+  }
+}

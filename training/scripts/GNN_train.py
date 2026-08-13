@@ -40,10 +40,15 @@ from torch_geometric.nn import SAGEConv, to_hetero
 
 logger = logging.getLogger(__name__)
 
+validation = False
+
+def get_val_state():
+    return validation
+
 CONFIG = {
-    'MANIFEST_FILE': "./training/datasets/formatted/syntetic_graph_manifest/manifest.json",
-    'GRAPH_DIR': "./training/datasets/formatted/syntetic_gnn_graphs/",  # override for stale manifest graph_path entries; None to trust the manifest as-is
-    'SAVE_PATH': "./training/datasets/formatted/checkpoints/best_compatibility_predictor.pt",
+    'MANIFEST_FILE': "./training/datasets/formatted/train/onet_based_graph_manifest/manifest.json",
+    'GRAPH_DIR': "./training/datasets/formatted/train/onet_based_gnn_graphs/",  # override for stale manifest graph_path entries; None to trust the manifest as-is
+    'SAVE_PATH': "./training/datasets/formatted/train/checkpoints/onet_based_best_compatibility_predictor.pt",
     'EPOCHS': 100,
     'BATCH_SIZE': 8,
     'LR': 1e-3,
@@ -393,7 +398,10 @@ def run_training(manifest_path: str = None, graph_dir: str = None, save_path: st
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    run_training()
+    if validation == True:
+        print("Train only")
+    else:
+        logging.basicConfig(level=logging.INFO)
+        run_training()
 
     # run : python -m training.scripts.GNN_train

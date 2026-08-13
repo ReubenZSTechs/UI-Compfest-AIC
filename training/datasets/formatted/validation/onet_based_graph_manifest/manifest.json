@@ -1,0 +1,293 @@
+{
+  "feature_dims": {
+    "worker": 9,
+    "job": 9,
+    "asset": 14
+  },
+  "edge_label_fields": [
+    "overall_compatibility_score",
+    "throughput_multiplier",
+    "error_multiplier",
+    "fatigue_accumulation_rate",
+    "stress_sensitivity_factor"
+  ],
+  "vocabularies": {
+    "gender": [
+      "male",
+      "female",
+      "unspecified"
+    ],
+    "physical_demand_level": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "error_severity": [
+      "low",
+      "moderate",
+      "high",
+      "critical"
+    ],
+    "vibration_hazard_level": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "asset_category": [
+      "machine",
+      "measuring_equipment",
+      "conveyor_automation",
+      "environmental_chamber",
+      "manual_station"
+    ]
+  },
+  "split_ratios": {
+    "train": 0.8,
+    "val": 0.1,
+    "test": 0.1
+  },
+  "generation_method": "deterministic_onet_formula",
+  "num_graphs": 20,
+  "graphs": [
+    {
+      "filename": "factory_0001.json",
+      "factory_id": "FCT-0001",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0001.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0001.json",
+      "split": "train",
+      "num_workers": 13,
+      "num_jobs": 8,
+      "num_assets": 8,
+      "num_compatibility_edges": 104,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0002.json",
+      "factory_id": "FCT-0002",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0002.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0002.json",
+      "split": "train",
+      "num_workers": 8,
+      "num_jobs": 4,
+      "num_assets": 7,
+      "num_compatibility_edges": 32,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0003.json",
+      "factory_id": "FCT-0003",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0003.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0003.json",
+      "split": "train",
+      "num_workers": 14,
+      "num_jobs": 4,
+      "num_assets": 4,
+      "num_compatibility_edges": 56,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0004.json",
+      "factory_id": "FCT-0004",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0004.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0004.json",
+      "split": "train",
+      "num_workers": 8,
+      "num_jobs": 10,
+      "num_assets": 10,
+      "num_compatibility_edges": 80,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0005.json",
+      "factory_id": "FCT-0005",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0005.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0005.json",
+      "split": "train",
+      "num_workers": 8,
+      "num_jobs": 7,
+      "num_assets": 7,
+      "num_compatibility_edges": 56,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0006.json",
+      "factory_id": "FCT-0006",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0006.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0006.json",
+      "split": "train",
+      "num_workers": 11,
+      "num_jobs": 7,
+      "num_assets": 9,
+      "num_compatibility_edges": 77,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0007.json",
+      "factory_id": "FCT-0007",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0007.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0007.json",
+      "split": "train",
+      "num_workers": 14,
+      "num_jobs": 9,
+      "num_assets": 10,
+      "num_compatibility_edges": 126,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0008.json",
+      "factory_id": "FCT-0008",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0008.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0008.json",
+      "split": "train",
+      "num_workers": 8,
+      "num_jobs": 9,
+      "num_assets": 9,
+      "num_compatibility_edges": 72,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0009.json",
+      "factory_id": "FCT-0009",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0009.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0009.json",
+      "split": "train",
+      "num_workers": 9,
+      "num_jobs": 4,
+      "num_assets": 7,
+      "num_compatibility_edges": 36,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0010.json",
+      "factory_id": "FCT-0010",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0010.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0010.json",
+      "split": "train",
+      "num_workers": 11,
+      "num_jobs": 8,
+      "num_assets": 8,
+      "num_compatibility_edges": 88,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0011.json",
+      "factory_id": "FCT-0011",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0011.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0011.json",
+      "split": "train",
+      "num_workers": 14,
+      "num_jobs": 5,
+      "num_assets": 6,
+      "num_compatibility_edges": 70,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0012.json",
+      "factory_id": "FCT-0012",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0012.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0012.json",
+      "split": "test",
+      "num_workers": 10,
+      "num_jobs": 6,
+      "num_assets": 7,
+      "num_compatibility_edges": 60,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0013.json",
+      "factory_id": "FCT-0013",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0013.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0013.json",
+      "split": "train",
+      "num_workers": 11,
+      "num_jobs": 7,
+      "num_assets": 8,
+      "num_compatibility_edges": 77,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0014.json",
+      "factory_id": "FCT-0014",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0014.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0014.json",
+      "split": "test",
+      "num_workers": 14,
+      "num_jobs": 7,
+      "num_assets": 8,
+      "num_compatibility_edges": 98,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0015.json",
+      "factory_id": "FCT-0015",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0015.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0015.json",
+      "split": "test",
+      "num_workers": 13,
+      "num_jobs": 7,
+      "num_assets": 10,
+      "num_compatibility_edges": 91,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0016.json",
+      "factory_id": "FCT-0016",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0016.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0016.json",
+      "split": "train",
+      "num_workers": 14,
+      "num_jobs": 8,
+      "num_assets": 8,
+      "num_compatibility_edges": 112,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0017.json",
+      "factory_id": "FCT-0017",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0017.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0017.json",
+      "split": "test",
+      "num_workers": 13,
+      "num_jobs": 5,
+      "num_assets": 6,
+      "num_compatibility_edges": 65,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0018.json",
+      "factory_id": "FCT-0018",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0018.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0018.json",
+      "split": "train",
+      "num_workers": 8,
+      "num_jobs": 6,
+      "num_assets": 7,
+      "num_compatibility_edges": 48,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0019.json",
+      "factory_id": "FCT-0019",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0019.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0019.json",
+      "split": "train",
+      "num_workers": 11,
+      "num_jobs": 5,
+      "num_assets": 5,
+      "num_compatibility_edges": 55,
+      "edges_skipped": 0
+    },
+    {
+      "filename": "factory_0020.json",
+      "factory_id": "FCT-0020",
+      "graph_path": "training\\datasets\\formatted\\validation\\onet_based_gnn_graphs\\factory_0020.pt",
+      "matrix_path": "training\\datasets\\formatted\\validation\\onet_based_compatibility_matrices\\factory_0020.json",
+      "split": "train",
+      "num_workers": 11,
+      "num_jobs": 6,
+      "num_assets": 7,
+      "num_compatibility_edges": 66,
+      "edges_skipped": 0
+    }
+  ]
+}

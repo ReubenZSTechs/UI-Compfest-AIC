@@ -1,0 +1,378 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0059",
+    "factory_name": "Synthetic Plant 59",
+    "process_type": "parallel",
+    "declared_worker_count": 12,
+    "layout_description": "A parallel production line laid out along the sequence Cutting -> Assembly -> Palletizing -> Quality Inspection, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Cutting",
+      "Assembly",
+      "Palletizing",
+      "Quality Inspection"
+    ],
+    "parallel_groups": [
+      {
+        "group_id": "PG-59-01",
+        "steps": [
+          "Quality Inspection",
+          "Palletizing"
+        ],
+        "reasoning": "Steps Quality Inspection, Palletizing do not share equipment or line dependencies, so they can run concurrently without blocking one another."
+      }
+    ]
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0059-001",
+      "asset_name": "CNC Mill 1",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 77,
+      "operational_cost_per_hour": 88.03,
+      "environmental_factors": {
+        "noise_level_db": 58,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.34
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0059-002",
+      "asset_name": "Lathe Station 2",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 1,
+      "base_throughput_capacity": 188,
+      "operational_cost_per_hour": 78.83,
+      "environmental_factors": {
+        "noise_level_db": 39,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.65
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0059-003",
+      "asset_name": "Injection Molder 3",
+      "category": "machine",
+      "workflow_step": "Assembly",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 189,
+      "operational_cost_per_hour": 95.55,
+      "environmental_factors": {
+        "noise_level_db": 79,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.28
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Assembly' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0059-004",
+      "asset_name": "Belt Conveyor 4",
+      "category": "conveyor_automation",
+      "workflow_step": "Palletizing",
+      "is_automated": true,
+      "units_available": 1,
+      "base_throughput_capacity": 133,
+      "operational_cost_per_hour": 106.22,
+      "environmental_factors": {
+        "noise_level_db": 71,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.3
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Palletizing' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0059-005",
+      "asset_name": "Digital Caliper Rig 5",
+      "category": "measuring_equipment",
+      "workflow_step": "Quality Inspection",
+      "is_automated": false,
+      "units_available": 4,
+      "base_throughput_capacity": 170,
+      "operational_cost_per_hour": 22.76,
+      "environmental_factors": {
+        "noise_level_db": 86,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.17
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a measuring equipment used at the 'Quality Inspection' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0059-001",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0059-002",
+      "assigned_worker_name": [
+        "WKR-0059-001"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.48,
+        "physical_demand_level": "low",
+        "task_complexity": 0.27,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Lathe Station 2.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 51-9031.00 (step 'Cutting'), reflecting a low physical, moderate-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    },
+    {
+      "job_id": "JOB-0059-002",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0059-001",
+      "assigned_worker_name": [
+        "WKR-0059-010"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.23,
+        "physical_demand_level": "low",
+        "task_complexity": 0.21,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on CNC Mill 1.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 51-9031.00 (step 'Cutting'), reflecting a low physical, moderate-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    },
+    {
+      "job_id": "JOB-0059-003",
+      "job_title": "Assembly Technician",
+      "workflow_step": "Assembly",
+      "assigned_asset_id": "AST-0059-003",
+      "assigned_worker_name": [
+        "WKR-0059-006"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.44,
+        "physical_demand_level": "low",
+        "task_complexity": 0.28,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Injection Molder 3.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 51-2092.00 (step 'Assembly'), reflecting a low physical, moderate-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    },
+    {
+      "job_id": "JOB-0059-004",
+      "job_title": "Palletizing Operator",
+      "workflow_step": "Palletizing",
+      "assigned_asset_id": "AST-0059-004",
+      "assigned_worker_name": [
+        "WKR-0059-008",
+        "WKR-0059-011"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.26,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.26,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Belt Conveyor 4.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 53-7062.00 (step 'Palletizing'), reflecting a medium physical, high-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    },
+    {
+      "job_id": "JOB-0059-005",
+      "job_title": "QC Inspector",
+      "workflow_step": "Quality Inspection",
+      "assigned_asset_id": "AST-0059-005",
+      "assigned_worker_name": [
+        "WKR-0059-001",
+        "WKR-0059-011"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.58,
+        "physical_demand_level": "low",
+        "task_complexity": 0.2,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Digital Caliper Rig 5.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 51-9061.00 (step 'Quality Inspection'), reflecting a low physical, moderate-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0059-001",
+      "name": "Joko Kusuma",
+      "demographics": {
+        "age": 43,
+        "gender": "female",
+        "years_of_experience": 5,
+        "baseline_physical_stamina": 0.31,
+        "cognitive_resilience": 0.3
+      },
+      "shift_context": {
+        "hours_worked_today": 9.0,
+        "consecutive_shifts": 2
+      }
+    },
+    {
+      "worker_id": "WKR-0059-002",
+      "name": "Kartika Halim",
+      "demographics": {
+        "age": 24,
+        "gender": "female",
+        "years_of_experience": 20,
+        "baseline_physical_stamina": 0.52,
+        "cognitive_resilience": 0.55
+      },
+      "shift_context": {
+        "hours_worked_today": 6.4,
+        "consecutive_shifts": 4
+      }
+    },
+    {
+      "worker_id": "WKR-0059-003",
+      "name": "Made Pratama",
+      "demographics": {
+        "age": 49,
+        "gender": "female",
+        "years_of_experience": 12,
+        "baseline_physical_stamina": 0.32,
+        "cognitive_resilience": 0.62
+      },
+      "shift_context": {
+        "hours_worked_today": 1.6,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0059-004",
+      "name": "Farid Wibowo",
+      "demographics": {
+        "age": 18,
+        "gender": "female",
+        "years_of_experience": 9,
+        "baseline_physical_stamina": 0.33,
+        "cognitive_resilience": 0.42
+      },
+      "shift_context": {
+        "hours_worked_today": 1.7,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0059-005",
+      "name": "Made Setiawan",
+      "demographics": {
+        "age": 44,
+        "gender": "unspecified",
+        "years_of_experience": 20,
+        "baseline_physical_stamina": 0.41,
+        "cognitive_resilience": 0.55
+      },
+      "shift_context": {
+        "hours_worked_today": 6.2,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0059-006",
+      "name": "Citra Setiawan",
+      "demographics": {
+        "age": 44,
+        "gender": "female",
+        "years_of_experience": 18,
+        "baseline_physical_stamina": 0.37,
+        "cognitive_resilience": 0.38
+      },
+      "shift_context": {
+        "hours_worked_today": 5.7,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0059-007",
+      "name": "Citra Halim",
+      "demographics": {
+        "age": 56,
+        "gender": "female",
+        "years_of_experience": 0,
+        "baseline_physical_stamina": 0.41,
+        "cognitive_resilience": 0.41
+      },
+      "shift_context": {
+        "hours_worked_today": 8.6,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0059-008",
+      "name": "Farid Hidayat",
+      "demographics": {
+        "age": 33,
+        "gender": "male",
+        "years_of_experience": 11,
+        "baseline_physical_stamina": 0.58,
+        "cognitive_resilience": 0.62
+      },
+      "shift_context": {
+        "hours_worked_today": 3.2,
+        "consecutive_shifts": 2
+      }
+    },
+    {
+      "worker_id": "WKR-0059-009",
+      "name": "Citra Saputra",
+      "demographics": {
+        "age": 54,
+        "gender": "male",
+        "years_of_experience": 6,
+        "baseline_physical_stamina": 0.27,
+        "cognitive_resilience": 0.46
+      },
+      "shift_context": {
+        "hours_worked_today": 9.9,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0059-010",
+      "name": "Dewi Setiawan",
+      "demographics": {
+        "age": 28,
+        "gender": "male",
+        "years_of_experience": 10,
+        "baseline_physical_stamina": 0.49,
+        "cognitive_resilience": 0.27
+      },
+      "shift_context": {
+        "hours_worked_today": 7.5,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0059-011",
+      "name": "Nia Permana",
+      "demographics": {
+        "age": 42,
+        "gender": "male",
+        "years_of_experience": 15,
+        "baseline_physical_stamina": 0.39,
+        "cognitive_resilience": 0.37
+      },
+      "shift_context": {
+        "hours_worked_today": 7.2,
+        "consecutive_shifts": 0
+      }
+    },
+    {
+      "worker_id": "WKR-0059-012",
+      "name": "Andi Hidayat",
+      "demographics": {
+        "age": 21,
+        "gender": "male",
+        "years_of_experience": 15,
+        "baseline_physical_stamina": 0.38,
+        "cognitive_resilience": 0.6
+      },
+      "shift_context": {
+        "hours_worked_today": 7.7,
+        "consecutive_shifts": 2
+      }
+    }
+  ]
+}

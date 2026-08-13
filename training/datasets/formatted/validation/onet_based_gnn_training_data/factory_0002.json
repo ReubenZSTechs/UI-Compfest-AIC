@@ -1,0 +1,742 @@
+{
+  "factory_info": {
+    "factory_id": "FCT-0002",
+    "factory_name": "Synthetic Plant 2",
+    "process_type": "serial",
+    "declared_worker_count": 8,
+    "layout_description": "A serial production line laid out along the sequence Surface Treatment -> Packaging -> Palletizing -> Cutting, with stations grouped by workflow step.",
+    "workflow_sequence": [
+      "Surface Treatment",
+      "Packaging",
+      "Palletizing",
+      "Cutting"
+    ],
+    "parallel_groups": []
+  },
+  "assets": [
+    {
+      "asset_id": "AST-0002-001",
+      "asset_name": "Hydraulic Press 1",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 2,
+      "base_throughput_capacity": 286,
+      "operational_cost_per_hour": 18.34,
+      "environmental_factors": {
+        "noise_level_db": 42,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.16
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0002-002",
+      "asset_name": "Hydraulic Press 2",
+      "category": "machine",
+      "workflow_step": "Surface Treatment",
+      "is_automated": true,
+      "units_available": 3,
+      "base_throughput_capacity": 115,
+      "operational_cost_per_hour": 52.25,
+      "environmental_factors": {
+        "noise_level_db": 53,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.75
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Surface Treatment' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0002-003",
+      "asset_name": "Belt Conveyor 3",
+      "category": "conveyor_automation",
+      "workflow_step": "Packaging",
+      "is_automated": false,
+      "units_available": 3,
+      "base_throughput_capacity": 95,
+      "operational_cost_per_hour": 74.08,
+      "environmental_factors": {
+        "noise_level_db": 81,
+        "vibration_hazard_level": "low",
+        "physical_strain_index": 0.77
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Packaging' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0002-004",
+      "asset_name": "Belt Conveyor 4",
+      "category": "conveyor_automation",
+      "workflow_step": "Palletizing",
+      "is_automated": true,
+      "units_available": 4,
+      "base_throughput_capacity": 78,
+      "operational_cost_per_hour": 91.19,
+      "environmental_factors": {
+        "noise_level_db": 41,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.87
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a conveyor automation used at the 'Palletizing' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0002-005",
+      "asset_name": "Hand-Pack Station 5",
+      "category": "manual_station",
+      "workflow_step": "Palletizing",
+      "is_automated": false,
+      "units_available": 4,
+      "base_throughput_capacity": 70,
+      "operational_cost_per_hour": 37.51,
+      "environmental_factors": {
+        "noise_level_db": 81,
+        "vibration_hazard_level": "high",
+        "physical_strain_index": 0.56
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a manual station used at the 'Palletizing' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0002-006",
+      "asset_name": "Hydraulic Press 6",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": false,
+      "units_available": 3,
+      "base_throughput_capacity": 68,
+      "operational_cost_per_hour": 99.17,
+      "environmental_factors": {
+        "noise_level_db": 35,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.77
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    },
+    {
+      "asset_id": "AST-0002-007",
+      "asset_name": "Lathe Station 7",
+      "category": "machine",
+      "workflow_step": "Cutting",
+      "is_automated": true,
+      "units_available": 1,
+      "base_throughput_capacity": 150,
+      "operational_cost_per_hour": 13.31,
+      "environmental_factors": {
+        "noise_level_db": 46,
+        "vibration_hazard_level": "medium",
+        "physical_strain_index": 0.83
+      },
+      "metric_derivation_reasoning": "Synthetic baseline for a machine used at the 'Cutting' step; throughput and cost sampled within typical ranges for this equipment class."
+    }
+  ],
+  "job_descriptions": [
+    {
+      "job_id": "JOB-0002-001",
+      "job_title": "Surface Treatment Operator",
+      "workflow_step": "Surface Treatment",
+      "assigned_asset_id": "AST-0002-002",
+      "assigned_worker_name": [
+        "WKR-0002-005"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.33,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.21,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Hydraulic Press 2.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 51-9021.00 (step 'Surface Treatment'), reflecting a medium physical, high-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    },
+    {
+      "job_id": "JOB-0002-002",
+      "job_title": "Packaging Operator",
+      "workflow_step": "Packaging",
+      "assigned_asset_id": "AST-0002-003",
+      "assigned_worker_name": [
+        "WKR-0002-006",
+        "WKR-0002-002"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.48,
+        "physical_demand_level": "low",
+        "task_complexity": 0.27,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Belt Conveyor 3.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 51-9111.00 (step 'Packaging'), reflecting a low physical, high-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    },
+    {
+      "job_id": "JOB-0002-003",
+      "job_title": "Palletizing Operator",
+      "workflow_step": "Palletizing",
+      "assigned_asset_id": "AST-0002-004",
+      "assigned_worker_name": [
+        "WKR-0002-007"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.32,
+        "physical_demand_level": "medium",
+        "task_complexity": 0.38,
+        "error_severity": "high"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Belt Conveyor 4.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 53-7062.00 (step 'Palletizing'), reflecting a medium physical, high-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    },
+    {
+      "job_id": "JOB-0002-004",
+      "job_title": "Cutting Operator",
+      "workflow_step": "Cutting",
+      "assigned_asset_id": "AST-0002-007",
+      "assigned_worker_name": [
+        "WKR-0002-007",
+        "WKR-0002-001"
+      ],
+      "demands": {
+        "required_cognitive_focus": 0.32,
+        "physical_demand_level": "low",
+        "task_complexity": 0.22,
+        "error_severity": "moderate"
+      },
+      "qc_requirement": "Visual and dimensional check against spec after each unit processed on Lathe Station 7.",
+      "metric_derivation_reasoning": "Demand levels centered on O*NET occupational data for SOC 51-9031.00 (step 'Cutting'), reflecting a low physical, moderate-severity task typical of this workflow stage; per-job jitter of +/-0.15 applied around the occupational center."
+    }
+  ],
+  "workers": [
+    {
+      "worker_id": "WKR-0002-001",
+      "name": "Citra Pratama",
+      "demographics": {
+        "age": 18,
+        "gender": "male",
+        "years_of_experience": 15,
+        "baseline_physical_stamina": 0.57,
+        "cognitive_resilience": 0.67
+      },
+      "shift_context": {
+        "hours_worked_today": 7.7,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0002-002",
+      "name": "Hari Setiawan",
+      "demographics": {
+        "age": 24,
+        "gender": "female",
+        "years_of_experience": 11,
+        "baseline_physical_stamina": 0.5,
+        "cognitive_resilience": 0.41
+      },
+      "shift_context": {
+        "hours_worked_today": 7.3,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0002-003",
+      "name": "Gita Halim",
+      "demographics": {
+        "age": 56,
+        "gender": "male",
+        "years_of_experience": 5,
+        "baseline_physical_stamina": 0.6,
+        "cognitive_resilience": 0.34
+      },
+      "shift_context": {
+        "hours_worked_today": 4.8,
+        "consecutive_shifts": 3
+      }
+    },
+    {
+      "worker_id": "WKR-0002-004",
+      "name": "Budi Hidayat",
+      "demographics": {
+        "age": 41,
+        "gender": "male",
+        "years_of_experience": 17,
+        "baseline_physical_stamina": 0.46,
+        "cognitive_resilience": 0.59
+      },
+      "shift_context": {
+        "hours_worked_today": 6.7,
+        "consecutive_shifts": 1
+      }
+    },
+    {
+      "worker_id": "WKR-0002-005",
+      "name": "Farid Permana",
+      "demographics": {
+        "age": 35,
+        "gender": "female",
+        "years_of_experience": 0,
+        "baseline_physical_stamina": 0.24,
+        "cognitive_resilience": 0.24
+      },
+      "shift_context": {
+        "hours_worked_today": 5.3,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0002-006",
+      "name": "Hari Hidayat",
+      "demographics": {
+        "age": 38,
+        "gender": "female",
+        "years_of_experience": 20,
+        "baseline_physical_stamina": 0.36,
+        "cognitive_resilience": 0.46
+      },
+      "shift_context": {
+        "hours_worked_today": 8.6,
+        "consecutive_shifts": 6
+      }
+    },
+    {
+      "worker_id": "WKR-0002-007",
+      "name": "Putri Setiawan",
+      "demographics": {
+        "age": 26,
+        "gender": "female",
+        "years_of_experience": 1,
+        "baseline_physical_stamina": 0.33,
+        "cognitive_resilience": 0.33
+      },
+      "shift_context": {
+        "hours_worked_today": 9.6,
+        "consecutive_shifts": 5
+      }
+    },
+    {
+      "worker_id": "WKR-0002-008",
+      "name": "Dewi Pratama",
+      "demographics": {
+        "age": 57,
+        "gender": "male",
+        "years_of_experience": 13,
+        "baseline_physical_stamina": 0.63,
+        "cognitive_resilience": 0.56
+      },
+      "shift_context": {
+        "hours_worked_today": 4.8,
+        "consecutive_shifts": 1
+      }
+    }
+  ],
+  "synthetic_compatibility_evaluations": [
+    {
+      "worker_id": "WKR-0002-001",
+      "job_id": "JOB-0002-001",
+      "asset_id": "AST-0002-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.9684,
+        "throughput_multiplier": 1.0569,
+        "error_multiplier": 1.0698,
+        "fatigue_accumulation_rate": 0.6525,
+        "stress_sensitivity_factor": 0.5853
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.55 vs stamina=0.57), cognitive_gap=-0.34 (focus_needed=0.33 vs resilience=0.67), complexity_gap=-0.79 (task=0.21 vs experience_norm=1.00), fatigue_load=0.45, env_strain=0.75, noise_norm=0.22, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-001",
+      "job_id": "JOB-0002-002",
+      "asset_id": "AST-0002-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.9799,
+        "throughput_multiplier": 1.0654,
+        "error_multiplier": 1.061,
+        "fatigue_accumulation_rate": 0.6051,
+        "stress_sensitivity_factor": 0.5959
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.32 (demand=0.25 vs stamina=0.57), cognitive_gap=-0.19 (focus_needed=0.48 vs resilience=0.67), complexity_gap=-0.73 (task=0.27 vs experience_norm=1.00), fatigue_load=0.45, env_strain=0.77, noise_norm=0.68, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-001",
+      "job_id": "JOB-0002-003",
+      "asset_id": "AST-0002-004",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.0744,
+        "error_multiplier": 1.0499,
+        "fatigue_accumulation_rate": 0.6627,
+        "stress_sensitivity_factor": 0.5747
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.02 (demand=0.55 vs stamina=0.57), cognitive_gap=-0.35 (focus_needed=0.32 vs resilience=0.67), complexity_gap=-0.62 (task=0.38 vs experience_norm=1.00), fatigue_load=0.45, env_strain=0.87, noise_norm=0.02, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-001",
+      "job_id": "JOB-0002-004",
+      "asset_id": "AST-0002-007",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.1487,
+        "error_multiplier": 1.0192,
+        "fatigue_accumulation_rate": 0.6526,
+        "stress_sensitivity_factor": 0.5179
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.32 (demand=0.25 vs stamina=0.57), cognitive_gap=-0.35 (focus_needed=0.32 vs resilience=0.67), complexity_gap=-0.78 (task=0.22 vs experience_norm=1.00), fatigue_load=0.45, env_strain=0.83, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-002",
+      "job_id": "JOB-0002-001",
+      "asset_id": "AST-0002-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.9445,
+        "throughput_multiplier": 1.0525,
+        "error_multiplier": 1.1398,
+        "fatigue_accumulation_rate": 0.7402,
+        "stress_sensitivity_factor": 0.5371
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.05 (demand=0.55 vs stamina=0.50), cognitive_gap=-0.08 (focus_needed=0.33 vs resilience=0.41), complexity_gap=-0.52 (task=0.21 vs experience_norm=0.73), fatigue_load=0.70, env_strain=0.75, noise_norm=0.22, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-002",
+      "job_id": "JOB-0002-002",
+      "asset_id": "AST-0002-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.9378,
+        "throughput_multiplier": 1.0387,
+        "error_multiplier": 1.1419,
+        "fatigue_accumulation_rate": 0.7869,
+        "stress_sensitivity_factor": 0.582
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.25 (demand=0.25 vs stamina=0.50), cognitive_gap=0.07 (focus_needed=0.48 vs resilience=0.41), complexity_gap=-0.46 (task=0.27 vs experience_norm=0.73), fatigue_load=0.70, env_strain=0.77, noise_norm=0.68, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-002",
+      "job_id": "JOB-0002-003",
+      "asset_id": "AST-0002-004",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 0.9453,
+        "error_multiplier": 1.0721,
+        "fatigue_accumulation_rate": 0.7953,
+        "stress_sensitivity_factor": 0.5469
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.05 (demand=0.55 vs stamina=0.50), cognitive_gap=-0.09 (focus_needed=0.32 vs resilience=0.41), complexity_gap=-0.35 (task=0.38 vs experience_norm=0.73), fatigue_load=0.70, env_strain=0.87, noise_norm=0.02, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-002",
+      "job_id": "JOB-0002-004",
+      "asset_id": "AST-0002-007",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.0845,
+        "error_multiplier": 1.0981,
+        "fatigue_accumulation_rate": 0.7404,
+        "stress_sensitivity_factor": 0.5035
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.25 (demand=0.25 vs stamina=0.50), cognitive_gap=-0.09 (focus_needed=0.32 vs resilience=0.41), complexity_gap=-0.51 (task=0.22 vs experience_norm=0.73), fatigue_load=0.70, env_strain=0.83, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-003",
+      "job_id": "JOB-0002-001",
+      "asset_id": "AST-0002-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.9789,
+        "throughput_multiplier": 1.0293,
+        "error_multiplier": 1.0366,
+        "fatigue_accumulation_rate": 0.6403,
+        "stress_sensitivity_factor": 0.5489
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.05 (demand=0.55 vs stamina=0.60), cognitive_gap=-0.01 (focus_needed=0.33 vs resilience=0.34), complexity_gap=-0.12 (task=0.21 vs experience_norm=0.33), fatigue_load=0.44, env_strain=0.75, noise_norm=0.22, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-003",
+      "job_id": "JOB-0002-002",
+      "asset_id": "AST-0002-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.9395,
+        "throughput_multiplier": 1.0604,
+        "error_multiplier": 1.1566,
+        "fatigue_accumulation_rate": 0.6194,
+        "stress_sensitivity_factor": 0.6106
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.35 (demand=0.25 vs stamina=0.60), cognitive_gap=0.14 (focus_needed=0.48 vs resilience=0.34), complexity_gap=-0.06 (task=0.27 vs experience_norm=0.33), fatigue_load=0.44, env_strain=0.77, noise_norm=0.68, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-003",
+      "job_id": "JOB-0002-003",
+      "asset_id": "AST-0002-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.9859,
+        "throughput_multiplier": 0.9428,
+        "error_multiplier": 1.0529,
+        "fatigue_accumulation_rate": 0.6564,
+        "stress_sensitivity_factor": 0.5693
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.05 (demand=0.55 vs stamina=0.60), cognitive_gap=-0.02 (focus_needed=0.32 vs resilience=0.34), complexity_gap=0.05 (task=0.38 vs experience_norm=0.33), fatigue_load=0.44, env_strain=0.87, noise_norm=0.02, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-003",
+      "job_id": "JOB-0002-004",
+      "asset_id": "AST-0002-007",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.0782,
+        "error_multiplier": 1.0996,
+        "fatigue_accumulation_rate": 0.6204,
+        "stress_sensitivity_factor": 0.478
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.35 (demand=0.25 vs stamina=0.60), cognitive_gap=-0.02 (focus_needed=0.32 vs resilience=0.34), complexity_gap=-0.11 (task=0.22 vs experience_norm=0.33), fatigue_load=0.44, env_strain=0.83, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-004",
+      "job_id": "JOB-0002-001",
+      "asset_id": "AST-0002-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.9734,
+        "throughput_multiplier": 1.0666,
+        "error_multiplier": 1.0553,
+        "fatigue_accumulation_rate": 0.6015,
+        "stress_sensitivity_factor": 0.5688
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.09 (demand=0.55 vs stamina=0.46), cognitive_gap=-0.26 (focus_needed=0.33 vs resilience=0.59), complexity_gap=-0.79 (task=0.21 vs experience_norm=1.00), fatigue_load=0.40, env_strain=0.75, noise_norm=0.22, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-004",
+      "job_id": "JOB-0002-002",
+      "asset_id": "AST-0002-003",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.1257,
+        "error_multiplier": 1.0296,
+        "fatigue_accumulation_rate": 0.6071,
+        "stress_sensitivity_factor": 0.6403
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.21 (demand=0.25 vs stamina=0.46), cognitive_gap=-0.11 (focus_needed=0.48 vs resilience=0.59), complexity_gap=-0.73 (task=0.27 vs experience_norm=1.00), fatigue_load=0.40, env_strain=0.77, noise_norm=0.68, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-004",
+      "job_id": "JOB-0002-003",
+      "asset_id": "AST-0002-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.9257,
+        "throughput_multiplier": 1.0668,
+        "error_multiplier": 1.025,
+        "fatigue_accumulation_rate": 0.6849,
+        "stress_sensitivity_factor": 0.5064
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.09 (demand=0.55 vs stamina=0.46), cognitive_gap=-0.27 (focus_needed=0.32 vs resilience=0.59), complexity_gap=-0.62 (task=0.38 vs experience_norm=1.00), fatigue_load=0.40, env_strain=0.87, noise_norm=0.02, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-004",
+      "job_id": "JOB-0002-004",
+      "asset_id": "AST-0002-007",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.0723,
+        "error_multiplier": 1.0215,
+        "fatigue_accumulation_rate": 0.6481,
+        "stress_sensitivity_factor": 0.5153
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.21 (demand=0.25 vs stamina=0.46), cognitive_gap=-0.27 (focus_needed=0.32 vs resilience=0.59), complexity_gap=-0.78 (task=0.22 vs experience_norm=1.00), fatigue_load=0.40, env_strain=0.83, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-005",
+      "job_id": "JOB-0002-001",
+      "asset_id": "AST-0002-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.8201,
+        "throughput_multiplier": 0.8517,
+        "error_multiplier": 1.2098,
+        "fatigue_accumulation_rate": 0.7815,
+        "stress_sensitivity_factor": 0.5524
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.31 (demand=0.55 vs stamina=0.24), cognitive_gap=0.09 (focus_needed=0.33 vs resilience=0.24), complexity_gap=0.21 (task=0.21 vs experience_norm=0.00), fatigue_load=0.60, env_strain=0.75, noise_norm=0.22, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-005",
+      "job_id": "JOB-0002-002",
+      "asset_id": "AST-0002-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.8869,
+        "throughput_multiplier": 0.9314,
+        "error_multiplier": 1.2258,
+        "fatigue_accumulation_rate": 0.7758,
+        "stress_sensitivity_factor": 0.6964
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.01 (demand=0.25 vs stamina=0.24), cognitive_gap=0.24 (focus_needed=0.48 vs resilience=0.24), complexity_gap=0.27 (task=0.27 vs experience_norm=0.00), fatigue_load=0.60, env_strain=0.77, noise_norm=0.68, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-005",
+      "job_id": "JOB-0002-003",
+      "asset_id": "AST-0002-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.7401,
+        "throughput_multiplier": 0.8538,
+        "error_multiplier": 1.2232,
+        "fatigue_accumulation_rate": 0.8392,
+        "stress_sensitivity_factor": 0.5611
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.31 (demand=0.55 vs stamina=0.24), cognitive_gap=0.08 (focus_needed=0.32 vs resilience=0.24), complexity_gap=0.38 (task=0.38 vs experience_norm=0.00), fatigue_load=0.60, env_strain=0.87, noise_norm=0.02, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-005",
+      "job_id": "JOB-0002-004",
+      "asset_id": "AST-0002-007",
+      "evaluations": {
+        "overall_compatibility_score": 0.91,
+        "throughput_multiplier": 0.9164,
+        "error_multiplier": 1.1899,
+        "fatigue_accumulation_rate": 0.8071,
+        "stress_sensitivity_factor": 0.5177
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.01 (demand=0.25 vs stamina=0.24), cognitive_gap=0.08 (focus_needed=0.32 vs resilience=0.24), complexity_gap=0.22 (task=0.22 vs experience_norm=0.00), fatigue_load=0.60, env_strain=0.83, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-006",
+      "job_id": "JOB-0002-001",
+      "asset_id": "AST-0002-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.8871,
+        "throughput_multiplier": 1.0233,
+        "error_multiplier": 1.0801,
+        "fatigue_accumulation_rate": 0.8005,
+        "stress_sensitivity_factor": 0.576
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.19 (demand=0.55 vs stamina=0.36), cognitive_gap=-0.13 (focus_needed=0.33 vs resilience=0.46), complexity_gap=-0.79 (task=0.21 vs experience_norm=1.00), fatigue_load=0.83, env_strain=0.75, noise_norm=0.22, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-006",
+      "job_id": "JOB-0002-002",
+      "asset_id": "AST-0002-003",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.0362,
+        "error_multiplier": 1.0899,
+        "fatigue_accumulation_rate": 0.8868,
+        "stress_sensitivity_factor": 0.5708
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.11 (demand=0.25 vs stamina=0.36), cognitive_gap=0.02 (focus_needed=0.48 vs resilience=0.46), complexity_gap=-0.73 (task=0.27 vs experience_norm=1.00), fatigue_load=0.83, env_strain=0.77, noise_norm=0.68, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-006",
+      "job_id": "JOB-0002-003",
+      "asset_id": "AST-0002-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.8935,
+        "throughput_multiplier": 1.0141,
+        "error_multiplier": 1.151,
+        "fatigue_accumulation_rate": 0.8418,
+        "stress_sensitivity_factor": 0.5794
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.19 (demand=0.55 vs stamina=0.36), cognitive_gap=-0.14 (focus_needed=0.32 vs resilience=0.46), complexity_gap=-0.62 (task=0.38 vs experience_norm=1.00), fatigue_load=0.83, env_strain=0.87, noise_norm=0.02, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-006",
+      "job_id": "JOB-0002-004",
+      "asset_id": "AST-0002-007",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.0526,
+        "error_multiplier": 1.1134,
+        "fatigue_accumulation_rate": 0.8384,
+        "stress_sensitivity_factor": 0.4673
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.11 (demand=0.25 vs stamina=0.36), cognitive_gap=-0.14 (focus_needed=0.32 vs resilience=0.46), complexity_gap=-0.78 (task=0.22 vs experience_norm=1.00), fatigue_load=0.83, env_strain=0.83, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-007",
+      "job_id": "JOB-0002-001",
+      "asset_id": "AST-0002-002",
+      "evaluations": {
+        "overall_compatibility_score": 0.8957,
+        "throughput_multiplier": 0.8866,
+        "error_multiplier": 1.2129,
+        "fatigue_accumulation_rate": 0.8239,
+        "stress_sensitivity_factor": 0.5432
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.22 (demand=0.55 vs stamina=0.33), cognitive_gap=0.00 (focus_needed=0.33 vs resilience=0.33), complexity_gap=0.14 (task=0.21 vs experience_norm=0.07), fatigue_load=0.81, env_strain=0.75, noise_norm=0.22, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-007",
+      "job_id": "JOB-0002-002",
+      "asset_id": "AST-0002-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.8713,
+        "throughput_multiplier": 1.0013,
+        "error_multiplier": 1.2161,
+        "fatigue_accumulation_rate": 0.8746,
+        "stress_sensitivity_factor": 0.6217
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.08 (demand=0.25 vs stamina=0.33), cognitive_gap=0.15 (focus_needed=0.48 vs resilience=0.33), complexity_gap=0.20 (task=0.27 vs experience_norm=0.07), fatigue_load=0.81, env_strain=0.77, noise_norm=0.68, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-007",
+      "job_id": "JOB-0002-003",
+      "asset_id": "AST-0002-004",
+      "evaluations": {
+        "overall_compatibility_score": 0.8619,
+        "throughput_multiplier": 0.9277,
+        "error_multiplier": 1.2054,
+        "fatigue_accumulation_rate": 0.8603,
+        "stress_sensitivity_factor": 0.5821
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=0.22 (demand=0.55 vs stamina=0.33), cognitive_gap=-0.01 (focus_needed=0.32 vs resilience=0.33), complexity_gap=0.31 (task=0.38 vs experience_norm=0.07), fatigue_load=0.81, env_strain=0.87, noise_norm=0.02, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-007",
+      "job_id": "JOB-0002-004",
+      "asset_id": "AST-0002-007",
+      "evaluations": {
+        "overall_compatibility_score": 0.9297,
+        "throughput_multiplier": 0.9646,
+        "error_multiplier": 1.2049,
+        "fatigue_accumulation_rate": 0.9192,
+        "stress_sensitivity_factor": 0.5012
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.08 (demand=0.25 vs stamina=0.33), cognitive_gap=-0.01 (focus_needed=0.32 vs resilience=0.33), complexity_gap=0.15 (task=0.22 vs experience_norm=0.07), fatigue_load=0.81, env_strain=0.83, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-008",
+      "job_id": "JOB-0002-001",
+      "asset_id": "AST-0002-002",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.1111,
+        "error_multiplier": 0.9968,
+        "fatigue_accumulation_rate": 0.4828,
+        "stress_sensitivity_factor": 0.5522
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.08 (demand=0.55 vs stamina=0.63), cognitive_gap=-0.23 (focus_needed=0.33 vs resilience=0.56), complexity_gap=-0.66 (task=0.21 vs experience_norm=0.87), fatigue_load=0.31, env_strain=0.75, noise_norm=0.22, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-008",
+      "job_id": "JOB-0002-002",
+      "asset_id": "AST-0002-003",
+      "evaluations": {
+        "overall_compatibility_score": 0.9635,
+        "throughput_multiplier": 1.0872,
+        "error_multiplier": 1.0272,
+        "fatigue_accumulation_rate": 0.5157,
+        "stress_sensitivity_factor": 0.6351
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.38 (demand=0.25 vs stamina=0.63), cognitive_gap=-0.08 (focus_needed=0.48 vs resilience=0.56), complexity_gap=-0.60 (task=0.27 vs experience_norm=0.87), fatigue_load=0.31, env_strain=0.77, noise_norm=0.68, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-008",
+      "job_id": "JOB-0002-003",
+      "asset_id": "AST-0002-004",
+      "evaluations": {
+        "overall_compatibility_score": 1.0,
+        "throughput_multiplier": 1.079,
+        "error_multiplier": 1.0657,
+        "fatigue_accumulation_rate": 0.5813,
+        "stress_sensitivity_factor": 0.5364
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.08 (demand=0.55 vs stamina=0.63), cognitive_gap=-0.24 (focus_needed=0.32 vs resilience=0.56), complexity_gap=-0.49 (task=0.38 vs experience_norm=0.87), fatigue_load=0.31, env_strain=0.87, noise_norm=0.02, error_severity_weight=0.70; +/-0.05 jitter seeded per pair."
+    },
+    {
+      "worker_id": "WKR-0002-008",
+      "job_id": "JOB-0002-004",
+      "asset_id": "AST-0002-007",
+      "evaluations": {
+        "overall_compatibility_score": 0.9613,
+        "throughput_multiplier": 1.1663,
+        "error_multiplier": 1.0137,
+        "fatigue_accumulation_rate": 0.5729,
+        "stress_sensitivity_factor": 0.525
+      },
+      "llm_reasoning": "Deterministic formula (no LLM): physical_gap=-0.38 (demand=0.25 vs stamina=0.63), cognitive_gap=-0.24 (focus_needed=0.32 vs resilience=0.56), complexity_gap=-0.65 (task=0.22 vs experience_norm=0.87), fatigue_load=0.31, env_strain=0.83, noise_norm=0.10, error_severity_weight=0.45; +/-0.05 jitter seeded per pair."
+    }
+  ]
+}

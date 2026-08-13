@@ -5,10 +5,18 @@ Bootstraps synthetic factory "digital twin" seed files: factory_info + assets
 shape Training_sample_generator.py's flatten_pair_items() expects
 (doc['assets'], doc['job_descriptions'], doc['workers']).
 
-This is pure structural/randomized generation (no LLM call) because at this
-stage there's no real factory to describe yet - it just needs to be
-schema-valid so the LLM-compatibility-evaluation pipeline has something to
-run on. Run this once to populate INPUT_DIR, then run
+CHANGED (O*NET integration): demand/ability fields that used to be pure
+random.uniform()/random.choices() calls (required_cognitive_focus,
+task_complexity, physical_demand_level, error_severity, baseline_physical_
+stamina, cognitive_resilience) are now centered on real O*NET Abilities /
+Work Context / Job Zone scores for a hand-picked representative SOC code per
+workflow step (see onet_lookup.STEP_TO_SOC), with per-instance jitter kept so
+individual workers/jobs of the same step still vary. This is still pure
+structural generation (no LLM call) - O*NET gives realistic *centers* to
+sample around, not a replacement for the LLM compatibility-evaluation step
+downstream in Training_sample_generator.py.
+
+Run this once to populate INPUT_DIR, then run
 `python -m training.scripts.Training_sample_generator` as before.
 """
 
@@ -16,11 +24,21 @@ import json
 import random
 from pathlib import Path
 
-random.seed(42)
+from training.scripts.onet_lookup import OnetProfiles, STEP_TO_SOC
 
-OUTPUT_DIR = Path("./training/datasets/formatted/syntetic_factories/")
-NUM_FACTORIES = 100
+validation = True
+
+OUTPUT_DIR = Path("./training/datasets/formatted/validation/onet_based_factories") 
+NUM_FACTORIES = 20 # 100
 WORKER_POOL_SIZE_RANGE = (8, 14)
+
+seed_num = 24
+
+if validation == False:
+    OUTPUT_DIR = Path("./training/datasets/formatted/train/onet_based_factories")
+    seed_num = 42
+
+random.seed(seed_num)
 
 STEP_POOL = [
     "Raw Material Intake",
@@ -67,6 +85,16 @@ FIRST_NAMES = ["Andi", "Budi", "Citra", "Dewi", "Eka", "Farid", "Gita", "Hari",
                "Indra", "Joko", "Kartika", "Lestari", "Made", "Nia", "Oscar", "Putri"]
 LAST_NAMES = ["Saputra", "Wijaya", "Kusuma", "Pratama", "Santoso", "Halim",
               "Wibowo", "Hidayat", "Permana", "Setiawan"]
+
+# how far individual workers/jobs are allowed to drift from the O*NET-derived
+# center - keeps population-level realism from O*NET while still giving each
+# instance individual variation for the GNN to key off of
+JITTER = 0.15
+
+
+def _jittered(center: float, spread: float = JITTER, lo: float = 0.0, hi: float = 1.0) -> float:
+    val = random.uniform(center - spread, center + spread)
+    return round(min(max(val, lo), hi), 2)
 
 
 def gen_factory_info(idx: int, workflow_sequence: list, process_type: str) -> dict:
@@ -135,15 +163,12 @@ def gen_assets(idx: int, workflow_sequence: list) -> list:
     return assets
 
 
-def gen_jobs(idx: int, workflow_sequence: list, assets: list, worker_ids: list) -> list:
+def gen_jobs(idx: int, workflow_sequence: list, assets: list, worker_ids: list, onet: OnetProfiles) -> list:
     jobs = []
     counter = 1
     assets_by_step = {}
     for a in assets:
         assets_by_step.setdefault(a["workflow_step"], []).append(a)
-
-    error_weights = {"low": 0.4, "moderate": 0.35, "high": 0.2, "critical": 0.05}
-    physical_weights = {"low": 0.4, "medium": 0.4, "high": 0.2}
 
     for step in workflow_sequence:
         step_assets = assets_by_step.get(step, [])
@@ -151,12 +176,18 @@ def gen_jobs(idx: int, workflow_sequence: list, assets: list, worker_ids: list) 
             continue
         n_jobs = random.randint(1, min(2, len(step_assets)))
         chosen_assets = random.sample(step_assets, n_jobs)
+
+        # O*NET-derived centers for this step, computed once per step (not
+        # per job) since they represent the occupation, not the individual job
+        cognitive_focus_center = onet.cognitive_focus_score(step)
+        task_complexity_center = onet.task_complexity_score(step)
+        physical_demand = onet.physical_demand_bucket(step)
+        error_severity = onet.error_severity_bucket(step)
+
         for asset in chosen_assets:
             job_id = f"JOB-{idx:04d}-{counter:03d}"
             n_assigned = random.randint(1, 2)
             assigned = random.sample(worker_ids, min(n_assigned, len(worker_ids)))
-            error_severity = random.choices(list(error_weights), weights=list(error_weights.values()))[0]
-            physical_demand = random.choices(list(physical_weights), weights=list(physical_weights.values()))[0]
             jobs.append({
                 "job_id": job_id,
                 "job_title": JOB_TITLE_TEMPLATES.get(step, f"{step} Operator"),
@@ -164,9 +195,9 @@ def gen_jobs(idx: int, workflow_sequence: list, assets: list, worker_ids: list) 
                 "assigned_asset_id": asset["asset_id"],
                 "assigned_worker_name": assigned,
                 "demands": {
-                    "required_cognitive_focus": round(random.uniform(0.1, 0.95), 2),
+                    "required_cognitive_focus": _jittered(cognitive_focus_center),
                     "physical_demand_level": physical_demand,
-                    "task_complexity": round(random.uniform(0.1, 0.95), 2),
+                    "task_complexity": _jittered(task_complexity_center),
                     "error_severity": error_severity,
                 },
                 "qc_requirement": (
@@ -174,15 +205,26 @@ def gen_jobs(idx: int, workflow_sequence: list, assets: list, worker_ids: list) 
                     f"processed on {asset['asset_name']}."
                 ),
                 "metric_derivation_reasoning": (
-                    f"Demand levels sampled to reflect a {physical_demand} physical, "
-                    f"{error_severity}-severity task typical of the '{step}' step."
+                    f"Demand levels centered on O*NET occupational data for "
+                    f"SOC {STEP_TO_SOC[step]} (step '{step}'), reflecting a {physical_demand} physical, "
+                    f"{error_severity}-severity task typical of this workflow stage; "
+                    f"per-job jitter of +/-{JITTER} applied around the occupational center."
                 ),
             })
             counter += 1
     return jobs
 
 
-def gen_workers(idx: int, pool_size: int) -> list:
+def gen_workers(idx: int, pool_size: int, workflow_sequence: list, onet: OnetProfiles) -> list:
+    """Each worker is now sampled around the O*NET physical/cognitive ability
+    centers averaged across the steps present in this factory's workflow -
+    i.e. a factory doing more Machining/Cutting steps produces a workforce
+    skewed toward those occupations' ability profiles, rather than every
+    factory drawing from the same flat 0.3-1.0 range regardless of what the
+    factory actually does."""
+    physical_center = sum(onet.physical_ability_score(s) for s in workflow_sequence) / len(workflow_sequence)
+    cognitive_center = sum(onet.cognitive_ability_score(s) for s in workflow_sequence) / len(workflow_sequence)
+
     workers = []
     used_names = set()
     for i in range(1, pool_size + 1):
@@ -193,6 +235,12 @@ def gen_workers(idx: int, pool_size: int) -> list:
                 break
         worker_id = f"WKR-{idx:04d}-{i:03d}"
         experience = random.randint(0, 20)
+
+        # experience nudges stamina/resilience slightly above the raw O*NET
+        # center - a crude stand-in for "more practiced workers cope better,"
+        # capped so it can't push scores outside a sane 0-1 range
+        exp_bonus = min(experience / 20.0, 1.0) * 0.1
+
         workers.append({
             "worker_id": worker_id,
             "name": name,
@@ -200,8 +248,8 @@ def gen_workers(idx: int, pool_size: int) -> list:
                 "age": random.randint(18, 60),
                 "gender": random.choices(["male", "female", "unspecified"], weights=[0.48, 0.48, 0.04])[0],
                 "years_of_experience": experience,
-                "baseline_physical_stamina": round(random.uniform(0.3, 1.0), 2),
-                "cognitive_resilience": round(random.uniform(0.3, 1.0), 2),
+                "baseline_physical_stamina": _jittered(physical_center + exp_bonus, spread=0.2),
+                "cognitive_resilience": _jittered(cognitive_center + exp_bonus, spread=0.2),
             },
             "shift_context": {
                 "hours_worked_today": round(random.uniform(0, 10), 1),
@@ -211,18 +259,18 @@ def gen_workers(idx: int, pool_size: int) -> list:
     return workers
 
 
-def gen_factory(idx: int) -> dict:
+def gen_factory(idx: int, onet: OnetProfiles) -> dict:
     n_steps = random.randint(4, 6)
     workflow_sequence = random.sample(STEP_POOL, n_steps)
     process_type = random.choices(["serial", "parallel"], weights=[0.6, 0.4])[0]
 
     pool_size = random.randint(*WORKER_POOL_SIZE_RANGE)
-    workers = gen_workers(idx, pool_size)
+    workers = gen_workers(idx, pool_size, workflow_sequence, onet)
     worker_ids = [w["worker_id"] for w in workers]
 
     factory_info = gen_factory_info(idx, workflow_sequence, process_type)
     assets = gen_assets(idx, workflow_sequence)
-    jobs = gen_jobs(idx, workflow_sequence, assets, worker_ids)
+    jobs = gen_jobs(idx, workflow_sequence, assets, worker_ids, onet)
 
     factory_info["declared_worker_count"] = len(workers)
 
@@ -236,9 +284,14 @@ def gen_factory(idx: int) -> dict:
 
 def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # load once, reuse across all NUM_FACTORIES - parsing the O*NET json
+    # files per-factory would be wasteful (see onet_lookup.py docstring)
+    onet = OnetProfiles()
+
     written = []
     for idx in range(1, NUM_FACTORIES + 1):
-        doc = gen_factory(idx)
+        doc = gen_factory(idx, onet)
         out_path = OUTPUT_DIR / f"factory_{idx:04d}.json"
         out_path.write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
         written.append(out_path)
