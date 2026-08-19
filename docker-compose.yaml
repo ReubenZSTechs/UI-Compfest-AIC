@@ -19,9 +19,11 @@ services:
       --quantization modelopt_fp4
       --hf-overrides '{"tie_word_embeddings": false}'
       --served-model-name LLM
-      --max-model-len 65536
-      --gpu-memory-utilization 0.75
+      --max-model-len 70000
+      --gpu-memory-utilization 0.65
       --kv-cache-dtype turboquant_4bit_nc
+      --max-num-seqs 8
+      --enable-prefix-caching
       --port 15000
     depends_on:
       embedding:
@@ -58,7 +60,7 @@ services:
       --model /models/models--BAAI--bge-m3
       --served_model_name embedding
       --max_model_len 8192
-      --gpu-memory-utilization 0.15
+      --gpu-memory-utilization 0.10
       --port 15001
     deploy:
       resources:
@@ -82,7 +84,6 @@ services:
     container_name: digital_twin_backend
     volumes:
       - ./backend/app:/app/app
-
     ports:
       - "8000:8000"
     environment:
@@ -93,6 +94,10 @@ services:
       - EMBEDDING_BRIDGE_URL=http://embedding:15001/v1
     depends_on:
       postgres:
+        condition: service_healthy
+      LLM:
+        condition: service_healthy
+      embedding:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
@@ -146,6 +151,15 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    depends_on:
+      LLM:
+        condition: service_healthy
+      embedding:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
       interval: 10s

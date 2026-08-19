@@ -4,6 +4,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Optional, Sequence
 
+from app.services.usage_metrics_service import (
+    clone_usage,
+    merge_usage
+)
+
 REQUIRED_DEMOGRAPHIC_KEYS = (
     "age",
     "gender",
@@ -85,7 +90,7 @@ def generate_one_profile(agent: Any, candidate: Any, candidate_payload: Callable
         try:
             result = agent.generate_structured(user_prompt=payload)
             entry = validate_worker_entry(result, candidate.worker_id)
-            return {"entry": entry, "attempts": attempt}
+            return {"entry": entry, "attempts": attempt, "usage": clone_usage(agent.last_usage)}
 
         except Exception as error:
             last_reason = f"{type(error).__name__}: {error}"
@@ -160,5 +165,10 @@ def generate_worker_profiles(document: Any, agent: Any, candidate_payload: Calla
             "failed_count": len(failures),
             "retries": retries,
             "failures": failures,
+            "usage": merge_usage([
+                results_by_id[candidate.worker_id]["usage"]
+                for candidate in candidates
+                if candidate.worker_id in results_by_id
+            ]),
         },
     }

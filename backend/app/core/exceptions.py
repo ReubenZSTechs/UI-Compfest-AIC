@@ -79,6 +79,14 @@ class DuplicateAgentRoleError(ValueError):
     pass
 
 
+class LLMOutputTruncatedError(RuntimeError):
+    """Dilempar saat completion LLM mencapai max_tokens sebelum JSON selesai."""
+
+    def __init__(self, message: str, partial_output: str):
+        super().__init__(message)
+        self.partial_output = partial_output
+
+
 
 # =============================================================================
 # Handlers
