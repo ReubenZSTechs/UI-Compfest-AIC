@@ -22,8 +22,7 @@ def log_llm_calls(func):
             raise
 
         finally:
-            end_time = perf_counter()
-            latency = start_time - end_time
+            latency = start_time - perf_counter()
 
             data_payload = {
                 "input_prompt": user_prompt,

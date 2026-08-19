@@ -7,9 +7,10 @@ from pathlib import Path
 import yaml
 import logging
 import json
+import threading
 
 from app.core.decorators.log_llm_calls import log_llm_calls, log_output_call
-from app.core.exceptions import SchemaValidationError
+from app.core.exceptions import SchemaValidationError, LLMOutputTruncatedError
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,23 @@ CONFIG = {
         'top_p': 1.0
     }
 }
+
+
+def looks_like_stalled_repetition(text: str, tail_window: int = 200,
+                                  block: int = 150, min_repeats: int = 4) -> bool:
+    if not text:
+        return False
+
+    if text[-tail_window:].strip() == "":
+        return True
+
+    needed = block * min_repeats
+    if len(text) < needed:
+        return False
+
+    tail = text[-needed:]
+    chunks = [tail[i:i + block] for i in range(0, needed, block)]
+    return len(set(chunks)) == 1
 
 
 class AgentReader:
@@ -77,7 +95,11 @@ class AgentReader:
         
 
 class Agent:
+    TRUNCATION_RETRY_LIMIT = 2
+    MAX_TOKEN_CEILING = 15000
+
     def __init__(self, yaml_config: str, model_bridge: dict, schema_dir: Path, default_timeout: float = 300.0, default_max_retries: int = 2, api_key: str = "not-needed"):
+        self._local = threading.local()
         self.model_bridge = model_bridge
         self.schema_dir = schema_dir
         self.config_dir = Path(yaml_config).parent
@@ -179,10 +201,9 @@ class Agent:
         return agent_input
 
 
-    def format_generation_args(self):
-        # TODO Find more generation arguments that is OpenAI compatible
+    def format_generation_args(self, max_tokens_override=None):
         generation_args = {
-            'max_tokens': self.agent_generation_config.get('max_tokens', 4096), # TODO Remove max_tokens when agent context manager is built
+            'max_tokens': max_tokens_override or self.agent_generation_config.get('max_tokens', 4096),
             'temperature': self.agent_generation_config.get('temperature', 0.1),
             'top_p': self.agent_generation_config.get('top_p', 0.9),
             'frequency_penalty': self.agent_generation_config.get("frequency_penalty", 0.0),
@@ -196,8 +217,7 @@ class Agent:
 
         return generation_args
 
-
-    def format_extra_body(self, extra_args=None):
+    def format_extra_body(self, extra_args=None, schema=None):
         extra_body = {}
 
         min_p = self.agent_generation_config.get('min_p')
@@ -209,7 +229,7 @@ class Agent:
             extra_body['repetition_penalty'] = repetition_penalty
 
         if self.structured_enabled:
-            extra_body['guided_json'] = self.json_schema
+            extra_body['guided_json'] = schema or self.json_schema
             extra_body['guided_decoding_backend'] = self.agent_generation_config.get(
                 'guided_decoding_backend', 'xgrammar'
             )
@@ -220,7 +240,7 @@ class Agent:
         return extra_body
 
 
-    def format_response_format(self):
+    def format_response_format(self, schema=None):
         if not self.structured_enabled:
             return None
 
@@ -228,10 +248,30 @@ class Agent:
             'type': 'json_schema',
             'json_schema': {
                 'name': self.schema_name,
-                'schema': self.json_schema,
+                'schema': schema or self.json_schema,
                 'strict': self.strict_schema
             }
         }
+
+
+    @property
+    def last_usage(self):
+        return getattr(self._local, "usage", None)
+
+
+    @last_usage.setter
+    def last_usage(self, value):
+        self._local.usage = value
+
+
+    @property
+    def last_finish_reason(self):
+        return getattr(self._local, "finish_reason", None)
+
+
+    @last_finish_reason.setter
+    def last_finish_reason(self, value):
+        self._local.finish_reason = value
 
 
     def parse_structured_output(self, raw_output):
@@ -246,66 +286,114 @@ class Agent:
         return json.loads(cleaned)
 
 
-    def build_request_kwargs(self, msg_payload, extra_args):
+    def build_request_kwargs(self, msg_payload, extra_args, schema=None, max_tokens_override=None):
         request_kwargs = {
             'model': self.model_name,
             'messages': msg_payload,
-            'extra_body': self.format_extra_body(extra_args)
+            'extra_body': self.format_extra_body(extra_args, schema)
         }
 
-        response_format = self.format_response_format()
+        response_format = self.format_response_format(schema)
         if response_format is not None:
             request_kwargs['response_format'] = response_format
 
-        request_kwargs.update(self.format_generation_args())
+        request_kwargs.update(self.format_generation_args(max_tokens_override))
 
         return request_kwargs
     
 
     @log_llm_calls
-    def generate_response(self, user_prompt, extra_args=None, prior_messages=None):
+    def generate_response(self, user_prompt, extra_args=None, prior_messages=None,
+                          schema_override=None, max_tokens_override=None):
         msg_payload = self.format_msg_payload(user_prompt, prior_messages)
-        request_kwargs = self.build_request_kwargs(msg_payload, extra_args)
+        request_kwargs = self.build_request_kwargs(
+            msg_payload, extra_args, schema_override, max_tokens_override
+        )
 
-        response = self.client.chat.completions.create(**request_kwargs)
+        try:
+            response = self.client.chat.completions.create(**request_kwargs)
+
+        except Exception as error:
+            message = str(error).lower()
+            if "context" in message and ("length" in message or "token" in message):
+                raise SchemaValidationError(
+                    f"Role '{self.role}': permintaan melebihi context window model "
+                    f"(max_tokens={request_kwargs.get('max_tokens')}). "
+                    f"Perkecil ukuran shard atau kurangi isi payload."
+                ) from error
+            raise
+
         self.last_usage = response.usage
+        self.last_finish_reason = response.choices[0].finish_reason
         content = response.choices[0].message.content
 
-        finish_reason = response.choices[0].finish_reason
-        if finish_reason == 'length':
-            logger.warning(
-                f"Role '{self.role}' hit max_tokens; output is truncated"
-            )
+        if self.last_finish_reason == 'length':
+            logger.warning(f"Role '{self.role}' hit max_tokens; output is truncated")
 
         return content
 
-
-    def generate_structured(self, user_prompt, extra_args=None):
+    def generate_structured(self, user_prompt, extra_args=None, schema_override=None,
+                            initial_max_tokens=None):
         if not self.structured_enabled:
-            raise ValueError(
-                f"Role '{self.role}' is not configured for structured output"
-            )
+            raise ValueError(f"Role '{self.role}' is not configured for structured output")
 
-        attempt = 0
+        json_attempt = 0
+        truncation_attempt = 0
         prior_messages = None
         last_error = None
+        token_budget = initial_max_tokens or self.agent_generation_config.get('max_tokens', 4096)
 
-        while attempt <= self.repair_attempts:
+        if not isinstance(token_budget, int):
+            raise TypeError(
+                f"Role '{self.role}': token_budget awal bukan int, didapat "
+                f"{type(token_budget).__name__}: {token_budget!r}. "
+                f"Periksa argumen initial_max_tokens yang dikirim ke generate_structured."
+            )
+
+        while json_attempt <= self.repair_attempts:
             raw_output = self.generate_response(
                 user_prompt=user_prompt,
                 extra_args=extra_args,
-                prior_messages=prior_messages
+                prior_messages=prior_messages,
+                schema_override=schema_override,
+                max_tokens_override=token_budget,
             )
+
+            if self.last_finish_reason == 'length':
+                last_error = LLMOutputTruncatedError(
+                    f"Output terpotong pada {len(raw_output)} karakter dengan max_tokens={token_budget}.",
+                    raw_output,
+                )
+
+                stalled = looks_like_stalled_repetition(raw_output)
+
+                if stalled:
+                    logger.warning(
+                        f"Role '{self.role}' truncated output kosong/berulang di ekornya — "
+                        f"tidak akan membantu menaikkan max_tokens. "
+                        f"Ekor: {raw_output[-200:]!r}"
+                    )
+
+                if stalled or truncation_attempt >= self.TRUNCATION_RETRY_LIMIT or token_budget >= self.MAX_TOKEN_CEILING:
+                    break
+
+                truncation_attempt += 1
+                token_budget = min(int(token_budget * 1.6), self.MAX_TOKEN_CEILING)
+                prior_messages = None
+                logger.warning(
+                    f"Role '{self.role}' truncated (percobaan {truncation_attempt}); "
+                    f"menaikkan max_tokens ke {token_budget}"
+                )
+                continue
 
             try:
                 return self.parse_structured_output(raw_output)
 
             except json.JSONDecodeError as e:
                 last_error = e
-                attempt += 1
+                json_attempt += 1
                 logger.warning(
-                    f"Role '{self.role}' returned unparseable JSON "
-                    f"on attempt {attempt}: {e}"
+                    f"Role '{self.role}' returned unparseable JSON on attempt {json_attempt}: {e}"
                 )
                 prior_messages = [
                     {'role': 'assistant', 'content': raw_output},
@@ -318,9 +406,12 @@ class Agent:
                     }
                 ]
 
+        if isinstance(last_error, LLMOutputTruncatedError):
+            raise last_error
+
         raise SchemaValidationError(
             f"Role '{self.role}' failed to produce valid JSON after "
-            f"{self.repair_attempts + 1} attempts: {last_error}"
+            f"{json_attempt + 1} attempts: {last_error}"
         )
     
 

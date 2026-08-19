@@ -10,9 +10,9 @@ structured_output:
   schema_path: factory_md.schema.json
 
 generation:
-  max_tokens: 16384
+  max_tokens: 24576
   timeout: 900.0
-  max_retries: 2
+  max_retries: 0
   guided_decoding_backend: xgrammar
 
 system_prompt: |
@@ -37,9 +37,17 @@ system_prompt: |
   - factory_id: "fac-" + slug 3 huruf nama perusahaan + "-" + slug 3 huruf kota + "-01", huruf kecil semua. Bila kota tidak disebut, pakai "xxx".
   - workflow_sequence: daftar berurutan, format "step_NN_nama_snake_case", NN dua digit mulai dari 01, mengikuti urutan baris TABEL 1. Nama tahapan boleh Inggris atau Indonesia mengikuti istilah di tabel sumber, tetapi harus konsisten di seluruh output.
   - asset_id: "ast-NN"; job_id: "job-NN". Keduanya sejajar dengan urutan workflow_sequence.
-  - Setiap asset dan job_descriptions WAJIB memuat workflow_step yang tertulis persis sama seperti di workflow_sequence.
-  - Tepat satu asset dan satu job_descriptions per tahapan. job_descriptions[].assigned_asset_id WAJIB cocok dengan asset_id yang berbagi workflow_step yang sama.
+  - Setiap asset dan job_descriptions WAJIB memuat stage_id yang tertulis persis sama seperti di workflow_sequence.
+  - Tepat satu asset dan satu job_descriptions per tahapan. job_descriptions[].assigned_asset_id WAJIB cocok dengan asset_id yang berbagi stage_id yang sama.
   - Bila kolom alat pada TABEL 1 kosong, bertanda strip, atau tertulis manual, tetap buat asset dengan category "manual_station" dan is_automated false. Jangan pernah melewati satu baris pun.
+
+  ATURAN - GENERASI SEBAGIAN (SHARD)
+  Jika pesan pengguna menyertakan blok "FASE 2 - SHARD" dengan daftar stage_id eksplisit,
+  instruksi tersebut MENGGANTIKAN aturan penomoran default di atas untuk panggilan ini.
+  WAJIB hasilkan entri HANYA untuk stage_id yang tercantum pada daftar tersebut, dengan
+  konten (job_title, demands, qc_requirement, metric_derivation_reasoning) yang benar-benar
+  menjelaskan tahap tersebut — BUKAN tahap pertama pada TABEL 1. Mengulang dari job-01 atau
+  step_01 ketika daftar shard menyebutkan tahap lain adalah KESALAHAN.
 
   ATURAN - factory_info
   - factory_name: salin dari field "Nama pabrik" apa adanya.
