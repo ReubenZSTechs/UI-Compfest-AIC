@@ -2,6 +2,17 @@
 """
 Endpoint pemrosesan dokumen pabrik & worker (Pipeline Terpadu, Kombinasi 1-5, & Tahap 3 s/d 5).
 Sesuai dengan Standar Kontrak Data Digital Twin System.
+
+Perubahan pada revisi ini:
+1. DITAMBAHKAN: `POST /process-combined-documents-manual` -- versi Kombinasi Tahap 1, 2, 4,
+   & 5 yang menerima payload JSON langsung dari form frontend (menggantikan upload
+   `template` PDF & `worker_zip` ZIP), sesuai spesifikasi-flowchart-form-manual.md.
+   Seluruh validasi silang FK (D01-D08) dilakukan di service layer sebelum data
+   disimpan, sehingga kesalahan seperti stage_id/asset_id/shift_id kosong dilaporkan
+   sebagai HTTP 422 dengan rincian per-node, bukan lolos sebagai IntegrityError.
+2. `/process-combined-documents` (alur otomatis PDF/ZIP) TIDAK diubah endpoint-nya --
+   tetap dipertahankan untuk kompatibilitas, kini memakai repository.py yang sudah
+   diperbaiki (persist ProcessStage & Shift yang sebelumnya hilang).
 """
 
 from __future__ import annotations
@@ -17,6 +28,8 @@ from app.modules.documents.exceptions import DocumentParserPipelineError
 
 from app.modules.documents.schemas import (
     ParseJobResult,
+    ProcessCombinedDocumentsManualRequest,
+    ProcessCombinedDocumentsManualResponse,
     ProcessCombinedDocumentsResponse,
     ProcessFactoryDocumentResponse,
     Step3Request,
@@ -62,7 +75,7 @@ async def process_factory_document(
         raise _handle_error(err) from err
 
 
-# --- Endpoint Kombinasi Tahap 1-2, Tahap 4, & Tahap 5 ---
+# --- Endpoint Kombinasi Tahap 1-2, Tahap 4, & Tahap 5 (ALUR OTOMATIS: PDF + ZIP) ---
 
 @router.post(
     "/process-combined-documents",
@@ -92,6 +105,9 @@ async def process_combined_documents(
     Menerima dokumen pabrik dan ZIP CV pekerja secara bersamaan, mengekstraksi data,
     mengeksekusi Agent A (Struktur Pabrik), Agent B (Profil Pekerja), serta generasi
     Matriks Kompatibilitas (Tahap 5) dalam satu alur terpadu. Hasilnya langsung tersimpan ke Digital Twin DB.
+
+    Catatan: untuk input MANUAL (form frontend, tanpa upload PDF/ZIP), gunakan
+    `POST /process-combined-documents-manual` di bawah.
     """
     try:
         result = await service.process_combined_documents_pipeline(
@@ -103,6 +119,44 @@ async def process_combined_documents(
             max_attempts=max_attempts,
         )
         return ProcessCombinedDocumentsResponse.model_validate(result)
+    except DocumentParserPipelineError as err:
+        raise _handle_error(err) from err
+
+
+# --- Endpoint Kombinasi Tahap 1-2, Tahap 4, & Tahap 5 (ALUR MANUAL: Form Frontend) ---
+
+@router.post(
+    "/process-combined-documents-manual",
+    response_model=ProcessCombinedDocumentsManualResponse,
+    response_model_by_alias=True,
+    summary="Kombinasi Tahap 1, 2, 4, & 5 (Input Manual via Form Frontend)",
+)
+async def process_combined_documents_manual(
+    payload: ProcessCombinedDocumentsManualRequest,
+    db: AsyncSession = Depends(get_db),
+) -> ProcessCombinedDocumentsManualResponse:
+    """
+    Menerima seluruh data pabrik (Factory), aset, tahapan proses, shift, job desk,
+    pekerja, dan evaluasi kompatibilitas langsung sebagai payload JSON dari form
+    frontend -- menggantikan upload `template` (PDF/DOCX/dsb) & `worker_zip` (ZIP)
+    pada `/process-combined-documents`.
+
+    Seluruh relasi FK antar-entitas (stage_id, assigned_asset_id, shift_id, worker_id,
+    job_id, dst.) divalidasi di memori terlebih dahulu (setara node D01-D08 pada
+    spesifikasi-flowchart-form-manual.md) sebelum data dicoba disimpan ke Digital Twin
+    DB dalam satu transaksi. Bila validasi gagal, response 422 akan memuat `stage`
+    (nama node yang gagal, mis. `D06_VALIDASI_JOB_DESK`) dan `details` berisi daftar
+    pesan kesalahan per-item sehingga frontend bisa menyorot field yang bermasalah.
+
+    Set `overwriteExistingFactory: true` pada payload bila bermaksud memperbarui
+    data pabrik yang factory_id-nya sudah terdaftar (bukan membuat baru).
+    """
+    try:
+        result = await service.process_combined_documents_manual_pipeline(
+            payload=payload,
+            db=db,
+        )
+        return ProcessCombinedDocumentsManualResponse.model_validate(result)
     except DocumentParserPipelineError as err:
         raise _handle_error(err) from err
 
@@ -206,7 +260,7 @@ async def generate_compatibility_matrix(
     summary="Ambil Detail Audit Log Parsing Job",
 )
 async def get_parse_job_detail(
-    job_id: str = Path(..., description="ID Pekerjaan parsing dokumen (DocumentParseJob)"),
+    job_id: int = Path(..., description="ID Pekerjaan parsing dokumen (DocumentParseJob)"),
     db: AsyncSession = Depends(get_db),
 ) -> ParseJobResult:
     """Mendapatkan detail hasil audit trail pencatatan parsing job berdasarkan ID."""

@@ -1,16 +1,122 @@
-// features/simulation/api/simulationApi.mock.ts
-// Stand-in for a real `simulationApi.ts` (REST) or `websocket.ts` (live push) source.
-// Swap `fetchLiveSimulationState` for a real endpoint call once the backend exists;
-// the component tree only depends on the SimulationResponse shape, not on this file.
+// features/simulation_optimisation/api/simulationApi.ts
+//
+// REVISI (arsitektur Client-Side Simulation):
+// Backend TIDAK LAGI punya endpoint "jalankan simulasi" (GET /rl-optimization/
+// simulation/live sudah dihapus -- dulu selalu NotImplementedError). Tick
+// simulasi di bawah ini (`fetchLiveSimulationState`) memang SUDAH murni lokal
+// sejak awal (jitter-based, tanpa network call) -- itu tidak berubah.
+//
+// Yang berubah: initial state sekarang dibangun dari Digital Twin ASLI lewat
+// `fetchDigitalTwin()` (GET /rl-optimization/digital-twin, Fase Inisialisasi),
+// bukan dari `FALLBACK_SEED_STATE` hardcoded di bawah. Fallback tetap
+// dipertahankan untuk kondisi belum ada factory ter-parse / dev tanpa backend,
+// sama seperti pola fallback statis di `features/simulation`.
 
+import { apiClient } from '@/api/client';
+import { ENDPOINTS } from '@/api/endpoints';
 import type {
   BurnoutRisk,
   CurrentAssignment,
   SimulationResponse,
   StepBreakdown,
+  StepStatus,
 } from '../types/simulation.types';
+import type { DigitalTwin as RlDigitalTwin } from '../types/digitalTwinRl.types';
 
-const SEED_STATE: SimulationResponse = {
+/** GET /rl-optimization/digital-twin?factory_id=... — Fase Inisialisasi.
+ * Backend TIDAK menghitung apa pun di sini, hanya membaca & memetakan data
+ * twin yang sudah tersimpan (sumber sama dengan features/digital-twin). */
+export async function fetchDigitalTwin(factoryId: string): Promise<RlDigitalTwin | null> {
+  try {
+    const { data } = await apiClient.get<RlDigitalTwin>(ENDPOINTS.RL_OPTIMIZATION.DIGITAL_TWIN, {
+      params: { factory_id: factoryId },
+    });
+    return data;
+  } catch {
+    // 404 = belum ada factory ter-parse untuk id ini -- bukan error fatal,
+    // caller (useSimulationInit) akan jatuh ke FALLBACK_SEED_STATE.
+    return null;
+  }
+}
+
+const clampFraction = (v: number) => Math.min(1, Math.max(0, v));
+
+function riskFromLevelsInit(fatigue: number, stress: number): BurnoutRisk {
+  if (fatigue > 0.65 || stress > 0.55) return 'high';
+  if (fatigue > 0.4 || stress > 0.35) return 'medium';
+  return 'low';
+}
+
+/** Fungsi murni: Digital Twin (struktur asli) -> SimulationResponse (seed tick-0).
+ * Ini SATU-SATUNYA tempat initial state dihitung -- tidak ada implementasi
+ * kedua di backend, supaya tidak ada risiko divergensi antara keduanya. */
+export function buildSeedFromDigitalTwin(twin: RlDigitalTwin): SimulationResponse {
+  const assetById = new Map(twin.assets.map((a) => [a.assetId, a]));
+
+  const current_assignments: CurrentAssignment[] = twin.jobDescriptions.map((job) => {
+    const asset = assetById.get(job.assignedAssetId);
+    // Baseline fatigue/stress diturunkan dari compatibility evaluation kalau
+    // ada, atau nilai netral kecil kalau belum dievaluasi -- bukan angka acak.
+    const evaluation = twin.llmCompatibilityAndEvaluations.find(
+      (ce) => ce.jobId === job.jobId,
+    );
+    const fatigue = clampFraction(0.15 + (evaluation?.evaluations.errorMultiplier ?? 1) * 0.05);
+    const stress = clampFraction(0.12 + job.demands.taskComplexity * 0.2);
+
+    return {
+      worker_id: evaluation?.workerId ?? `unassigned-${job.jobId}`,
+      assigned_job_id: job.jobId,
+      assigned_asset_id: job.assignedAssetId,
+      calculated_realtime_metrics: {
+        current_fatigue_level: fatigue,
+        current_stress_level: stress,
+        effective_throughput_per_hour:
+          (asset?.baseThroughputCapacity ?? 0) * (evaluation?.evaluations.throughputMultiplier ?? 1),
+        effective_error_probability: clampFraction(0.01 * (evaluation?.evaluations.errorMultiplier ?? 1)),
+        burnout_hazard_risk: riskFromLevelsInit(fatigue, stress),
+      },
+    };
+  });
+
+  const step_breakdown: StepBreakdown[] = twin.factoryInfo.workflowSequence.map((stepId) => {
+    const job = twin.jobDescriptions.find((j) => j.workflowStep === stepId);
+    const asset = job ? assetById.get(job.assignedAssetId) : undefined;
+    return {
+      step_id: stepId,
+      step_name: job?.jobTitle ?? stepId,
+      status: 'normal' as StepStatus,
+      output_generated: asset?.baseThroughputCapacity ?? 0,
+      operational_cost_idr: asset?.operationalCostPerHour ?? 0,
+    };
+  });
+
+  const total_output_units = step_breakdown.length
+    ? step_breakdown[step_breakdown.length - 1].output_generated
+    : 0;
+  const total_operational_cost_idr = step_breakdown.reduce((s, x) => s + x.operational_cost_idr, 0);
+
+  return {
+    live_simulation_state: {
+      current_assignments,
+      system_bottlenecks: [],
+      simulation_summary: {
+        total_output_units,
+        target_output_units: total_output_units || 1,
+        production_achievement_percentage: total_output_units ? 100 : 0,
+        total_operational_cost_idr,
+        cost_per_unit_idr: total_output_units
+          ? Number((total_operational_cost_idr / total_output_units).toFixed(2))
+          : 0,
+        efficiency_score: 75,
+      },
+      step_breakdown,
+      analytical_insight_summary: `Simulasi dimulai dari data twin factory ${twin.factoryInfo.factoryId}.`,
+    },
+  };
+}
+
+// --- Fallback statis (dev tanpa backend / belum ada factory ter-parse) -----
+const FALLBACK_SEED_STATE: SimulationResponse = {
   live_simulation_state: {
     current_assignments: [
       { worker_id: 'wrk-01', assigned_job_id: 'job-01', assigned_asset_id: 'ast-01', calculated_realtime_metrics: { current_fatigue_level: 0.2, current_stress_level: 0.18, effective_throughput_per_hour: 300.0, effective_error_probability: 0.01, burnout_hazard_risk: 'low' } },
@@ -95,7 +201,7 @@ export async function fetchLiveSimulationState(
 ): Promise<SimulationResponse> {
   await new Promise((resolve) => setTimeout(resolve, 350 + Math.random() * 250));
 
-  const source = previous ?? SEED_STATE;
+  const source = previous ?? FALLBACK_SEED_STATE;
   const bottleneckIds = new Set(source.live_simulation_state.system_bottlenecks);
 
   const current_assignments = source.live_simulation_state.current_assignments.map(nextAssignment);
@@ -138,5 +244,5 @@ export async function fetchLiveSimulationState(
 }
 
 export function getSeedSimulationState(): SimulationResponse {
-  return SEED_STATE;
+  return FALLBACK_SEED_STATE;
 }

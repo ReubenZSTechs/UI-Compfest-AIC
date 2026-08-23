@@ -1,0 +1,89 @@
+.topbar {
+  height: 4rem;
+  background-color: var(--twin-surface);
+  border-bottom: 1px solid var(--twin-border);
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--twin-text-primary);
+  margin: 0;
+}
+
+.badge {
+  background-color: rgba(95, 174, 114, 0.12);
+  color: var(--twin-accent-safe);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  border: 1px solid rgba(95, 174, 114, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--twin-font-mono);
+}
+
+.dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background-color: var(--twin-accent-safe);
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: var(--twin-surface-raised);
+  border: 1px solid var(--twin-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--twin-accent-automated);
+  font-family: var(--twin-font-mono);
+}
+
+.userInfo {
+  text-align: left;
+}
+
+.userName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--twin-text-primary);
+  line-height: 1;
+}
+
+.userEmail {
+  font-size: 0.75rem;
+  color: var(--twin-text-muted);
+  margin-top: 0.25rem;
+  font-family: var(--twin-font-mono);
+}

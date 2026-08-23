@@ -24,7 +24,7 @@ interface ParseErrorDetail {
   details?: string[];
 }
 
-const PARSE_TIMEOUT_MS = 5 * 60 * 1000;
+const PARSE_TIMEOUT_MS = 25 * 60 * 1000;
 
 const STEP_ORDER: ParseStepId[] = [
   'upload',
@@ -95,6 +95,12 @@ export const documentParserApi = {
     onStepUpdate('upload', 'active');
 
     try {
+      // Backend mengembalikan bentuk response yang tidak konsisten (snake_case/
+      // camelCase campur, field opsional berbeda per jalur pipeline) -- lihat
+      // akses properti longgar di bawah. Mengetatkan ini butuh mendefinisikan
+      // union type penuh untuk seluruh kemungkinan bentuk response backend
+      // (pipeline kombinasi vs per-tahap), di luar scope perbaikan lint kali ini.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await apiClient.post<Record<string, any>>(endpointUrl, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: PARSE_TIMEOUT_MS,
@@ -154,7 +160,7 @@ export const documentParserApi = {
         }
       });
 
-      throw new Error(message);
+      throw new Error(message, { cause: error });
     }
   },
 };

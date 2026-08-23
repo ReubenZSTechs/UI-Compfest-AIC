@@ -12,16 +12,29 @@ Perubahan pada revisi ini:
    `factory_id`/`job_desks_parsed`/`workers_parsed` hanya diisi bila ingestion sukses.
 2. Ditambahkan logging JSON pretty-printed di setiap tahap pipeline (START/SUCCESS/ERROR)
    untuk mempermudah debugging melalui console/log server.
-3. FIX: Menyesuaikan mode ekstraksi dokumen (mendukung Workbook/PDF) secara defensif dengan 
+3. FIX: Menyesuaikan mode ekstraksi dokumen (mendukung Workbook/PDF) secara defensif dengan
    mengubah variabel `document` menjadi `source` dan mengambil metrik menggunakan `getattr`.
 4. FIX: Menambahkan dukungan ekstensi Excel (.xlsx, .xls) dan CSV ke TEMPLATE_SUFFIXES.
+5. FIX RUNTIME BUG: Penggunaan `str(factory_id)[:8]` pada `get_parsed_factories_list` untuk
+   mencegah TypeError jika `factory_id` bernilai `int`.
+6. UPDATE FACTORY ID LOGIC: Memperbarui `_apply_job_id_to_factory_id` agar menggabungkan
+   `parseJobId` (contoh: `fac-ptxyz-yog-01-job6`) atau UUID unik ke `factory_id` untuk
+   menjamin keunikan entitas pabrik di database.
+7. BARU: `process_combined_documents_manual_pipeline` -- versi Kombinasi Tahap 1, 2, 4, & 5
+   yang menerima data langsung dari form frontend (bukan PDF/ZIP), dengan validasi silang
+   FK (setara node D01-D08 pada spesifikasi flowchart form manual) dilakukan SEBELUM data
+   coba disimpan ke DB, sehingga kesalahan seperti `stage_id` kosong terdeteksi lebih awal
+   dan dengan pesan yang jelas, bukan sebagai `IntegrityError` dari Postgres.
 """
+
 from __future__ import annotations
 
 import asyncio
 import json
+import re
 import tempfile
 import traceback
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -32,8 +45,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from app.modules.digital_twin_ingestion import schemas as dt_schemas
-from app.modules.digital_twin_ingestion.service import DigitalTwinService
+from app.modules.digital_twin_ingestion.models import Factory
+from app.modules.documents import schemas
 from app.modules.documents.models import DocumentParseJob
+from app.modules.documents.repository import (
+    persist_completed_pipeline,
+    record_failed_parse_job,
+)
 from app.services.agent_registry_service import AgentRole, get_agent_registry
 from app.services.cross_reference_job_worker_service import (
     CompatibilityEvaluationError,
@@ -41,7 +59,6 @@ from app.services.cross_reference_job_worker_service import (
 )
 from app.services.cv_pdf_parser_service import (
     build_worker_agent_input,
-    build_worker_agent_input_chunks,
     candidate_payload,
 )
 from app.services.extract_input_field_service import (
@@ -60,7 +77,7 @@ from app.services.generate_worker_profiles_service import (
 
 from .exceptions import DocumentParserPipelineError
 
-# FIX: Menambahkan ekstensi file Excel dan CSV agar tidak di-reject dengan Error 422
+# Dukungan ekstensi file template & CV pekerja
 TEMPLATE_SUFFIXES = {".pdf", ".docx", ".md", ".markdown", ".txt", ".xlsx", ".xls", ".csv"}
 WORKER_SUFFIXES = {".zip"}
 
@@ -112,9 +129,6 @@ def _log_json(step_name: str, status: str, **data: Any) -> None:
     """
     Mencetak log berbasis JSON (pretty-printed) ke console/stdout untuk setiap
     tahapan pipeline, guna mempermudah proses debugging.
-
-    status: "START" | "SUCCESS" | "ERROR"
-    data: field tambahan bebas, mis. payload=..., output=..., error=...
     """
     log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -138,7 +152,7 @@ def _log_error(step_name: str, error: Exception, **extra: Any) -> None:
 
 
 # --------------------------------------------------------------------------
-# Helper umum
+# Helper Umum
 # --------------------------------------------------------------------------
 
 def _validate_suffix(filename: str, allowed_suffixes: set[str], label: str) -> None:
@@ -162,19 +176,71 @@ def _to_dict(obj: Any) -> dict[str, Any]:
     return {}
 
 
+def _apply_job_id_to_factory_id(
+    factory_struct: Any,
+    job_id: int | str | None = None,
+    unique_suffix: str | None = None,
+) -> str:
+    """
+    Menggabungkan parseJobId (contoh: fac-ptxyz-yog-01-job6) atau UUID unik
+    ke factory_id untuk menjamin keunikan ID pabrik di database.
+    """
+    if job_id is not None and str(job_id).strip():
+        suffix = f"-job{job_id}"
+    elif unique_suffix:
+        clean_suffix = str(unique_suffix).strip()
+        suffix = clean_suffix if clean_suffix.startswith("-") else f"-{clean_suffix}"
+    else:
+        suffix = f"-{uuid.uuid4().hex[:6]}"
+
+    final_id = ""
+
+    def _format_id(raw_id: Any) -> str:
+        s_raw = str(raw_id or "FAC").strip()
+        if not s_raw:
+            s_raw = "FAC"
+
+        if s_raw.endswith(suffix):
+            return s_raw
+
+        # Hapus suffix lama (-jobX atau UUID hex) jika ada agar tidak bertumpuk
+        pattern = r"(-job\d+|-job-[a-f0-9]+|-[a-f0-9]{6,8})$"
+        if re.search(pattern, s_raw, re.IGNORECASE):
+            base_id = re.sub(pattern, "", s_raw, flags=re.IGNORECASE)
+        else:
+            base_id = s_raw
+
+        return f"{base_id}{suffix}"
+
+    if isinstance(factory_struct, dict):
+        factory_info = factory_struct.get("factory_info", {})
+        if isinstance(factory_info, dict):
+            raw_id = factory_info.get("factory_id", "FAC")
+            final_id = _format_id(raw_id)
+            factory_info["factory_id"] = final_id
+            factory_struct["factory_info"] = factory_info
+    else:
+        if hasattr(factory_struct, "factory_info") and factory_struct.factory_info:
+            factory_info = getattr(factory_struct, "factory_info")
+            if isinstance(factory_info, dict):
+                raw_id = factory_info.get("factory_id", "FAC")
+                final_id = _format_id(raw_id)
+                factory_info["factory_id"] = final_id
+            elif hasattr(factory_info, "factory_id"):
+                raw_id = getattr(factory_info, "factory_id", "FAC")
+                final_id = _format_id(raw_id)
+                try:
+                    setattr(factory_info, "factory_id", final_id)
+                except Exception:
+                    pass
+
+    return final_id
+
+
 def _build_placeholder_asset(asset_id: str) -> dict[str, Any]:
     """
     Membuat entri asset placeholder untuk asset_id yang direferensikan oleh
-    process_stages tapi tidak ada di daftar assets hasil ekstraksi LLM
-    (kemungkinan LLM 'berhalusinasi' referensi asset yang tidak ia definisikan
-    sendiri). Semua field wajib diisi agar tetap lolos validasi skema
-    `dt_schemas.Asset` (mis. `raw` pada Quantity tidak boleh null) sekaligus
-    aman disimpan ke database (memenuhi FK `process_stages.asset_id`).
-
-    Pendekatan ini dipilih ketimbang meng-null-kan `asset_id` pada stage,
-    karena skema `ProcessStage.asset_id` mewajibkan string non-kosong
-    (`minLength: 1`) -- meng-null-kan field ini akan gagal validasi Pydantic
-    sebelum data sempat disimpan sama sekali.
+    process_stages tapi tidak ada di daftar assets hasil ekstraksi LLM.
     """
     return {
         "asset_id": asset_id,
@@ -207,9 +273,7 @@ def _build_placeholder_asset(asset_id: str) -> dict[str, Any]:
         },
         "metric_derivation_reasoning": (
             f"Asset placeholder dibuat otomatis karena asset_id '{asset_id}' "
-            f"direferensikan oleh process stage namun tidak terdaftar pada "
-            f"daftar assets hasil ekstraksi dokumen. Data metrik aktual perlu "
-            f"diverifikasi/dilengkapi secara manual."
+            f"direferensikan oleh process stage namun tidak terdaftar pada assets."
         ),
     }
 
@@ -221,17 +285,9 @@ def build_digital_twin_from_results(
     warnings: list[str] | None = None,
 ) -> dt_schemas.DigitalTwin:
     """
-    Helper untuk mengonversi hasil parsing mentah (dict atau model Pydantic)
-    menjadi skema DigitalTwin Pydantic yang valid.
-
-    Menangani fallback penamaan key 'job_descriptions' -> 'job_desks',
-    meratakan (flatten) nested compatibility_matrix, serta memvalidasi:
-    - setiap worker_id pada evaluasi terdaftar di daftar workers
-    - setiap asset_id yang direferensikan process_stages terdaftar di daftar assets
-    untuk mencegah ForeignKeyViolationError di PostgreSQL.
+    Helper untuk mengonversi hasil parsing mentah menjadi skema DigitalTwin Pydantic yang valid.
     """
     _log_json("build_digital_twin_from_results", "START")
-
     if warnings is None:
         warnings = []
 
@@ -244,40 +300,16 @@ def build_digital_twin_from_results(
             else {"llm_compatibility_and_evaluations": compatibility_matrix}
         )
 
-        # 1. Ekstraksi Factory Info, Assets, Process Stages & Shifts
         factory_info_data = fac_dict.get("factory_info", {})
         assets_data = fac_dict.get("assets", [])
         process_stages_data = fac_dict.get("process_stages", [])
         shifts_data = fac_dict.get("shifts", [])
+        job_desks_data = fac_dict.get("job_desks") or fac_dict.get("job_descriptions") or []
 
-        _log_json(
-            "build_digital_twin_from_results.extract_factory",
-            "SUCCESS",
-            factory_id=factory_info_data.get("factory_id"),
-            assets_count=len(assets_data) if isinstance(assets_data, list) else 0,
-            process_stages_count=len(process_stages_data) if isinstance(process_stages_data, list) else 0,
-            shifts_count=len(shifts_data) if isinstance(shifts_data, list) else 0,
-        )
-
-        # 2. Ekstraksi Job Desks (Konsistensi Fallback Key)
-        job_desks_data = (
-            fac_dict.get("job_desks")
-            or fac_dict.get("job_descriptions")
-            or []
-        )
-
-        # 3. Ekstraksi Workers & Penentuan valid_worker_ids
         workers_data = wrk_dict.get("workers", wrk_dict if isinstance(wrk_dict, list) else [])
         if isinstance(workers_data, dict) and "workers" in workers_data:
             workers_data = workers_data["workers"]
-        elif isinstance(wrk_dict, dict) and "worker_profile" in wrk_dict:
-            inner_wp = wrk_dict["worker_profile"]
-            if isinstance(inner_wp, dict):
-                workers_data = inner_wp.get("workers", [])
-            elif isinstance(inner_wp, list):
-                workers_data = inner_wp
 
-        # Kumpulkan seluruh worker_id yang valid
         valid_worker_ids: set[str] = set()
         if isinstance(workers_data, list):
             for w in workers_data:
@@ -286,7 +318,6 @@ def build_digital_twin_from_results(
                 if w_id:
                     valid_worker_ids.add(str(w_id))
 
-        # Kumpulkan seluruh asset_id yang valid (untuk validasi referensi process_stages)
         valid_asset_ids: set[str] = set()
         if isinstance(assets_data, list):
             for a in assets_data:
@@ -295,14 +326,6 @@ def build_digital_twin_from_results(
                 if a_id:
                     valid_asset_ids.add(str(a_id))
 
-        # Validasi process_stages: asset_id wajib terdaftar di daftar assets,
-        # agar tidak memicu ForeignKeyViolationError saat insert ke tabel process_stages.
-        #
-        # PENTING: asset_id TIDAK di-null-kan bila tidak ditemukan (percobaan sebelumnya
-        # melakukan ini, tapi skema ProcessStage.asset_id mewajibkan string non-kosong
-        # sehingga null akan gagal validasi Pydantic). Sebagai gantinya, dibuatkan
-        # asset placeholder otomatis (lihat `_build_placeholder_asset`) agar referensi
-        # tetap valid baik di level skema Pydantic maupun FK database.
         placeholder_asset_ids_created: set[str] = set()
         filtered_stages: list[dict[str, Any]] = []
         if isinstance(process_stages_data, list):
@@ -315,29 +338,15 @@ def build_digital_twin_from_results(
                         valid_asset_ids.add(stage_asset_id)
                         placeholder_asset_ids_created.add(stage_asset_id)
                     warnings.append(
-                        f"Process stage '{stage_dict.get('stage_id')}' mereferensikan "
-                        f"asset_id '{stage_asset_id}' yang tidak terdaftar pada daftar assets; "
-                        f"asset placeholder otomatis telah dibuat agar integritas referensial "
-                        f"tetap terjaga. Data metrik asset ini perlu diverifikasi manual."
+                        f"Process stage '{stage_dict.get('stage_id')}' mereferensikan asset_id '{stage_asset_id}' "
+                        f"yang tidak terdaftar pada assets; asset placeholder dibuat otomatis."
                     )
                 filtered_stages.append(stage_dict)
         process_stages_data = filtered_stages
 
-        _log_json(
-            "build_digital_twin_from_results.validate_workers_assets",
-            "SUCCESS",
-            valid_worker_ids_count=len(valid_worker_ids),
-            valid_asset_ids_count=len(valid_asset_ids),
-            placeholder_assets_created=len(placeholder_asset_ids_created),
-            job_desks_count=len(job_desks_data) if isinstance(job_desks_data, list) else 0,
-        )
-
-        # 4. Transformasi & Ekstraksi Matriks Kompatibilitas
         evals_data = mat_dict.get("llm_compatibility_and_evaluations")
-
         if evals_data is None:
             raw_matrix = mat_dict.get("compatibility_matrix", mat_dict)
-
             if isinstance(raw_matrix, list):
                 evals_data = raw_matrix
             elif isinstance(raw_matrix, dict):
@@ -360,7 +369,6 @@ def build_digital_twin_from_results(
             else:
                 evals_data = []
 
-        # Validasi & filter evaluasi agar worker_id wajib ada pada valid_worker_ids
         filtered_evals: list[dict[str, Any]] = []
         if isinstance(evals_data, list):
             for ev in evals_data:
@@ -373,13 +381,6 @@ def build_digital_twin_from_results(
                         f"Evaluasi kompatibilitas untuk worker_id '{e_wid}' diabaikan "
                         f"karena worker_id tidak terdaftar pada tabel workers."
                     )
-
-        _log_json(
-            "build_digital_twin_from_results.flatten_compatibility_matrix",
-            "SUCCESS",
-            evaluated_pairs=len(filtered_evals),
-            warnings_count=len(warnings),
-        )
 
         dt_payload = {
             "factory_info": factory_info_data,
@@ -431,53 +432,30 @@ async def process_factory_document_pipeline(
 
     job: DocumentParseJob | None = None
     if db is not None:
-        job = DocumentParseJob(
-            status="in_progress",
-            template_filename=filename,
-        )
+        job = DocumentParseJob(status="in_progress", template_filename=filename)
         db.add(job)
         await db.commit()
         await db.refresh(job)
-        _log_json(
-            "process_factory_document_pipeline.audit_job_created",
-            "SUCCESS",
-            output={"job_id": job.id, "status": job.status},
-        )
 
     warnings: list[str] = []
 
     try:
-        # 1. Ekstraksi File Dokumen
         with tempfile.TemporaryDirectory(prefix="doc_pipeline_") as tmp_dir:
             tmp_path = Path(tmp_dir) / filename
             tmp_path.write_bytes(await template.read())
 
             try:
-                # `source` bisa berupa objek PDF/DOCX (Document) atau mode Workbook
                 source = await run_in_threadpool(extract_any, tmp_path)
             except UnsupportedDocumentError as error:
                 raise DocumentParserPipelineError("extract", str(error)) from error
 
-        # Mengambil atribut secara defensif karena mode workbook mungkin tidak memilikinya
         tables = getattr(source, "tables", [])
         tables_count = len(tables)
         text_fields = getattr(source, "text_fields", {})
         raw_text = getattr(source, "raw_text", "")
 
-        _log_json(
-            "process_factory_document_pipeline.extract_any",
-            "SUCCESS",
-            output={
-                "tables_count": tables_count,
-                "text_fields_count": len(text_fields),
-            },
-        )
-
-        # Validasi kelengkapan dokumen mentah
         if tables_count < 3:
-            warnings.append(
-                f"Dokumen template hanya berisi {tables_count} tabel (diharapkan 3)."
-            )
+            warnings.append(f"Dokumen template hanya berisi {tables_count} tabel (diharapkan 3).")
 
         missing_tables_func = getattr(source, "missing_tables", None)
         if callable(missing_tables_func):
@@ -493,17 +471,8 @@ async def process_factory_document_pipeline(
             if missing_fields:
                 warnings.append(f"Field template belum terbaca: {', '.join(missing_fields)}")
 
-        if warnings:
-            _log_json(
-                "process_factory_document_pipeline.validate_document",
-                "SUCCESS",
-                payload={"warnings": warnings},
-            )
-
-        # 2. Formulasi prompt untuk Agent A
         agent_input = build_agent_input(source)
 
-        # 3. Eksekusi Agent A (Struktur Pabrik)
         registry = get_agent_registry()
         factory_agent = registry.get(AgentRole.FACTORY_STRUCTURE)
 
@@ -517,16 +486,17 @@ async def process_factory_document_pipeline(
                 "llm_parse", f"Agent struktur pabrik gagal: {error}"
             ) from error
 
+        if job is not None and job.id:
+            _apply_job_id_to_factory_id(twin, job_id=job.id)
+        else:
+            _apply_job_id_to_factory_id(twin, unique_suffix=uuid.uuid4().hex[:6])
+
         fac_structure_dict = _to_dict(twin)
-        _log_json(
-            "process_factory_document_pipeline.agent_factory_structure",
-            "SUCCESS",
-            output={
-                "factory_id": fac_structure_dict.get("factory_info", {}).get("factory_id"),
-                "assets_count": len(fac_structure_dict.get("assets", [])),
-                "process_stages_count": len(fac_structure_dict.get("process_stages", [])),
-            },
-        )
+
+        if job is not None and job.id:
+            _apply_job_id_to_factory_id(fac_structure_dict, job_id=job.id)
+        else:
+            _apply_job_id_to_factory_id(fac_structure_dict, unique_suffix=uuid.uuid4().hex[:6])
 
         if db is not None and job is not None:
             factory_info = fac_structure_dict.get("factory_info", {})
@@ -542,15 +512,9 @@ async def process_factory_document_pipeline(
             job.factory_structure = fac_structure_dict
             await db.commit()
             await db.refresh(job)
-            _log_json(
-                "process_factory_document_pipeline.audit_job_updated",
-                "SUCCESS",
-                output={"job_id": job.id, "status": job.status},
-            )
 
-        # Menggunakan field yang sudah diekstrak secara defensif
-        result = {
-            "parse_job_id": job.id if job else None,
+        return {
+            "parse_job_id": str(job.id) if (job and job.id) else None,
             "extraction_summary": {
                 "extracted_fields": text_fields,
                 "tables_count": tables_count,
@@ -558,16 +522,8 @@ async def process_factory_document_pipeline(
                 "warnings": warnings,
             },
             "agent_input": agent_input,
-            "factory_structure": twin,
+            "factory_structure": fac_structure_dict,
         }
-
-        _log_json(
-            "process_factory_document_pipeline",
-            "SUCCESS",
-            output={"parse_job_id": result["parse_job_id"], "warnings_count": len(warnings)},
-        )
-
-        return result
 
     except DocumentParserPipelineError as err:
         _log_error("process_factory_document_pipeline", err, payload={"stage": err.stage})
@@ -601,15 +557,13 @@ async def process_factory_document_pipeline(
 # Tahap 4: Ekstraksi ZIP CV & Agent B (Profil Pekerja)
 # --------------------------------------------------------------------------
 
-WORKER_PROFILE_CHUNK_SIZE = 4  # jumlah CV per panggilan LLM, tuning berdasarkan max_tokens agent
-
-
 async def step_4_extract_worker_profiles(
     worker_zip: UploadFile,
     strict: bool = False,
     max_workers: int = 4,
     max_attempts: int = 3,
 ) -> dict[str, Any]:
+    """Ekstraksi berkas arsip CV pekerja dan pembuatan profil terstruktur."""
     filename = worker_zip.filename or "workers.zip"
     _log_json(
         "step_4_extract_worker_profiles",
@@ -642,20 +596,9 @@ async def step_4_extract_worker_profiles(
 
             worker_agent_input = build_worker_agent_input(worker_document)
 
-        _log_json(
-            "step_4_extract_worker_profiles.extract_archive",
-            "SUCCESS",
-            output={
-                "candidates_found": len(worker_document.candidates),
-                "rejected_blocks_count": len(worker_document.rejected_blocks),
-                "archives_count": len(archive_reports),
-            },
-        )
-
         registry = get_agent_registry()
         worker_agent = registry.get(AgentRole.WORKER_PROFILE)
 
-        _log_json("step_4_extract_worker_profiles.agent_worker_profile", "START")
         try:
             result = await run_in_threadpool(
                 generate_worker_profiles,
@@ -671,15 +614,8 @@ async def step_4_extract_worker_profiles(
                 "llm_parse", f"Agent profil pekerja gagal: {error}"
             ) from error
 
-        result_dict = _to_dict(result)
-        _log_json(
-            "step_4_extract_worker_profiles.agent_worker_profile",
-            "SUCCESS",
-            output={"workers_count": len(result_dict.get("workers", []))},
-        )
-
-        payload = {
-            "worker_profile": result,
+        return {
+            "worker_profile": _to_dict(result),
             "worker_agent_input": worker_agent_input,
             "candidates_found": len(worker_document.candidates),
             "rejected_blocks_count": len(worker_document.rejected_blocks),
@@ -692,18 +628,8 @@ async def step_4_extract_worker_profiles(
                 }
                 for r in archive_reports
             ],
+            "warnings": [],
         }
-
-        _log_json(
-            "step_4_extract_worker_profiles",
-            "SUCCESS",
-            output={
-                "candidates_found": payload["candidates_found"],
-                "rejected_blocks_count": payload["rejected_blocks_count"],
-            },
-        )
-
-        return payload
 
     except DocumentParserPipelineError as err:
         _log_error("step_4_extract_worker_profiles", err, payload={"stage": err.stage})
@@ -745,11 +671,6 @@ async def step_5_generate_compatibility_matrix(
         registry = get_agent_registry()
         compatibility_agent = registry.get(AgentRole.WORKER_COMPATIBILITY)
 
-        _log_json(
-            "step_5_generate_compatibility_matrix.agent_compatibility",
-            "START",
-            payload={"worker_count": len(worker_list) if isinstance(worker_list, list) else 0},
-        )
         try:
             matrix = await run_in_threadpool(
                 generate_compatibility_matrix,
@@ -767,16 +688,10 @@ async def step_5_generate_compatibility_matrix(
                 "compatibility", f"Gagal membuat matriks kompatibilitas: {error}"
             ) from error
 
-        _log_json("step_5_generate_compatibility_matrix.agent_compatibility", "SUCCESS")
-
-        result = {
-            "compatibility_matrix": matrix,
+        return {
+            "compatibility_matrix": _to_dict(matrix) if not isinstance(matrix, list) else matrix,
             "warnings": [],
         }
-
-        _log_json("step_5_generate_compatibility_matrix", "SUCCESS")
-
-        return result
 
     except DocumentParserPipelineError as err:
         _log_error("step_5_generate_compatibility_matrix", err, payload={"stage": err.stage})
@@ -787,7 +702,7 @@ async def step_5_generate_compatibility_matrix(
 
 
 # --------------------------------------------------------------------------
-# Fungsi Kombinasi: Tahap 1+2, Tahap 4, & Tahap 5 (Persisted & Ingested)
+# Fungsi Kombinasi (Otomatis): Tahap 1, 2, 4, & 5 (Persisted via Repository)
 # --------------------------------------------------------------------------
 
 async def process_combined_documents_pipeline(
@@ -799,251 +714,533 @@ async def process_combined_documents_pipeline(
     max_attempts: int = 3,
 ) -> dict[str, Any]:
     """
-    Menggabungkan pemrosesan dokumen pabrik (Tahap 1+2), pemrosesan ZIP CV worker (Tahap 4),
-    dan pembentukan matriks kompatibilitas (Tahap 5) dalam satu alur eksekusi sekaligus.
-
-    Jika `db` diberikan:
-    1. Mencatat audit log `DocumentParseJob`.
-    2. Menyimpan data Digital Twin lengkap ke tabel `factories`, `assets`, `job_desks`, `workers`, dll.
-
-    CATATAN FIX: `job.factory_id` (serta `job_desks_parsed` & `workers_parsed`) HANYA
-    diisi bila ingestion ke Digital Twin DB benar-benar berhasil. Sebelumnya field ini
-    selalu diisi walau savepoint ingestion di-rollback akibat error (mis. FK violation
-    pada `process_stages.asset_id`), sehingga `document_parse_jobs.factory_id` menunjuk
-    ke row `factories` yang tidak pernah tersimpan -> memicu ForeignKeyViolationError
-    kedua saat `db.commit()` dan berakhir sebagai 500 Internal Server Error.
+    Eksekusi penuh pipeline terpadu dari Tahap 1 hingga Tahap 5, berdasarkan upload
+    file PDF/DOCX/dsb (template) & ZIP (worker_zip).
+    Merekam audit log ke `DocumentParseJob` dan melakukan persistence ke DB via `repository.py`.
     """
-    template_filename = template.filename or "template.pdf"
-    cv_bundle_filename = worker_zip.filename or "workers.zip"
+    filename_template = template.filename or "template.pdf"
+    filename_worker = worker_zip.filename or "workers.zip"
 
     _log_json(
         "process_combined_documents_pipeline",
         "START",
         payload={
-            "template_filename": template_filename,
-            "cv_bundle_filename": cv_bundle_filename,
+            "template": filename_template,
+            "worker_zip": filename_worker,
             "strict": strict,
             "max_workers": max_workers,
             "max_attempts": max_attempts,
         },
     )
 
-    job: DocumentParseJob | None = None
-    if db is not None:
-        job = DocumentParseJob(
-            status="in_progress",
-            template_filename=template_filename,
-            cv_bundle_filename=cv_bundle_filename,
-        )
-        db.add(job)
-        await db.commit()
-        await db.refresh(job)
-        _log_json(
-            "process_combined_documents_pipeline.audit_job_created",
-            "SUCCESS",
-            output={"job_id": job.id, "status": job.status},
-        )
+    _validate_suffix(filename_template, TEMPLATE_SUFFIXES, "template")
+    _validate_suffix(filename_worker, WORKER_SUFFIXES, "worker_zip")
+
+    combined_warnings: list[str] = []
 
     try:
-        # 1. Jalankan Tahap 1 & 2 (Pabrik)
-        factory_result = await process_factory_document_pipeline(template)
+        # Step 1 + 2: Pipeline Dokumen Pabrik
+        _log_json("process_combined_documents_pipeline.stage_1_2", "START")
+        factory_result = await process_factory_document_pipeline(template, db=None)
+        fac_structure_dict = _to_dict(factory_result["factory_structure"])
+        if factory_result.get("extraction_summary", {}).get("warnings"):
+            combined_warnings.extend(factory_result["extraction_summary"]["warnings"])
+        _log_json("process_combined_documents_pipeline.stage_1_2", "SUCCESS")
 
-        # 2. Jalankan Tahap 4 (Pekerja)
+        # Step 4: Profil Pekerja
+        _log_json("process_combined_documents_pipeline.stage_4", "START")
         worker_result = await step_4_extract_worker_profiles(
-            worker_zip, strict=strict, max_workers=max_workers, max_attempts=max_attempts
+            worker_zip=worker_zip,
+            strict=strict,
+            max_workers=max_workers,
+            max_attempts=max_attempts,
         )
+        worker_profile = worker_result["worker_profile"]
+        _log_json("process_combined_documents_pipeline.stage_4", "SUCCESS")
 
-        # 3. Jalankan Tahap 5 (Matriks Kompatibilitas)
+        # Step 5: Matriks Kompatibilitas
+        _log_json("process_combined_documents_pipeline.stage_5", "START")
         compatibility_result = await step_5_generate_compatibility_matrix(
-            factory_structure=factory_result["factory_structure"],
-            worker_profile=worker_result["worker_profile"],
+            factory_structure=fac_structure_dict,
+            worker_profile=worker_profile,
             max_workers=max_workers,
             max_attempts=max_attempts,
             strict_compatibility=strict,
         )
+        compatibility_matrix = compatibility_result["compatibility_matrix"]
+        if compatibility_result.get("warnings"):
+            combined_warnings.extend(compatibility_result["warnings"])
+        _log_json("process_combined_documents_pipeline.stage_5", "SUCCESS")
 
-        response_payload = {
-            # Di-cast ke str secara eksplisit: kolom `DocumentParseJob.id` bertipe
-            # Integer di database, sementara skema response `ProcessCombinedDocumentsResponse
-            # .parse_job_id` mendeklarasikan tipe `str | None`. Tanpa cast ini, Pydantic
-            # akan menolak int di endpoint dengan pydantic_core.ValidationError
-            # (`Input should be a valid string [type=string_type, input_value=4, ...]`).
-            "parse_job_id": str(job.id) if job else None,
-            # Hasil Pabrik (Tahap 1 & 2)
-            "extraction_summary": factory_result["extraction_summary"],
-            "agent_input": factory_result["agent_input"],
-            "factory_structure": factory_result["factory_structure"],
-            # Hasil Worker (Tahap 4)
-            "worker_profile": worker_result["worker_profile"],
-            "worker_agent_input": worker_result["worker_agent_input"],
-            "candidates_found": worker_result["candidates_found"],
-            "rejected_blocks_count": worker_result["rejected_blocks_count"],
-            "archive_reports": worker_result["archive_reports"],
-            # Hasil Kompatibilitas (Tahap 5)
-            "compatibility_matrix": compatibility_result["compatibility_matrix"],
-        }
-
-        _log_json(
-            "process_combined_documents_pipeline.all_stages_completed",
-            "SUCCESS",
-            output={
-                "parse_job_id": response_payload["parse_job_id"],
-                "candidates_found": response_payload["candidates_found"],
-            },
+        # Validasi struktur Digital Twin
+        _log_json("process_combined_documents_pipeline.build_digital_twin", "START")
+        dt_model = build_digital_twin_from_results(
+            factory_structure=fac_structure_dict,
+            worker_profile=worker_profile,
+            compatibility_matrix=compatibility_matrix,
+            warnings=combined_warnings,
         )
+        _log_json("process_combined_documents_pipeline.build_digital_twin", "SUCCESS")
 
-        # 4. Ingestion ke Basis Data Digital Twin & Update Audit Log
-        if db is not None and job is not None:
-            warnings = factory_result["extraction_summary"].get("warnings", [])
-            dt_model = build_digital_twin_from_results(
-                factory_structure=factory_result["factory_structure"],
-                worker_profile=worker_result["worker_profile"],
-                compatibility_matrix=compatibility_result["compatibility_matrix"],
-                warnings=warnings,
-            )
-
-            dt_service = DigitalTwinService(db)
-            ingestion_succeeded = False
-
-            _log_json(
-                "process_combined_documents_pipeline.ingest_digital_twin",
-                "START",
-                payload={"factory_id": dt_model.factory_info.factory_id},
-            )
+        # Ingestion & audit trail log ke Database via repository.py
+        parse_job_id = None
+        if db is not None:
+            _log_json("process_combined_documents_pipeline.persist", "START")
             try:
-                # Gunakan savepoint transaksi terisolasi agar kegagalan DB tidak merusak session
-                async with db.begin_nested():
-                    await dt_service.save_digital_twin(dt_model)
-                ingestion_succeeded = True
-                _log_json(
-                    "process_combined_documents_pipeline.ingest_digital_twin",
-                    "SUCCESS",
-                    output={"factory_id": dt_model.factory_info.factory_id},
+                persist_res = await persist_completed_pipeline(
+                    session=db,
+                    factory_structure=fac_structure_dict,
+                    worker_profile=worker_profile,
+                    compatibility_matrix=compatibility_matrix,
+                    template_filename=filename_template,
+                    cv_bundle_filename=filename_worker,
+                    warnings=dt_model.warnings,
                 )
-            except Exception as dt_err:
-                # Savepoint sudah di-rollback otomatis oleh `db.begin_nested()` context manager;
-                # row Factory/Asset/dll yang sempat ditambahkan di dalam blok ini TIDAK tersimpan.
-                warnings.append(f"Gagal melakukan ingestion ke Digital Twin DB: {dt_err}")
-                _log_error(
-                    "process_combined_documents_pipeline.ingest_digital_twin",
-                    dt_err,
-                    payload={"factory_id": dt_model.factory_info.factory_id},
-                )
+                parse_job_id = persist_res.get("job_id")
+                if parse_job_id:
+                    _apply_job_id_to_factory_id(fac_structure_dict, job_id=parse_job_id)
+                    _apply_job_id_to_factory_id(dt_model, job_id=parse_job_id)
 
-            # Update audit trail record dengan hasil normalisasi.
-            # PENTING: factory_id/job_desks_parsed/workers_parsed HANYA diisi bila
-            # ingestion sukses, agar tidak menunjuk ke row `factories` yang tidak ada
-            # (mencegah ForeignKeyViolationError kedua saat commit di bawah).
-            job.status = "success" if ingestion_succeeded else "partial_success"
-            job.factory_id = dt_model.factory_info.factory_id if ingestion_succeeded else None
-            job.job_desks_parsed = len(dt_model.job_desks) if ingestion_succeeded else 0
-            job.workers_parsed = len(dt_model.workers) if ingestion_succeeded else 0
-            job.warnings = warnings
-            job.factory_structure = _to_dict(factory_result["factory_structure"])
-            job.worker_profile = _to_dict(worker_result["worker_profile"])
-            job.compatibility_matrix = _to_dict(compatibility_result["compatibility_matrix"])
+                _log_json("process_combined_documents_pipeline.persist", "SUCCESS", output=persist_res)
+            except Exception as persist_err:
+                _log_error("process_combined_documents_pipeline.persist", persist_err)
+                raise DocumentParserPipelineError(
+                    "ingestion", f"Gagal melakukan persistence ke DB: {persist_err}"
+                ) from persist_err
 
-            await db.commit()
-            await db.refresh(job)
-
-            _log_json(
-                "process_combined_documents_pipeline.audit_job_updated",
-                "SUCCESS",
-                output={
-                    "job_id": job.id,
-                    "status": job.status,
-                    "factory_id": job.factory_id,
-                    "ingestion_succeeded": ingestion_succeeded,
-                    "warnings_count": len(warnings),
-                },
-            )
+        final_response = {
+            "parse_job_id": parse_job_id,
+            "extraction_summary": factory_result.get("extraction_summary", {}),
+            "agent_input": factory_result.get("agent_input", ""),
+            "factory_structure": fac_structure_dict,
+            "worker_profile": _to_dict(worker_profile),
+            "worker_agent_input": worker_result.get("worker_agent_input", ""),
+            "candidates_found": worker_result.get("candidates_found", 0),
+            "rejected_blocks_count": worker_result.get("rejected_blocks_count", 0),
+            "archive_reports": worker_result.get("archive_reports", []),
+            "compatibility_matrix": _to_dict(compatibility_matrix) if not isinstance(compatibility_matrix, list) else compatibility_matrix,
+            "digital_twin": dt_model,
+        }
 
         _log_json(
             "process_combined_documents_pipeline",
             "SUCCESS",
-            output={"parse_job_id": response_payload["parse_job_id"]},
+            output={
+                "parse_job_id": parse_job_id,
+                "warnings_count": len(dt_model.warnings),
+            },
         )
 
-        return response_payload
+        return final_response
 
     except DocumentParserPipelineError as err:
         _log_error("process_combined_documents_pipeline", err, payload={"stage": err.stage})
-        if db is not None and job is not None:
-            try:
-                await db.rollback()
-                job.status = "error"
-                job.error_stage = err.stage
-                job.error_message = str(err)
-                db.add(job)
-                await db.commit()
-            except Exception as inner_err:
-                _log_error("process_combined_documents_pipeline.audit_job_error_write", inner_err)
+        if db is not None:
+            await record_failed_parse_job(
+                session=db,
+                error=err,
+                template_filename=filename_template,
+                cv_bundle_filename=filename_worker,
+            )
         raise err
     except Exception as err:
         _log_error("process_combined_documents_pipeline", err)
-        if db is not None and job is not None:
-            try:
-                await db.rollback()
-                job.status = "error"
-                job.error_stage = "unknown"
-                job.error_message = str(err)
-                db.add(job)
-                await db.commit()
-            except Exception as inner_err:
-                _log_error("process_combined_documents_pipeline.audit_job_error_write", inner_err)
+        if db is not None:
+            pipeline_err = DocumentParserPipelineError("unknown", str(err))
+            await record_failed_parse_job(
+                session=db,
+                error=pipeline_err,
+                template_filename=filename_template,
+                cv_bundle_filename=filename_worker,
+            )
         raise err
 
 
-async def get_parsed_factories_list(
-    db: AsyncSession,
-    limit: int = 20,
-    offset: int = 0,
-) -> list[dict[str, Any]]:
-    """
-    Mengambil daftar pekerjaan parsing pabrik yang berhasil tersimpan di database.
-    """
-    _log_json("get_parsed_factories_list", "START", payload={"limit": limit, "offset": offset})
+# --------------------------------------------------------------------------
+# Fungsi Kombinasi (MANUAL): Tahap 1, 2, 4, & 5 dari payload form frontend
+# --------------------------------------------------------------------------
 
-    try:
-        query = (
-            select(DocumentParseJob)
-            .where(DocumentParseJob.status == "success")
-            .order_by(DocumentParseJob.created_at.desc())
-            .offset(offset)
-            .limit(limit)
+async def _check_factory_id_conflict(
+    db: AsyncSession, factory_id: str, overwrite: bool
+) -> str | None:
+    """
+    Node D01_VALIDASI_FACTORY_ID: cek apakah factory_id sudah terdaftar.
+    Mengembalikan pesan error (str) bila konflik, atau None bila boleh lanjut.
+    """
+    existing = await db.get(Factory, factory_id)
+    if existing is not None and not overwrite:
+        return (
+            f"ID Pabrik '{factory_id}' sudah terdaftar. Gunakan ID lain, atau kirim "
+            f"'overwriteExistingFactory: true' pada payload bila memang bermaksud "
+            f"memperbarui data pabrik yang sudah ada."
         )
+    return None
 
-        result = await db.execute(query)
-        jobs = result.scalars().all()
 
-        factory_list: list[dict[str, Any]] = []
-        for job in jobs:
-            fac_structure = job.factory_structure or {}
-            factory_info = fac_structure.get("factory_info", {})
+def _validate_manual_payload_offline(
+    payload: schemas.ProcessCombinedDocumentsManualRequest,
+) -> list[str]:
+    """
+    Node D02_VALIDASI_ASSET s/d D08_VALIDASI_EVAL: validasi silang FK & aturan bisnis
+    di memori (tanpa perlu hit DB), sesuai spesifikasi-flowchart-form-manual.md.
+    Mengembalikan daftar pesan error; kosong berarti payload valid.
+    """
+    errors: list[str] = []
 
-            factory_id = job.factory_id or factory_info.get("factory_id") or job.id
-            factory_name = (
-                factory_info.get("factory_name")
-                or fac_structure.get("factory_name")
-                or f"Factory {factory_id[:8]}"
+    asset_ids = [a.asset_id for a in payload.assets]
+    stage_ids = [s.stage_id for s in payload.process_stages]
+    shift_ids = [s.shift_id for s in payload.shifts]
+    job_ids = [j.job_id for j in payload.job_desks]
+    worker_ids = [w.worker_id for w in payload.workers]
+
+    asset_id_set = set(asset_ids)
+    stage_id_set = set(stage_ids)
+    shift_id_set = set(shift_ids)
+    job_id_set = set(job_ids)
+    worker_id_set = set(worker_ids)
+
+    # --- D02_VALIDASI_ASSET ---
+    if len(asset_ids) != len(asset_id_set):
+        dupes = sorted({x for x in asset_ids if asset_ids.count(x) > 1})
+        errors.append(f"D02_VALIDASI_ASSET: asset_id duplikat dalam payload: {', '.join(dupes)}")
+    for a in payload.assets:
+        for field_name in ("capacity_per_unit", "total_capacity"):
+            cap = getattr(a, field_name)
+            if cap is not None and (cap.value is None) != (cap.unit is None):
+                errors.append(
+                    f"D02_VALIDASI_ASSET: aset '{a.asset_id}' field '{field_name}' harus "
+                    f"mengisi value & unit sekaligus, atau kosongkan keduanya."
+                )
+
+    # --- D03_VALIDASI_STAGE ---
+    if len(stage_ids) != len(stage_id_set):
+        dupes = sorted({x for x in stage_ids if stage_ids.count(x) > 1})
+        errors.append(f"D03_VALIDASI_STAGE: stage_id duplikat dalam payload: {', '.join(dupes)}")
+    for s in payload.process_stages:
+        if s.asset_id not in asset_id_set:
+            errors.append(
+                f"D03_VALIDASI_STAGE: stage '{s.stage_id}' mereferensikan asset_id "
+                f"'{s.asset_id}' yang belum terdaftar pada daftar 'assets'."
+            )
+        if s.next_stage_id and s.next_stage_id not in stage_id_set:
+            errors.append(
+                f"D03_VALIDASI_STAGE: stage '{s.stage_id}' memiliki next_stage_id "
+                f"'{s.next_stage_id}' yang tidak ditemukan pada daftar 'process_stages'."
             )
 
-            factory_list.append({
-                "factory_id": factory_id,
-                "factory_name": factory_name,
-                "workers_count": job.workers_parsed or 0,
-                "job_desks_count": job.job_desks_parsed or 0,
-                "created_at": job.created_at.isoformat() if job.created_at else None,
-            })
-
-        _log_json(
-            "get_parsed_factories_list",
-            "SUCCESS",
-            output={"factories_count": len(factory_list)},
+    # --- D04_VALIDASI_GRAPH ---
+    info = payload.factory_info
+    for ref_field, ref_values in (
+        ("workflowSequence", info.workflow_sequence),
+        ("entryStages", info.entry_stages),
+        ("terminalStages", info.terminal_stages),
+    ):
+        unknown = [v for v in ref_values if v not in stage_id_set]
+        if unknown:
+            errors.append(
+                f"D04_VALIDASI_GRAPH: field '{ref_field}' berisi stage_id tidak dikenal: "
+                f"{', '.join(unknown)}"
+            )
+    for edge in info.process_edges:
+        frm = edge.get("from_stage") or edge.get("from")
+        to = edge.get("to_stage") or edge.get("to")
+        if frm not in stage_id_set or to not in stage_id_set:
+            errors.append(
+                f"D04_VALIDASI_GRAPH: 'processEdges' berisi stage_id tidak dikenal: {edge}"
+            )
+    used_lanes = {s.lane for s in payload.process_stages}
+    missing_lanes = used_lanes - set(info.lanes)
+    if missing_lanes:
+        errors.append(
+            f"D04_VALIDASI_GRAPH: lane berikut dipakai oleh process_stages tapi belum "
+            f"didaftarkan di factory_info.lanes: {', '.join(sorted(missing_lanes))}"
         )
 
-        return factory_list
+    # --- D05_VALIDASI_SHIFT ---
+    if len(shift_ids) != len(shift_id_set):
+        dupes = sorted({x for x in shift_ids if shift_ids.count(x) > 1})
+        errors.append(f"D05_VALIDASI_SHIFT: shift_id duplikat dalam payload: {', '.join(dupes)}")
 
-    except Exception as error:
-        _log_error("get_parsed_factories_list", error)
+    # --- D06_VALIDASI_JOB_DESK ---
+    if len(job_ids) != len(job_id_set):
+        dupes = sorted({x for x in job_ids if job_ids.count(x) > 1})
+        errors.append(f"D06_VALIDASI_JOB_DESK: job_id duplikat dalam payload: {', '.join(dupes)}")
+    for j in payload.job_desks:
+        if j.stage_id not in stage_id_set:
+            errors.append(
+                f"D06_VALIDASI_JOB_DESK: job '{j.job_id}' stage_id '{j.stage_id}' tidak "
+                f"ditemukan pada daftar 'process_stages'."
+            )
+        if j.assigned_asset_id not in asset_id_set:
+            errors.append(
+                f"D06_VALIDASI_JOB_DESK: job '{j.job_id}' assigned_asset_id "
+                f"'{j.assigned_asset_id}' tidak ditemukan pada daftar 'assets'."
+            )
+        if j.shift_id not in shift_id_set:
+            errors.append(
+                f"D06_VALIDASI_JOB_DESK: job '{j.job_id}' shift_id '{j.shift_id}' tidak "
+                f"ditemukan pada daftar 'shifts'."
+            )
+        for wid in j.assigned_worker_ids:
+            if wid not in worker_id_set:
+                errors.append(
+                    f"D06_VALIDASI_JOB_DESK: job '{j.job_id}' assigned_worker_ids berisi "
+                    f"'{wid}' yang tidak ditemukan pada daftar 'workers'."
+                )
+
+    # --- D07_VALIDASI_WORKER ---
+    if len(worker_ids) != len(worker_id_set):
+        dupes = sorted({x for x in worker_ids if worker_ids.count(x) > 1})
+        errors.append(f"D07_VALIDASI_WORKER: worker_id duplikat dalam payload: {', '.join(dupes)}")
+
+    # --- D08_VALIDASI_EVAL ---
+    eval_seen: set[tuple[str, str]] = set()
+    for e in payload.compatibility_evaluations:
+        if e.worker_id not in worker_id_set:
+            errors.append(
+                f"D08_VALIDASI_EVAL: worker_id '{e.worker_id}' tidak ditemukan pada daftar 'workers'."
+            )
+        if e.job_id not in job_id_set:
+            errors.append(
+                f"D08_VALIDASI_EVAL: job_id '{e.job_id}' tidak ditemukan pada daftar 'job_desks'."
+            )
+        if e.asset_id and e.asset_id not in asset_id_set:
+            errors.append(
+                f"D08_VALIDASI_EVAL: asset_id '{e.asset_id}' tidak ditemukan pada daftar 'assets'."
+            )
+        key = (e.worker_id, e.job_id)
+        if key in eval_seen:
+            errors.append(
+                f"D08_VALIDASI_EVAL: evaluasi duplikat untuk worker '{e.worker_id}' x job '{e.job_id}'."
+            )
+        eval_seen.add(key)
+
+    return errors
+
+
+def _normalize_shift(shift: schemas.ShiftManualInput) -> dict[str, Any]:
+    """
+    Node N05_INPUT_SHIFT (bagian transformasi): mengisi otomatis `duration_hours`
+    dan `crosses_midnight` bila tidak diisi user, berdasarkan start_time/end_time.
+    """
+    start_h, start_m = (int(x) for x in shift.start_time.split(":"))
+    end_h, end_m = (int(x) for x in shift.end_time.split(":"))
+    start_total = start_h * 60 + start_m
+    end_total = end_h * 60 + end_m
+
+    crosses_midnight = shift.crosses_midnight
+    if crosses_midnight is None:
+        crosses_midnight = end_total <= start_total
+
+    if shift.duration_hours is not None:
+        duration_hours = shift.duration_hours
+    else:
+        delta_minutes = (
+            (end_total - start_total)
+            if not crosses_midnight
+            else (end_total + 24 * 60 - start_total)
+        )
+        duration_hours = round(delta_minutes / 60, 2)
+
+    data = shift.model_dump()
+    data["crosses_midnight"] = crosses_midnight
+    data["duration_hours"] = duration_hours
+    return data
+
+
+def _fill_capacity_raw(cap: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Mengisi field `raw` otomatis dari value+unit bila kosong (capacity_per_unit/total_capacity/throughput)."""
+    if not cap:
+        return cap
+    if not cap.get("raw") and cap.get("value") is not None and cap.get("unit"):
+        cap["raw"] = f"{cap['value']} {cap['unit']}"
+    return cap
+
+
+def _manual_payload_to_pipeline_inputs(
+    payload: schemas.ProcessCombinedDocumentsManualRequest,
+) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
+    """
+    Node N04 (Process/Transformasi): mengonversi payload manual (Pydantic) menjadi
+    struktur `twin` / `worker_profile` / `evaluations` dengan bentuk yang SAMA dengan
+    output alur otomatis, sehingga bisa langsung dipakai ulang oleh
+    `build_digital_twin_from_results()` dan `persist_completed_pipeline()`.
+    """
+    factory_info = payload.factory_info.model_dump()
+
+    assets = [a.model_dump() for a in payload.assets]
+    for a in assets:
+        a["capacity_per_unit"] = _fill_capacity_raw(a.get("capacity_per_unit"))
+        a["total_capacity"] = _fill_capacity_raw(a.get("total_capacity"))
+
+    stages = [s.model_dump() for s in payload.process_stages]
+    for s in stages:
+        s["throughput"] = _fill_capacity_raw(s.get("throughput"))
+
+    shifts = [_normalize_shift(s) for s in payload.shifts]
+    job_desks = [j.model_dump() for j in payload.job_desks]
+    workers = [w.model_dump() for w in payload.workers]
+    evaluations = [e.model_dump() for e in payload.compatibility_evaluations]
+
+    twin = {
+        "factory_info": factory_info,
+        "assets": assets,
+        "process_stages": stages,
+        "shifts": shifts,
+        "job_desks": job_desks,
+    }
+    worker_profile = {"workers": workers}
+    return twin, worker_profile, evaluations
+
+
+async def process_combined_documents_manual_pipeline(
+    payload: schemas.ProcessCombinedDocumentsManualRequest,
+    db: AsyncSession,
+) -> dict[str, Any]:
+    """
+    Versi MANUAL dari Kombinasi Tahap 1, 2, 4, & 5 -- menerima seluruh data pabrik,
+    aset, tahapan proses, shift, job desk, pekerja, dan evaluasi kompatibilitas
+    langsung dari form frontend (menggantikan upload `template` PDF & `worker_zip`).
+
+    Urutan node mengikuti spesifikasi-flowchart-form-manual.md:
+    D01 (factory_id unik) -> D02-D08 (validasi silang FK & aturan bisnis, di memori)
+    -> N04 (transformasi payload -> twin) -> build_digital_twin_from_results()
+    -> persist_completed_pipeline() (satu transaksi DB).
+
+    Karena seluruh FK sudah divalidasi SEBELUM data sampai ke `persist_completed_pipeline`,
+    kegagalan seperti `stage_id` kosong seharusnya sudah tertangkap di D06, bukan lolos
+    sebagai `IntegrityError` dari Postgres seperti pada alur otomatis sebelumnya.
+    """
+    factory_id = payload.factory_info.factory_id
+
+    _log_json(
+        "process_combined_documents_manual_pipeline",
+        "START",
+        payload={
+            "factory_id": factory_id,
+            "assets_count": len(payload.assets),
+            "process_stages_count": len(payload.process_stages),
+            "shifts_count": len(payload.shifts),
+            "job_desks_count": len(payload.job_desks),
+            "workers_count": len(payload.workers),
+            "compatibility_evaluations_count": len(payload.compatibility_evaluations),
+        },
+    )
+
+    try:
+        # D01_VALIDASI_FACTORY_ID
+        conflict_msg = await _check_factory_id_conflict(
+            db, factory_id, payload.overwrite_existing_factory
+        )
+        if conflict_msg:
+            raise DocumentParserPipelineError("D01_VALIDASI_FACTORY_ID", conflict_msg)
+
+        # D02_VALIDASI_ASSET s/d D08_VALIDASI_EVAL
+        errors = _validate_manual_payload_offline(payload)
+        if errors:
+            err = DocumentParserPipelineError(
+                "validation",
+                f"Ditemukan {len(errors)} kesalahan validasi pada data manual. "
+                f"Lihat 'details' untuk rincian per-node.",
+            )
+            err.details = errors
+            raise err
+
+        # N04: transformasi payload manual -> struktur twin/worker_profile/evaluations
+        twin, worker_profile, evaluations = _manual_payload_to_pipeline_inputs(payload)
+
+        combined_warnings: list[str] = []
+
+        _log_json("process_combined_documents_manual_pipeline.build_digital_twin", "START")
+        dt_model = build_digital_twin_from_results(
+            factory_structure=twin,
+            worker_profile=worker_profile,
+            compatibility_matrix=evaluations,
+            warnings=combined_warnings,
+        )
+        _log_json("process_combined_documents_manual_pipeline.build_digital_twin", "SUCCESS")
+
+        _log_json("process_combined_documents_manual_pipeline.persist", "START")
+        persist_res = await persist_completed_pipeline(
+            session=db,
+            factory_structure=twin,
+            worker_profile=worker_profile,
+            compatibility_matrix=evaluations,
+            template_filename="manual_input",
+            cv_bundle_filename="manual_input",
+            warnings=dt_model.warnings,
+        )
+        _log_json(
+            "process_combined_documents_manual_pipeline.persist", "SUCCESS", output=persist_res
+        )
+
+        result = {
+            "parse_job_id": persist_res.get("job_id"),
+            "factory_id": persist_res.get("factory_id"),
+            "workers_parsed": persist_res.get("workers_parsed", 0),
+            "job_desks_parsed": persist_res.get("job_desks_parsed", 0),
+            "warnings": persist_res.get("warnings", []),
+        }
+
+        _log_json("process_combined_documents_manual_pipeline", "SUCCESS", output=result)
+        return result
+
+    except DocumentParserPipelineError as err:
+        _log_error(
+            "process_combined_documents_manual_pipeline",
+            err,
+            payload={"stage": err.stage, "details": getattr(err, "details", None)},
+        )
+        await record_failed_parse_job(
+            session=db,
+            error=err,
+            template_filename="manual_input",
+            cv_bundle_filename="manual_input",
+            factory_id=factory_id,
+        )
         raise
+    except Exception as err:
+        _log_error("process_combined_documents_manual_pipeline", err)
+        pipeline_err = DocumentParserPipelineError("unknown", str(err))
+        await record_failed_parse_job(
+            session=db,
+            error=pipeline_err,
+            template_filename="manual_input",
+            cv_bundle_filename="manual_input",
+            factory_id=factory_id,
+        )
+        raise pipeline_err from err
+
+
+async def get_parsed_factories_list(
+    db: AsyncSession, limit: int = 20, offset: int = 0
+) -> list[dict[str, Any]]:
+    """Mengambil daftar pabrik yang berhasil diparsing beserta ID Job audit lognya."""
+    stmt = (
+        select(DocumentParseJob)
+        .where(DocumentParseJob.status == "success")
+        .order_by(DocumentParseJob.id.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    jobs = result.scalars().all()
+
+    factories = []
+    for job in jobs:
+        fac_struct = job.factory_structure or {}
+        fac_info = fac_struct.get("factory_info", {})
+
+        workers = job.worker_profile.get("workers", []) if isinstance(job.worker_profile, dict) else []
+        job_desks = fac_struct.get("job_desks") or fac_struct.get("job_descriptions") or []
+
+        factories.append({
+            "factoryId": fac_info.get("factory_id") or job.factory_id or f"FAC-{job.id}",
+            "factoryName": fac_info.get("factory_name") or "Pabrik Tanpa Nama",
+            "workersCount": job.workers_parsed or len(workers),
+            "jobDesksCount": job.job_desks_parsed or len(job_desks),
+            "createdAt": job.created_at.isoformat() if hasattr(job, "created_at") and job.created_at else None,
+            "jobId": str(job.id),  # <-- Sertakan ID Job di sini (konversi ke string)
+        })
+
+    return factories

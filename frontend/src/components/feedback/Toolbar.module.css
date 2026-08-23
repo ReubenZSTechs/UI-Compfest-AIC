@@ -1,0 +1,48 @@
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--twin-surface);
+  border: 1px solid var(--twin-border);
+  border-radius: 8px;
+  padding: 0.3rem;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+}
+
+.toolButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--twin-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.toolButton:hover:not(:disabled) {
+  background: var(--twin-surface-raised);
+  color: var(--twin-text-primary);
+}
+
+.toolButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.active {
+  background: transparent;
+  color: #000000;
+}
+
+.divider {
+  width: 24px;
+  height: 1px;
+  margin: 0.25rem 0;
+  background: var(--twin-border);
+}

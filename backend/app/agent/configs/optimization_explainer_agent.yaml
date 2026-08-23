@@ -10,9 +10,11 @@ structured_output:
   schema_path: optimal_state.schema.json
 
 generation:
-  max_tokens: 8192
-  timeout: 900.0
-  max_retries: 2
+  max_tokens: 10000
+  max_tokens_ceiling: 28000
+  truncation_retry_limit: 2
+  timeout: 600.0
+  max_retries: 0
   guided_decoding_backend: xgrammar
 
 system_prompt: |

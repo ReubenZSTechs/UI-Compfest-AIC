@@ -1,0 +1,185 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  background: var(--twin-surface);
+  border: 1px solid var(--twin-border);
+  border-radius: 6px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  font-family: var(--twin-font-sans);
+}
+
+.card:hover {
+  border-color: var(--twin-border-hover);
+  background: var(--twin-surface-raised);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--twin-accent-automated);
+  outline-offset: 2px;
+}
+
+.cardSelected {
+  border-color: var(--twin-accent-automated);
+  background: var(--twin-surface-raised);
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.automationDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotAutomated {
+  background: var(--twin-accent-automated);
+  box-shadow: 0 0 6px var(--twin-accent-automated);
+}
+
+.dotManual {
+  background: var(--twin-accent-manual);
+  box-shadow: 0 0 6px var(--twin-accent-manual);
+}
+
+.category {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--twin-text-muted);
+}
+
+.stepTag {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-family: var(--twin-font-mono);
+  color: var(--twin-text-faint);
+  background: var(--twin-bg);
+  border: 1px solid var(--twin-border);
+  border-radius: 3px;
+  padding: 0.15rem 0.4rem;
+}
+
+/* Title */
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--twin-text-primary);
+  margin: 0;
+}
+
+.assetId {
+  font-family: var(--twin-font-mono);
+  font-size: 0.75rem;
+  color: var(--twin-text-faint);
+}
+
+/* Readout grid */
+.readoutGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--twin-border);
+  border-bottom: 1px solid var(--twin-border);
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.readoutLabel {
+  font-size: 0.68rem;
+  color: var(--twin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.readoutValue {
+  font-family: var(--twin-font-mono);
+  font-size: 0.85rem;
+  color: var(--twin-text-primary);
+}
+
+/* Strain meter — signature element, gaya VU-meter analog */
+.meterBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.meterLabelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.meterValue {
+  font-family: var(--twin-font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.strain-safe {
+  color: var(--twin-accent-safe);
+}
+.strain-warning {
+  color: var(--twin-accent-warning);
+}
+.strain-danger {
+  color: var(--twin-accent-danger);
+}
+
+.meter {
+  display: flex;
+  gap: 2px;
+}
+
+.segment {
+  height: 6px;
+  flex: 1;
+  background: var(--twin-border);
+  border-radius: 1px;
+}
+
+.segment-safe {
+  background: var(--twin-accent-safe);
+}
+.segment-warning {
+  background: var(--twin-accent-warning);
+}
+.segment-danger {
+  background: var(--twin-accent-danger);
+}
+
+/* Environmental footer */
+.envRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--twin-font-mono);
+  font-size: 0.72rem;
+  color: var(--twin-text-faint);
+}
+
+.envDivider {
+  color: var(--twin-border);
+}

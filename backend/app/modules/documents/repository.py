@@ -1,17 +1,29 @@
 # backend/app/modules/documents/repository.py
 """
-Persist hasil pemrosesan modular (Tahap 1-5 dari document-parser) ke database
-`digital_twin_ingestion` serta pencatatan audit trail ke tabel `document_parse_jobs`.
+Persist hasil pemrosesan modular (Tahap 1-5 dari document-parser, baik dari alur
+otomatis PDF/ZIP maupun alur manual form) ke database `digital_twin_ingestion`
+serta pencatatan audit trail ke tabel `document_parse_jobs`.
 
-Disesuaikan agar konsisten dengan Standar Kontrak Data Digital Twin System:
-1. Fallback job_descriptions -> job_desks.
-2. Worker profile boleh berupa list datar ATAU dict {"workers": [...]}.
-3. Compatibility matrix diterima baik dalam bentuk sudah diratakan
+Perubahan pada revisi ini (FIX BUG KRITIS):
+1. `persist_factory_structure` sebelumnya TIDAK PERNAH menyimpan `process_stages`
+   maupun `shifts` sama sekali, dan tidak pernah men-set `job_desks.stage_id` /
+   `job_desks.shift_id` -- padahal kedua kolom itu NOT NULL di `models.py`. Ini
+   penyebab sebenarnya dari error `NotNullViolationError: stage_id`. Fungsi ini
+   ditulis ulang agar mem-persist seluruh entitas sesuai skema saat ini, dengan
+   urutan insert & flush yang menghormati dependensi FK:
+   Factory -> Asset -> ProcessStage -> Shift -> JobDesk.
+2. Field `Asset`/`JobDesk` yang dipakai sebelumnya (`workflow_step`,
+   `base_throughput_capacity`) sudah tidak ada di `models.py` saat ini -- diganti
+   dengan field yang benar (`category`, `capacity_per_unit`, `total_capacity`,
+   `automation_level`, `currency`, dst).
+3. Fallback job_descriptions -> job_desks (dipertahankan).
+4. Worker profile boleh berupa list datar ATAU dict {"workers": [...]} (dipertahankan).
+5. Compatibility matrix diterima baik dalam bentuk sudah diratakan
    (llm_compatibility_and_evaluations) maupun bentuk mentah bertingkat
    ({worker_id: {jobs: {job_id: {...}}}}); keduanya dinormalisasi ke bentuk flat
-   sebelum disimpan.
-4. Validasi worker_id pada setiap evaluasi kompatibilitas terhadap daftar worker
-   yang valid, untuk mencegah ForeignKeyViolationError di PostgreSQL.
+   sebelum disimpan (dipertahankan).
+6. Validasi worker_id pada setiap evaluasi kompatibilitas terhadap daftar worker
+   yang valid, untuk mencegah ForeignKeyViolationError di PostgreSQL (dipertahankan).
 """
 
 from __future__ import annotations
@@ -26,6 +38,8 @@ from app.modules.digital_twin_ingestion.models import (
     CompatibilityEvaluation,
     Factory,
     JobDesk,
+    ProcessStage,
+    Shift,
     Worker,
 )
 from app.modules.documents.exceptions import DocumentParserPipelineError
@@ -132,28 +146,41 @@ def _flatten_compatibility_matrix(matrix_payload: Any) -> list[dict[str, Any]]:
 async def persist_factory_structure(
     session: AsyncSession, twin: dict[str, Any], warnings: list[str]
 ) -> str:
-    """Tahap 2 -> tabel `factories`, `assets`, dan `job_desks`.
-    Melakukan upsert berdasarkan primary key agar re-parse dokumen yang sama
-    memperbarui data lama tanpa duplikasi."""
+    """
+    Tahap 2 -> tabel `factories`, `assets`, `process_stages`, `shifts`, & `job_desks`.
+
+    Melakukan upsert berdasarkan primary key agar re-parse/re-submit data yang sama
+    memperbarui data lama tanpa duplikasi.
+
+    PENTING: urutan insert & `flush()` di bawah sengaja mengikuti urutan dependensi
+    FK di `models.py` (Factory -> Asset -> ProcessStage -> Shift -> JobDesk).
+    `flush()` (bukan `commit()`) sudah cukup agar constraint FK dalam transaksi yang
+    sama terpenuhi, tanpa perlu commit parsial.
+    """
     info = twin.get("factory_info", {})
     factory_id = info["factory_id"]
 
+    # --- Factory ---
     factory = await session.get(Factory, factory_id)
     if factory is None:
         factory = Factory(factory_id=factory_id)
         session.add(factory)
 
     factory.factory_name = info.get("factory_name", factory_id)
+    factory.process_type = info.get("process_type")
+    factory.declared_worker_count = info.get("declared_worker_count")
+    factory.registered_worker_count = info.get("registered_worker_count")
+    factory.layout_description = info.get("layout_description")
     factory.workflow_sequence = info.get("workflow_sequence", [])
-    if "process_type" in info:
-        factory.process_type = info.get("process_type")
-    if "declared_worker_count" in info:
-        factory.declared_worker_count = info.get("declared_worker_count")
-    if "layout_description" in info:
-        factory.layout_description = info.get("layout_description")
-    if "parallel_groups" in info:
-        factory.parallel_groups = info.get("parallel_groups")
+    factory.process_edges = info.get("process_edges", [])
+    factory.entry_stages = info.get("entry_stages", [])
+    factory.terminal_stages = info.get("terminal_stages", [])
+    factory.parallel_groups = info.get("parallel_groups")
+    factory.lanes = info.get("lanes", [])
 
+    await session.flush()
+
+    # --- Asset (harus ada sebelum ProcessStage merujuk asset_id) ---
     for asset_data in twin.get("assets", []):
         asset_id = asset_data["asset_id"]
         asset = await session.get(Asset, asset_id)
@@ -163,15 +190,61 @@ async def persist_factory_structure(
         asset.factory_id = factory_id
         asset.asset_name = asset_data.get("asset_name", asset_id)
         asset.category = asset_data.get("category", "unknown")
-        asset.workflow_step = asset_data.get("workflow_step", "")
+        asset.units_available = int(asset_data.get("units_available") or 0)
+        asset.capacity_per_unit = asset_data.get("capacity_per_unit")
+        asset.total_capacity = asset_data.get("total_capacity")
+        asset.automation_level = asset_data.get("automation_level")
         asset.is_automated = bool(asset_data.get("is_automated", False))
-        asset.base_throughput_capacity = float(asset_data.get("base_throughput_capacity", 0))
-        asset.operational_cost_per_hour = float(asset_data.get("operational_cost_per_hour", 0))
-        asset.environmental_factors = asset_data.get("environmental_factors", {})
-        asset.metric_derivation_reasoning = asset_data.get("metric_derivation_reasoning", "")
-        if "units_available" in asset_data:
-            asset.units_available = asset_data.get("units_available")
+        asset.operational_cost_per_hour = float(asset_data.get("operational_cost_per_hour") or 0)
+        asset.currency = asset_data.get("currency", "IDR")
+        asset.environmental_factors = asset_data.get("environmental_factors")
+        asset.metric_derivation_reasoning = asset_data.get("metric_derivation_reasoning")
 
+    await session.flush()
+
+    # --- ProcessStage (harus ada sebelum JobDesk merujuk stage_id) ---
+    for stage_data in twin.get("process_stages", []):
+        stage_id = stage_data["stage_id"]
+        stage = await session.get(ProcessStage, stage_id)
+        if stage is None:
+            stage = ProcessStage(stage_id=stage_id)
+            session.add(stage)
+        stage.factory_id = factory_id
+        stage.stage_name = stage_data.get("stage_name", stage_id)
+        stage.lane = stage_data.get("lane", "")
+        stage.next_stage_id = stage_data.get("next_stage_id")
+        stage.is_terminal = bool(stage_data.get("is_terminal", False))
+        stage.asset_id = stage_data["asset_id"]
+        stage.operator_task = stage_data.get("operator_task", "")
+        stage.material_input = stage_data.get("material_input", [])
+        stage.material_output = stage_data.get("material_output", [])
+        stage.material_per_batch = stage_data.get("material_per_batch", [])
+        stage.flow_type = stage_data.get("flow_type", "")
+        stage.cycle_time_seconds = float(stage_data.get("cycle_time_seconds") or 0)
+        stage.throughput = stage_data.get("throughput", {})
+        stage.throughput_per_hour = stage_data.get("throughput_per_hour")
+        stage.automation_level = stage_data.get("automation_level", "manual")
+        stage.qc_requirement = stage_data.get("qc_requirement", "")
+        stage.metric_derivation_reasoning = stage_data.get("metric_derivation_reasoning")
+
+    await session.flush()
+
+    # --- Shift (harus ada sebelum JobDesk merujuk shift_id) ---
+    for shift_data in twin.get("shifts", []):
+        shift_id = shift_data["shift_id"]
+        shift = await session.get(Shift, shift_id)
+        if shift is None:
+            shift = Shift(shift_id=shift_id)
+            session.add(shift)
+        shift.factory_id = factory_id
+        shift.start_time = shift_data.get("start_time", "")
+        shift.end_time = shift_data.get("end_time", "")
+        shift.duration_hours = float(shift_data.get("duration_hours") or 0)
+        shift.crosses_midnight = bool(shift_data.get("crosses_midnight", False))
+
+    await session.flush()
+
+    # --- JobDesk (bergantung pada Asset, ProcessStage, & Shift di atas) ---
     for job_data in _read_jobs(twin):
         job_id = job_data["job_id"]
         job = await session.get(JobDesk, job_id)
@@ -179,12 +252,16 @@ async def persist_factory_structure(
             job = JobDesk(job_id=job_id)
             session.add(job)
         job.factory_id = factory_id
+        job.allocation_id = job_data.get("allocation_id")
         job.job_title = job_data.get("job_title", job_id)
-        job.workflow_step = job_data.get("workflow_step", "")
+        job.stage_id = job_data["stage_id"]
         job.assigned_asset_id = job_data["assigned_asset_id"]
+        job.assigned_worker_ids = job_data.get("assigned_worker_ids", [])
+        job.shift_id = job_data["shift_id"]
+        job.headcount = int(job_data.get("headcount") or 1)
         job.demands = job_data.get("demands", {})
         job.qc_requirement = job_data.get("qc_requirement", "")
-        job.metric_derivation_reasoning = job_data.get("metric_derivation_reasoning", "")
+        job.metric_derivation_reasoning = job_data.get("metric_derivation_reasoning")
 
     await session.flush()
     return factory_id
@@ -282,7 +359,12 @@ async def persist_completed_pipeline(
     cv_bundle_filename: str | None = None,
     warnings: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Menyimpan hasil akhir 5 tahap ke tabel relasional dan merekam audit trail sukses ke `document_parse_jobs`."""
+    """
+    Menyimpan hasil akhir 5 tahap ke tabel relasional dan merekam audit trail sukses
+    ke `document_parse_jobs`. Dipakai baik oleh alur otomatis (PDF/ZIP) maupun alur
+    manual (form) -- keduanya menghasilkan `factory_structure`/`worker_profile`/
+    `compatibility_matrix` dengan bentuk yang sama sebelum sampai di sini.
+    """
     accumulated_warnings = list(warnings or [])
 
     factory_id = await persist_factory_structure(
@@ -320,7 +402,7 @@ async def persist_completed_pipeline(
         factory_structure=factory_structure,
         worker_profile=stored_worker_profile,
         compatibility_matrix=stored_compatibility_matrix,
-        floor_state=None,  # Tahap 6 skipped
+        floor_state=None,
     )
     session.add(job)
     await session.commit()
@@ -376,8 +458,8 @@ async def record_failed_parse_job(
             job_desks_parsed=0,
             warnings=[],
             error_stage=error.stage,
-            error_message=error.message,
-            error_details=error.details or None,
+            error_message=error.message if hasattr(error, "message") else str(error),
+            error_details=getattr(error, "details", None) or None,
             factory_structure=None,
             worker_profile=None,
             compatibility_matrix=None,

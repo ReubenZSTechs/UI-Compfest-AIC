@@ -1,0 +1,51 @@
+.header {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: auto;
+}
+
+.backLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--twin-border);
+  border-radius: 50%;
+  background: var(--twin-surface);
+  color: var(--twin-text-muted);
+  text-decoration: none;
+  font-size: 1rem;
+  flex-shrink: 0;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.backLink:hover {
+  color: var(--twin-text-primary);
+  border-color: var(--twin-border-hover);
+}
+
+.titleInput {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--twin-text-primary);
+  font-family: var(--twin-font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  width: 220px;
+}
+
+.titleInput:hover,
+.titleInput:focus {
+  border-color: var(--twin-border-hover);
+  background: var(--twin-surface);
+  outline: none;
+}

@@ -1,0 +1,171 @@
+.
+├── api
+│   ├── client.ts
+│   ├── endpoints.ts
+│   └── websocket.ts
+├── app
+│   ├── providers
+│   │   ├── AppProviders.tsx
+│   │   ├── QueryProvider.tsx
+│   │   └── ThemeProvider.tsx
+│   └── router
+│       ├── ProtectedRoute.tsx
+│       └── routes.tsx
+├── App.tsx
+├── components
+│   ├── feedback
+│   │   ├── ErrorBoundary.tsx
+│   │   └── LoadingSpinner.tsx
+│   └── layout
+│       ├── AppShell.tsx
+│       ├── Sidebar.tsx
+│       └── Topbar.tsx
+├── config
+│   ├── constants.ts
+│   └── env.ts
+├── features
+│   ├── auth
+│   │   ├── api
+│   │   │   └── authApi.ts
+│   │   ├── components
+│   │   │   ├── AuthGuard.tsx
+│   │   │   └── LoginForm.tsx
+│   │   ├── hooks
+│   │   │   └── useAuth.ts
+│   │   └── store
+│   │       └── authStore.ts
+│   ├── digital-twin
+│   │   ├── api
+│   │   │   ├── digitalTwinApi.mock.ts
+│   │   │   └── digitalTwinApi.ts
+│   │   ├── components
+│   │   │   ├── AssetCard.module.css
+│   │   │   ├── AssetCard.tsx
+│   │   │   ├── CompatibilityMatrix.module.css
+│   │   │   ├── CompatibilityMatrix.tsx
+│   │   │   ├── FilterBar.module.css
+│   │   │   ├── FilterBar.tsx
+│   │   │   ├── JobDeskTable.module.css
+│   │   │   ├── JobDeskTable.tsx
+│   │   │   ├── WorkerCard.module.css
+│   │   │   └── WorkerCard.tsx
+│   │   ├── hooks
+│   │   │   ├── useCompatibilityMatrix.ts
+│   │   │   └── useDigitalTwin.ts
+│   │   ├── index.ts
+│   │   ├── store
+│   │   │   └── digitalTwinStore.ts
+│   │   ├── types
+│   │   │   └── digitalTwin.types.ts
+│   │   └── utils
+│   │       ├── colorScale.ts
+│   │       ├── formatMetrics.ts
+│   │       └── normalizeAssetData.ts
+│   ├── document-parser
+│   │   ├── api
+│   │   │   └── Documentparserapi.ts
+│   │   ├── components
+│   │   │   ├── ParseStatusBanner.module.css
+│   │   │   ├── ParseStatusBanner.tsx
+│   │   │   ├── UploadDropzone.module.css
+│   │   │   └── UploadDropzone.tsx
+│   │   ├── hooks
+│   │   │   └── Usedocumentparser.ts
+│   │   ├── index.ts
+│   │   └── types
+│   │       └── documentParser.types.ts
+│   ├── explainability
+│   │   └── components
+│   │       ├── MetricDerivationCard.tsx
+│   │       └── ReasoningPanel.tsx
+│   ├── human-factors
+│   │   └── components
+│   │       ├── ErgonomicsPanel.tsx
+│   │       ├── FatigueGauge.tsx
+│   │       ├── NasaTlxRadar.tsx
+│   │       └── StressPerformanceCurve.tsx
+│   ├── simulation
+│   │   ├── api
+│   │   │   ├── simulationApi.mock.ts
+│   │   │   └── simulationApi.ts
+│   │   ├── components
+│   │   │   ├── ActionMaskViewer.tsx
+│   │   │   ├── EpisodeTimeline.tsx
+│   │   │   ├── RewardChart.tsx
+│   │   │   ├── SimulationControls.module.css
+│   │   │   ├── SimulationControls.tsx
+│   │   │   ├── SimulationFlowchart.module.css
+│   │   │   ├── SimulationFlowchart.tsx
+│   │   │   ├── SimulationSection.module.css
+│   │   │   ├── SimulationSummaryPanel.module.css
+│   │   │   ├── SimulationSummaryPanel.tsx
+│   │   │   ├── StepConnector.module.css
+│   │   │   ├── StepConnector.tsx
+│   │   │   ├── StepNode.module.css
+│   │   │   ├── StepNode.tsx
+│   │   │   ├── ThroughputBottleneckChart.tsx
+│   │   │   ├── WarehouseNode.module.css
+│   │   │   └── WarehouseNode.tsx
+│   │   ├── hooks
+│   │   │   ├── useSimulationRunner.ts
+│   │   │   ├── useSimulationSocket.ts
+│   │   │   └── useSimulationState.ts
+│   │   ├── index.ts
+│   │   ├── store
+│   │   │   └── simulationStore.ts
+│   │   ├── styles
+│   │   │   └── tokens.css
+│   │   └── types
+│   │       └── simulation.types.ts
+│   └── simulation_optimisation
+│       ├── api
+│       │   ├── simulationApi.mock.ts
+│       │   └── simulationApi.ts
+│       ├── components
+│       │   ├── ActionMaskViewer.tsx
+│       │   ├── EpisodeTimeline.tsx
+│       │   ├── RewardChart.tsx
+│       │   ├── SimulationControls.tsx
+│       │   ├── StepNode
+│       │   └── ThroughputBottleneckChart.tsx
+│       ├── hooks
+│       │   ├── useSimulationRunner.ts
+│       │   ├── useSimulationSocket.ts
+│       │   └── useSimulationState.ts
+│       ├── store
+│       │   └── simulationStore.ts
+│       └── types
+│           └── simulation.types.ts
+├── hooks
+│   ├── useDebounce.ts
+│   └── useWebSocket.ts
+├── lib
+│   ├── queryClient.ts
+│   └── zodSchemas.ts
+├── main.tsx
+├── pages
+│   ├── DashboardPage.tsx
+│   ├── DigitalTwinPage.module.css
+│   ├── DigitalTwinPage.tsx
+│   ├── DocumentParserPage.module.css
+│   ├── Documentparserpage.tsx
+│   ├── HumanFactorsPage.tsx
+│   ├── LoginPage.tsx
+│   ├── NotFoundPage.tsx
+│   └── SimulationPage.tsx
+├── struktur_folder.txt
+├── styles
+│   └── globals.css
+├── test
+│   ├── mocks
+│   │   ├── browser.ts
+│   │   ├── fixtures
+│   │   │   └── digitalTwin.fixture.ts
+│   │   └── handlers.ts
+│   └── setupTests.ts
+├── types
+│   ├── api.types.ts
+│   └── global.d.ts
+└── vite-env.d.ts
+
+52 directories, 117 files

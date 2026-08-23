@@ -1,0 +1,181 @@
+/* frontend/src/features/optimization/components/Charts.module.css */
+.chartContainer {
+  display: flex;
+  flex-direction: column;
+  background: var(--report-surface, #ffffff);
+  border: 1px solid var(--report-border, #e8dfd8);
+  border-radius: 8px;
+  padding: 0.85rem 1rem 0.6rem;
+  height: 100%;
+}
+
+.chartTitle {
+  font-family: var(--twin-font-mono, "IBM Plex Mono", monospace);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--report-text-muted, #726560);
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.svgWrapper {
+  width: 100%;
+  position: relative;
+}
+
+.svgChart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  display: block;
+}
+
+.gridLine {
+  stroke: var(--report-grid, #f0e7e1);
+  stroke-width: 1;
+}
+
+.axisLabel {
+  font-family: var(--twin-font-mono, "IBM Plex Mono", monospace);
+  font-size: 8.5px;
+  fill: var(--report-text-faint, #9d908a);
+}
+
+.categoryLabel {
+  font-size: 8.5px;
+  font-weight: 500;
+}
+
+/* Throughput line paths */
+.beforeLine {
+  stroke: #c8bcb6;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.afterLine {
+  stroke: #801426;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Data points */
+.pointBefore {
+  fill: #c8bcb6;
+  stroke: #ffffff;
+  stroke-width: 1;
+  transition: r 0.15s ease;
+}
+
+.pointAfter {
+  fill: #801426;
+  stroke: #ffffff;
+  stroke-width: 1.5;
+  transition: r 0.15s ease;
+}
+
+.hitArea {
+  cursor: pointer;
+}
+
+.hoverGuideLine {
+  stroke: #801426;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  opacity: 0.4;
+}
+
+/* Tooltip */
+.tooltipBg {
+  fill: #1f1917;
+  stroke: #801426;
+  stroke-width: 1;
+}
+
+.tooltipTime {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 8.5px;
+  font-weight: 600;
+  fill: #ffffff;
+}
+
+.tooltipBefore {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 7.5px;
+  fill: #c8bcb6;
+}
+
+.tooltipAfter {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 7.5px;
+  font-weight: 600;
+  fill: #ff9aa8;
+}
+
+/* Cost Bar chart */
+.barBefore {
+  fill: #dfd3cc;
+  transition: opacity 0.15s;
+}
+
+.barAfter {
+  fill: #801426;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.interactiveGroup:hover .barAfter {
+  fill: #9a1a30;
+}
+
+.interactiveGroup:hover .barBefore {
+  fill: #cebfb6;
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  margin-top: 0.3rem;
+  font-family: var(--twin-font-mono, "IBM Plex Mono", monospace);
+  font-size: 0.68rem;
+  color: var(--report-text-muted, #726560);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legendDotBefore {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #a89b94;
+  background: #ffffff;
+}
+
+.legendDotAfter {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #801426;
+}
+
+.legendBoxBefore {
+  width: 10px;
+  height: 8px;
+  background: #dfd3cc;
+  border-radius: 1px;
+}
+
+.legendBoxAfter {
+  width: 10px;
+  height: 8px;
+  background: #801426;
+  border-radius: 1px;
+}

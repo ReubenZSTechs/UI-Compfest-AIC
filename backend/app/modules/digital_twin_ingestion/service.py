@@ -1,4 +1,3 @@
-# backend/app/modules/digital_twin_ingestion/service.py
 """
 Layanan bisnis (service layer) modul Digital Twin Ingestion.
 Sesuai dengan Standar Kontrak Data Digital Twin System.
@@ -24,12 +23,55 @@ class DigitalTwinService:
         self.db = db
         self.repository = DigitalTwinRepository(db)
 
-    async def get_full_twin(self, factory_id: str | None = None) -> schemas.DigitalTwin:
+    async def _resolve_factory_id(self, job_id: str | int | None) -> str | None:
+        """Resolve factory_id berdasarkan job_id (ID Parse Job / Audit Log)."""
+        if not job_id:
+            return None
+
+        job_str = str(job_id).strip()
+
+        # 1. Jika job_id berupa digit/angka, cari factory_id dari DocumentParseJob
+        if job_str.isdigit():
+            try:
+                from app.modules.documents.models import DocumentParseJob
+
+                stmt_job = select(DocumentParseJob).where(DocumentParseJob.id == int(job_str))
+                res_job = await self.db.execute(stmt_job)
+                parse_job = res_job.scalar_one_or_none()
+                if parse_job:
+                    if parse_job.factory_id:
+                        return parse_job.factory_id
+                    if parse_job.factory_structure and isinstance(
+                        parse_job.factory_structure, dict
+                    ):
+                        fac_info = parse_job.factory_structure.get("factory_info", {})
+                        if fac_info.get("factory_id"):
+                            return fac_info.get("factory_id")
+                    return f"FAC-{parse_job.id}"
+            except Exception:
+                pass
+
+        # 2. Cari langsung ke tabel Factory berdasarkan exact match atau pattern suffix (-job{id})
+        stmt_fac = select(models.Factory.factory_id).where(
+            (models.Factory.factory_id == job_str)
+            | (models.Factory.factory_id.like(f"%-job{job_str}"))
+        )
+        res_fac = await self.db.execute(stmt_fac)
+        factory_id = res_fac.scalar_one_or_none()
+        if factory_id:
+            return factory_id
+
+        # Fallback jika tidak ditemukan di DB, kembalikan string job_str langsung
+        return job_str
+
+    async def get_full_twin(self, job_id: str | int | None = None) -> schemas.DigitalTwin:
         """
-        Mengambil data Digital Twin lengkap dari database.
-        Jika factory_id tidak diberikan, akan mengambil factory paling terbaru.
+        Mengambil data Digital Twin lengkap dari database berdasarkan job_id.
+        Jika job_id tidak diberikan, akan mengambil factory paling terbaru.
         Jika database belum terisi, mengembalikan struktur DigitalTwin kosong secara dinamis.
         """
+        factory_id = await self._resolve_factory_id(job_id)
+
         query = select(models.Factory).options(
             selectinload(models.Factory.assets),
             selectinload(models.Factory.process_stages),
@@ -75,7 +117,9 @@ class DigitalTwinService:
                 factory_flow_rightnow=None,
                 llm_compatibility_and_evaluations=[],
                 warnings=[
-                    "Data Digital Twin belum tersedia. Silakan lakukan parsing dokumen terlebih dahulu."
+                    f"Data Digital Twin untuk Job ID '{job_id}' belum tersedia."
+                    if job_id
+                    else "Data Digital Twin belum tersedia. Silakan lakukan parsing dokumen terlebih dahulu."
                 ],
             )
 
@@ -233,32 +277,32 @@ class DigitalTwinService:
             warnings=getattr(factory, "warnings", []) or [],
         )
 
-    async def get_assets(self, factory_id: str | None = None) -> list[schemas.Asset]:
-        twin = await self.get_full_twin(factory_id)
+    async def get_assets(self, job_id: str | int | None = None) -> list[schemas.Asset]:
+        twin = await self.get_full_twin(job_id)
         return twin.assets
 
-    async def get_process_stages(self, factory_id: str | None = None) -> list[schemas.ProcessStage]:
-        twin = await self.get_full_twin(factory_id)
+    async def get_process_stages(self, job_id: str | int | None = None) -> list[schemas.ProcessStage]:
+        twin = await self.get_full_twin(job_id)
         return twin.process_stages
 
-    async def get_workers(self, factory_id: str | None = None) -> list[schemas.Worker]:
-        twin = await self.get_full_twin(factory_id)
+    async def get_workers(self, job_id: str | int | None = None) -> list[schemas.Worker]:
+        twin = await self.get_full_twin(job_id)
         return twin.workers
 
-    async def get_job_desks(self, factory_id: str | None = None) -> list[schemas.JobDesk]:
-        twin = await self.get_full_twin(factory_id)
+    async def get_job_desks(self, job_id: str | int | None = None) -> list[schemas.JobDesk]:
+        twin = await self.get_full_twin(job_id)
         return twin.job_desks
 
     async def get_compatibility_matrix(
-        self, factory_id: str | None = None
+        self, job_id: str | int | None = None
     ) -> list[schemas.CompatibilityEvaluation]:
-        twin = await self.get_full_twin(factory_id)
+        twin = await self.get_full_twin(job_id)
         return twin.llm_compatibility_and_evaluations
 
     async def get_live_flow(
-        self, factory_id: str | None = None
+        self, job_id: str | int | None = None
     ) -> schemas.FactoryFlowRightNow | None:
-        twin = await self.get_full_twin(factory_id)
+        twin = await self.get_full_twin(job_id)
         return twin.factory_flow_rightnow
 
     async def save_digital_twin(self, twin: schemas.DigitalTwin) -> None:

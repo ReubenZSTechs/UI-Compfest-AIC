@@ -2,19 +2,36 @@
 """
 SQLAlchemy models untuk domain RL Optimization.
 
-Struktur mengikuti factory_workflow_digital_twin.json:
-- Factory, Asset, JobDesk, Worker, CompatibilityEvaluation -> "digital twin" statis
-- LiveSimulationState                                      -> kondisi real-time
-- OptimizationJob, OptimizationScenario                     -> hasil training RL
+REVISI (bug fix -- table name collision):
+Sebelumnya modul ini punya model class SENDIRI untuk Factory/Asset/JobDesk/
+Worker/CompatibilityEvaluation, MENDUPLIKASI tabel `factories`/`assets`/
+`workers`/`compatibility_evaluations` yang juga didefinisikan di
+`app.modules.digital_twin_ingestion.models`. Begitu kedua modul model
+di-import bersamaan (mis. lewat Alembic autogenerate atau
+`Base.metadata.create_all`), SQLAlchemy melempar
+`InvalidRequestError: Table 'factories' is already defined for this
+MetaData instance` -- ditemukan & dikonfirmasi lewat pengujian end-to-end.
 
-Nested object yang sifatnya deskriptif/tidak sering di-query per-field
-(mis. environmental_factors, demographics, factory_flow_optimal) disimpan
-sebagai kolom JSON, bukan dinormalisasi habis-habisan — trade-off yang
-wajar untuk data hasil LLM synthesis yang bentuknya masih bisa berevolusi.
-Kolom JSON pakai tipe generik `JSON` (bukan `JSONB` postgres-only) supaya
-model tetap portable untuk testing (SQLite) maupun produksi (Postgres);
-Postgres akan tetap menyimpannya secara efisien, dan bisa di-migrasi ke
-JSONB nanti kalau butuh index GIN untuk query dalam JSON.
+Root cause sebenarnya: `service.get_digital_twin()` sudah di-refactor
+(iterasi sebelumnya) untuk delegasi ke `DigitalTwinService` milik
+`digital_twin_ingestion` -- jadi model Factory/Asset/JobDesk/Worker/
+CompatibilityEvaluation di modul INI sudah tidak pernah dipakai untuk
+query/insert apa pun. Kelasnya dihapus di sini; `OptimizationJob` di
+bawah tetap referensi `factories.factory_id` sebagai FK -- itu sekarang
+otomatis merujuk ke tabel `factories` milik `digital_twin_ingestion`
+(satu-satunya definisi yang tersisa), bukan tabel duplikat.
+
+`LiveSimulationState` juga dihapus (bukan cuma di-skip) -- tabel ini
+mewakili "state simulasi live yang dihitung & disimpan backend", yang
+bertentangan dengan arsitektur Client-Side Simulation yang sudah
+diputuskan (lihat penghapusan `GET /simulation/live` endpoint). Membiarkan
+model-nya tetap ada mengundang orang menyambungkannya lagi di masa depan
+tanpa sadar itu regresi arsitektur.
+
+Yang tersisa: `OptimizationJob` & `OptimizationScenario` -- keduanya masih
+relevan sebagai record ASINKRON hasil training RL (bukan live tick state),
+konsisten dengan endpoint `POST /rl-optimization/optimize` dkk yang tetap
+ada.
 """
 
 from __future__ import annotations
@@ -39,131 +56,6 @@ class OptimizationJobStatusEnum(str, PyEnum):
     running = "running"
     converged = "converged"
     failed = "failed"
-
-
-# =============================================================================
-# Digital Twin — statis
-# =============================================================================
-
-class Factory(Base, TimestampMixin):
-    __tablename__ = "factories"
-
-    factory_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    factory_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    workflow_sequence: Mapped[list] = mapped_column(
-        JSON, nullable=False, comment="Urutan step, mis. ['step_01_weighing', ...]"
-    )
-
-    assets: Mapped[list["Asset"]] = relationship(back_populates="factory", cascade="all, delete-orphan")
-    job_descriptions: Mapped[list["JobDesk"]] = relationship(back_populates="factory", cascade="all, delete-orphan")
-    workers: Mapped[list["Worker"]] = relationship(back_populates="factory", cascade="all, delete-orphan")
-
-
-class Asset(Base, TimestampMixin):
-    __tablename__ = "assets"
-
-    asset_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), index=True)
-
-    asset_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    category: Mapped[str] = mapped_column(String(64), nullable=False)
-    workflow_step: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    is_automated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    base_throughput_capacity: Mapped[float] = mapped_column(Float, nullable=False)
-    operational_cost_per_hour: Mapped[float] = mapped_column(Float, nullable=False)
-    environmental_factors: Mapped[dict] = mapped_column(
-        JSON, nullable=False, comment="{noise_level_db, vibration_hazard_level, physical_strain_index}"
-    )
-    metric_derivation_reasoning: Mapped[str] = mapped_column(Text, nullable=False)
-
-    factory: Mapped["Factory"] = relationship(back_populates="assets")
-    job_descriptions: Mapped[list["JobDesk"]] = relationship(back_populates="asset")
-
-
-class JobDesk(Base, TimestampMixin):
-    __tablename__ = "job_descriptions"
-
-    job_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), index=True)
-    assigned_asset_id: Mapped[str] = mapped_column(ForeignKey("assets.asset_id", ondelete="RESTRICT"), index=True)
-
-    job_title: Mapped[str] = mapped_column(String(255), nullable=False)
-    workflow_step: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    demands: Mapped[dict] = mapped_column(
-        JSON, nullable=False, comment="{required_cognitive_focus, physical_demand_level, task_complexity, error_severity}"
-    )
-    qc_requirement: Mapped[str] = mapped_column(Text, nullable=False)
-    metric_derivation_reasoning: Mapped[str] = mapped_column(Text, nullable=False)
-
-    factory: Mapped["Factory"] = relationship(back_populates="job_descriptions")
-    asset: Mapped["Asset"] = relationship(back_populates="job_descriptions")
-
-
-class Worker(Base, TimestampMixin):
-    __tablename__ = "workers"
-
-    worker_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), index=True)
-
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    demographics: Mapped[dict] = mapped_column(
-        JSON, nullable=False,
-        comment="{age, gender, years_of_experience, baseline_physical_stamina, cognitive_resilience}",
-    )
-    shift_context: Mapped[dict] = mapped_column(
-        JSON, nullable=False, comment="{hours_worked_today, consecutive_shifts}"
-    )
-
-    factory: Mapped["Factory"] = relationship(back_populates="workers")
-
-
-class CompatibilityEvaluation(Base, TimestampMixin):
-    """Satu baris matriks kompatibilitas N x M (worker x job x asset)."""
-
-    __tablename__ = "compatibility_evaluations"
-    __table_args__ = (
-        UniqueConstraint("worker_id", "job_id", "asset_id", name="uq_compat_worker_job_asset"),
-    )
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), index=True)
-    worker_id: Mapped[str] = mapped_column(ForeignKey("workers.worker_id", ondelete="CASCADE"), index=True)
-    job_id: Mapped[str] = mapped_column(ForeignKey("job_descriptions.job_id", ondelete="CASCADE"), index=True)
-    asset_id: Mapped[str] = mapped_column(ForeignKey("assets.asset_id", ondelete="CASCADE"), index=True)
-
-    evaluations: Mapped[dict] = mapped_column(
-        JSON, nullable=False,
-        comment="{overall_compatibility_score, throughput_multiplier, error_multiplier, fatigue_accumulation_rate, stress_sensitivity_factor}",
-    )
-    llm_reasoning: Mapped[str] = mapped_column(Text, nullable=False)
-
-
-# =============================================================================
-# Live Simulation State — real-time, satu baris terkini per factory
-# =============================================================================
-
-class LiveSimulationState(Base, TimestampMixin):
-    """
-    Satu baris = snapshot terkini satu factory. Dianggap "current state",
-    bukan history — kalau butuh riwayat time-series, tambahkan tabel
-    terpisah `live_simulation_state_history` yang append-only.
-    """
-
-    __tablename__ = "live_simulation_states"
-
-    factory_id: Mapped[str] = mapped_column(
-        ForeignKey("factories.factory_id", ondelete="CASCADE"), primary_key=True
-    )
-    snapshot_timestamp: Mapped[datetime] = mapped_column(nullable=False)
-    note: Mapped[str] = mapped_column(Text, nullable=False)
-    staff_current_positions: Mapped[list] = mapped_column(
-        JSON, nullable=False, comment="list[StaffCurrentPosition] — lihat schemas.py"
-    )
-    current_assignments: Mapped[list] = mapped_column(
-        JSON, nullable=False, comment="list[CurrentAssignment] termasuk calculated_realtime_metrics"
-    )
-    system_bottlenecks: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
-    analytical_insight_summary: Mapped[str] = mapped_column(Text, nullable=False)
 
 
 # =============================================================================

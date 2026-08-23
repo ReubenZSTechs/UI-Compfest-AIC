@@ -1,0 +1,241 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  font-family: var(--twin-font-sans);
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.legendLabel {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--twin-text-muted);
+}
+
+.legendBar {
+  width: 140px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    var(--twin-accent-danger),
+    var(--twin-accent-warning),
+    var(--twin-accent-safe)
+  );
+}
+
+.legendTicks {
+  display: flex;
+  justify-content: space-between;
+  width: 140px;
+  font-family: var(--twin-font-mono);
+  font-size: 0.62rem;
+  color: var(--twin-text-faint);
+  position: absolute;
+  margin-left: -140px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Matrix */
+.matrixScroll {
+  overflow-x: auto;
+  border: 1px solid var(--twin-border);
+  border-radius: 6px;
+  background: var(--twin-surface);
+}
+
+.table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  padding: 0.5rem;
+}
+
+.cornerCell {
+  width: 160px;
+  min-width: 160px;
+  background: var(--twin-surface);
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.colHeader {
+  min-width: 64px;
+  padding: 0.4rem 0.3rem;
+  text-align: center;
+  vertical-align: bottom;
+  transition: background 0.12s ease;
+}
+
+.colHeaderText {
+  font-family: var(--twin-font-mono);
+  font-size: 0.65rem;
+  color: var(--twin-text-muted);
+  white-space: nowrap;
+}
+
+.rowHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 160px;
+  min-width: 160px;
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  background: var(--twin-surface);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  transition: background 0.12s ease;
+}
+
+.rowAvatar {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--twin-bg);
+  border: 1px solid var(--twin-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--twin-font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--twin-text-muted);
+}
+
+.rowName {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--twin-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.headerActive {
+  background: var(--twin-surface-raised);
+}
+
+.headerActive .colHeaderText,
+.headerActive .rowName {
+  color: var(--twin-text-primary);
+}
+
+/* Cells */
+.cell {
+  width: 64px;
+  height: 40px;
+  text-align: center;
+  vertical-align: middle;
+  font-family: var(--twin-font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.cell:hover {
+  transform: scale(1.06);
+}
+
+.cell:focus-visible {
+  outline: 2px solid var(--twin-text-primary);
+  outline-offset: 1px;
+}
+
+.cellSelected {
+  outline: 2px solid var(--twin-text-primary);
+  outline-offset: 1px;
+}
+
+.cellDimmed {
+  opacity: 0.45;
+}
+
+.cellEmpty {
+  width: 64px;
+  height: 40px;
+  text-align: center;
+  vertical-align: middle;
+  background: var(--twin-bg);
+  border-radius: 4px;
+}
+
+.emptyDash {
+  color: var(--twin-text-faint);
+  font-size: 0.75rem;
+}
+
+/* Detail panel */
+.detailPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--twin-surface);
+  border: 1px solid var(--twin-border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--twin-border);
+  padding-bottom: 0.6rem;
+}
+
+.detailPairId {
+  font-family: var(--twin-font-mono);
+  font-size: 0.8rem;
+  color: var(--twin-text-primary);
+}
+
+.detailScore {
+  font-family: var(--twin-font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.detailMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.detailMetricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.detailMetricLabel {
+  font-size: 0.65rem;
+  color: var(--twin-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.detailMetricValue {
+  font-family: var(--twin-font-mono);
+  font-size: 0.85rem;
+  color: var(--twin-text-primary);
+}
+
+.detailReasoning {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--twin-text-muted);
+  margin: 0;
+}
