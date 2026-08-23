@@ -238,3 +238,45 @@ class DigitalTwin(BaseDTModel):
     factory_flow_rightnow: FactoryFlowRightNow | None = None
     llm_compatibility_and_evaluations: list[CompatibilityEvaluation] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+
+# --- lifecycle factory & response gabungan ---
+
+FactoryPipelineStatus = Literal[
+    "initialized",
+    "workers_ingested",
+    "simulation_configured",
+    "twin_ready",
+]
+
+
+class FactoryCreateRequest(BaseDTModel):
+    factory_name: str = Field(..., min_length=1, max_length=255)
+    factory_id: str | None = None
+    process_type: Literal["serial", "parallel", "hybrid"] = "serial"
+    declared_worker_count: int = Field(default=0, ge=0)
+    layout_description: str = ""
+
+
+class FactorySummary(BaseDTModel):
+    factory_id: str
+    factory_name: str
+    process_type: str
+    status: FactoryPipelineStatus
+    declared_worker_count: int
+    registered_worker_count: int
+    assets_count: int
+    process_stages_count: int
+    shifts_count: int
+    job_desks_count: int
+    workers_count: int
+    evaluations_count: int
+    simulation_configured: bool
+    created_at: str | None = None
+
+
+class FactoryDigitalTwinResponse(BaseDTModel):
+    factory_id: str
+    status: FactoryPipelineStatus
+    summary: FactorySummary
+    digital_twin: DigitalTwin
+    warnings: list[str] = Field(default_factory=list)

@@ -210,18 +210,74 @@ async def extract_worker_profiles(
     worker_zip: UploadFile = File(
         ..., description="Berkas arsip .zip berisi CV/catatan wawancara pekerja"
     ),
+    factory_id: str | None = Query(
+        None,
+        description=(
+            "ID pabrik hasil POST /factories. Bila diisi, hasil ekstraksi langsung "
+            "disimpan ke tabel `workers` dengan FK ke factory tersebut."
+        ),
+    ),
     strict: bool = Query(
         False,
         description="Jika true, hentikan proses bila ada berkas dalam ZIP yang gagal diekstraksi",
     ),
+    max_workers: int = Query(4, ge=1, le=32),
+    max_attempts: int = Query(3, ge=1, le=10),
+    db: AsyncSession = Depends(get_db),
 ) -> Step4Response:
     """
     Menerima berkas ZIP berisi dokumen CV/catatan wawancara pekerja (.pdf, .docx, .md, .txt),
-    mengekstraksi konten arsip, dan memanggil Agent B untuk merestrukturisasi profil worker.
+    mengekstraksi konten arsip, memanggil Agent B untuk merestrukturisasi profil worker,
+    lalu (bila `factory_id` diisi) menyimpannya ke Digital Twin DB.
+
+    Baris worker yang tidak lengkap tidak langsung ditolak: worker_id kosong diberi ID
+    otomatis dan field demografi yang hilang diisi nilai default, dengan setiap koreksi
+    dilaporkan pada `warnings`.
     """
     try:
-        result = await service.step_4_extract_worker_profiles(worker_zip, strict=strict)
+        result = await service.step_4_extract_worker_profiles(
+            worker_zip,
+            strict=strict,
+            max_workers=max_workers,
+            max_attempts=max_attempts,
+            factory_id=factory_id,
+            db=db,
+        )
         return Step4Response.model_validate(result)
+    except DocumentParserPipelineError as err:
+        raise _handle_error(err) from err
+
+
+@router.post(
+    "/step-5",
+    response_model=Step5Response,
+    response_model_by_alias=True,
+    summary="Tahap 5: Matriks Kompatibilitas Pekerja x Job Desk",
+)
+async def generate_compatibility_matrix(
+    payload: Step5Request,
+    db: AsyncSession = Depends(get_db),
+) -> Step5Response:
+    """
+    Mengevaluasi kesesuaian antara struktur pabrik dan profil pekerja.
+
+    Mode utama (tombol "make digitaltwin"): kirim `factoryId` saja -- job desk hasil
+    flowchart manual dan worker hasil Tahap 4 dibaca dari DB, lalu matriks yang
+    dihasilkan dipersist ke `compatibility_evaluations` milik factory tersebut.
+    Mode stateless lama (`factoryStructure` + `workerProfile`) tetap didukung.
+    """
+    try:
+        result = await service.step_5_generate_compatibility_matrix(
+            factory_structure=payload.factory_structure,
+            worker_profile=payload.worker_profile,
+            max_workers=payload.max_workers,
+            max_attempts=payload.max_attempts,
+            strict_compatibility=payload.strict_compatibility,
+            factory_id=payload.factory_id,
+            db=db,
+            persist=payload.persist,
+        )
+        return Step5Response.model_validate(result)
     except DocumentParserPipelineError as err:
         raise _handle_error(err) from err
 
