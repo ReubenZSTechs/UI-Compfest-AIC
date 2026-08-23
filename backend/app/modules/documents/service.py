@@ -48,10 +48,7 @@ from app.modules.digital_twin_ingestion import schemas as dt_schemas
 from app.modules.digital_twin_ingestion.models import Factory
 from app.modules.documents import schemas
 from app.modules.documents.models import DocumentParseJob
-from app.modules.documents.repository import (
-    persist_completed_pipeline,
-    record_failed_parse_job,
-)
+
 from app.services.agent_registry_service import AgentRole, get_agent_registry
 from app.services.cross_reference_job_worker_service import (
     CompatibilityEvaluationError,
@@ -76,6 +73,16 @@ from app.services.generate_worker_profiles_service import (
 )
 
 from .exceptions import DocumentParserPipelineError
+
+from app.modules.digital_twin_ingestion.service import DigitalTwinService
+from app.modules.documents.repository import (
+    _flatten_compatibility_matrix,
+    _unwrap_worker_profile,
+    persist_compatibility_matrix,
+    persist_completed_pipeline,
+    persist_worker_profile,
+    record_failed_parse_job,
+)
 
 # Dukungan ekstensi file template & CV pekerja
 TEMPLATE_SUFFIXES = {".pdf", ".docx", ".md", ".markdown", ".txt", ".xlsx", ".xls", ".csv"}
@@ -557,11 +564,130 @@ async def process_factory_document_pipeline(
 # Tahap 4: Ekstraksi ZIP CV & Agent B (Profil Pekerja)
 # --------------------------------------------------------------------------
 
+DEMOGRAPHIC_DEFAULTS: dict[str, Any] = {
+    "age": 30,
+    "gender": "unknown",
+    "years_of_experience": 0.0,
+    "baseline_physical_stamina": 0.5,
+    "cognitive_resilience": 0.5,
+}
+
+SHIFT_CONTEXT_DEFAULTS: dict[str, Any] = {
+    "hours_worked_today": 0.0,
+    "consecutive_shifts": 0,
+}
+
+
+def _normalize_worker_records(worker_profile: Any) -> tuple[dict[str, Any], list[str]]:
+    """
+    Melengkapi hasil ekstraksi ZIP yang tidak utuh sebelum masuk ke DB: worker_id
+    kosong diberi ID otomatis, worker_id duplikat di-suffix, dan field demografi /
+    shift_context yang hilang diisi nilai default. Tanpa langkah ini, baris worker
+    yang tidak lengkap akan lolos ke tabel `workers` dan baru meledak saat dibaca
+    kembali sebagai skema Pydantic pada endpoint retrieval.
+    """
+    profile = _unwrap_worker_profile(worker_profile)
+    warnings: list[str] = []
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    for index, raw in enumerate(profile.get("workers", []), start=1):
+        if not isinstance(raw, dict):
+            warnings.append(f"Entri pekerja ke-{index} diabaikan karena bukan objek JSON.")
+            continue
+
+        record = dict(raw)
+        worker_id = str(
+            record.get("worker_id") or record.get("id") or record.get("worker_code") or ""
+        ).strip()
+
+        if not worker_id:
+            worker_id = f"wrk-auto-{index:03d}"
+            warnings.append(
+                f"Pekerja ke-{index} tidak memiliki worker_id; ID '{worker_id}' dibuat otomatis."
+            )
+
+        if worker_id in seen:
+            duplicated = worker_id
+            worker_id = f"{worker_id}-{index:03d}"
+            warnings.append(
+                f"worker_id '{duplicated}' duplikat di dalam arsip; diubah menjadi '{worker_id}'."
+            )
+
+        seen.add(worker_id)
+
+        demographics = record.get("demographics")
+        demographics = demographics if isinstance(demographics, dict) else {}
+        missing_demo = [
+            key for key in DEMOGRAPHIC_DEFAULTS if demographics.get(key) is None
+        ]
+        if missing_demo:
+            warnings.append(
+                f"Pekerja '{worker_id}' tidak memiliki demografi lengkap "
+                f"({', '.join(missing_demo)}); nilai default dipakai."
+            )
+
+        shift_context = record.get("shift_context")
+        shift_context = shift_context if isinstance(shift_context, dict) else {}
+        missing_shift = [
+            key for key in SHIFT_CONTEXT_DEFAULTS if shift_context.get(key) is None
+        ]
+        if missing_shift:
+            warnings.append(
+                f"Pekerja '{worker_id}' tidak memiliki shift_context lengkap "
+                f"({', '.join(missing_shift)}); nilai default dipakai."
+            )
+
+        record["worker_id"] = worker_id
+        record["name"] = str(record.get("name") or worker_id)
+        record["demographics"] = {
+            **DEMOGRAPHIC_DEFAULTS,
+            **{k: v for k, v in demographics.items() if v is not None},
+        }
+        record["shift_context"] = {
+            **SHIFT_CONTEXT_DEFAULTS,
+            **{k: v for k, v in shift_context.items() if v is not None},
+        }
+        normalized.append(record)
+
+    if not normalized:
+        warnings.append("Tidak ada profil pekerja valid yang berhasil diekstraksi dari arsip.")
+
+    return {"workers": normalized}, warnings
+
+
+async def _persist_workers_to_factory(
+    db: AsyncSession, factory_id: str, worker_profile: dict[str, Any]
+) -> int:
+    """Menyimpan hasil Tahap 4 ke tabel `workers` dengan FK ke factory_id."""
+    factory = await db.get(Factory, factory_id)
+    if factory is None:
+        raise DocumentParserPipelineError(
+            "factory_lookup",
+            f"Factory '{factory_id}' tidak ditemukan. Buat factory terlebih dahulu "
+            f"melalui POST /factories sebelum mengunggah ZIP CV.",
+        )
+
+    try:
+        persisted = await persist_worker_profile(db, factory_id, worker_profile)
+        factory.registered_worker_count = persisted
+        await db.commit()
+    except Exception as error:
+        await db.rollback()
+        raise DocumentParserPipelineError(
+            "ingestion", f"Gagal menyimpan profil pekerja ke database: {error}"
+        ) from error
+
+    return persisted
+
+
 async def step_4_extract_worker_profiles(
     worker_zip: UploadFile,
     strict: bool = False,
     max_workers: int = 4,
     max_attempts: int = 3,
+    factory_id: str | None = None,
+    db: AsyncSession | None = None,
 ) -> dict[str, Any]:
     """Ekstraksi berkas arsip CV pekerja dan pembuatan profil terstruktur."""
     filename = worker_zip.filename or "workers.zip"
@@ -570,6 +696,7 @@ async def step_4_extract_worker_profiles(
         "START",
         payload={
             "filename": filename,
+            "factory_id": factory_id,
             "strict": strict,
             "max_workers": max_workers,
             "max_attempts": max_attempts,
@@ -579,6 +706,14 @@ async def step_4_extract_worker_profiles(
     _validate_suffix(filename, WORKER_SUFFIXES, "worker_zip")
 
     try:
+        if factory_id and db is not None:
+            if await db.get(Factory, factory_id) is None:
+                raise DocumentParserPipelineError(
+                    "factory_lookup",
+                    f"Factory '{factory_id}' tidak ditemukan. Buat factory terlebih "
+                    f"dahulu melalui POST /factories.",
+                )
+
         with tempfile.TemporaryDirectory(prefix="worker_step4_") as tmp_dir:
             tmp_path = Path(tmp_dir) / filename
             tmp_path.write_bytes(await worker_zip.read())
@@ -595,6 +730,13 @@ async def step_4_extract_worker_profiles(
                 ) from error
 
             worker_agent_input = build_worker_agent_input(worker_document)
+
+        if not worker_document.candidates:
+            raise DocumentParserPipelineError(
+                "extract",
+                "Arsip ZIP tidak memuat satu pun dokumen CV yang bisa dibaca "
+                "(.pdf, .docx, .md, .txt).",
+            )
 
         registry = get_agent_registry()
         worker_agent = registry.get(AgentRole.WORKER_PROFILE)
@@ -614,11 +756,27 @@ async def step_4_extract_worker_profiles(
                 "llm_parse", f"Agent profil pekerja gagal: {error}"
             ) from error
 
+        worker_profile, warnings = _normalize_worker_records(_to_dict(result))
+
+        workers_persisted = 0
+        if factory_id and db is not None:
+            if not worker_profile["workers"]:
+                raise DocumentParserPipelineError(
+                    "ingestion",
+                    "Tidak ada profil pekerja valid untuk disimpan; periksa isi arsip ZIP.",
+                    details=warnings,
+                )
+            workers_persisted = await _persist_workers_to_factory(
+                db, factory_id, worker_profile
+            )
+
         return {
-            "worker_profile": _to_dict(result),
+            "factory_id": factory_id,
+            "worker_profile": worker_profile,
             "worker_agent_input": worker_agent_input,
             "candidates_found": len(worker_document.candidates),
             "rejected_blocks_count": len(worker_document.rejected_blocks),
+            "workers_persisted": workers_persisted,
             "archive_reports": [
                 {
                     "archive_name": r.archive_name,
@@ -628,7 +786,7 @@ async def step_4_extract_worker_profiles(
                 }
                 for r in archive_reports
             ],
-            "warnings": [],
+            "warnings": warnings,
         }
 
     except DocumentParserPipelineError as err:
@@ -643,30 +801,83 @@ async def step_4_extract_worker_profiles(
 # Tahap 5: Matriks Kompatibilitas
 # --------------------------------------------------------------------------
 
+
+def _read_worker_list(worker_profile: Any) -> list[dict[str, Any]]:
+    profile = _unwrap_worker_profile(worker_profile)
+    return [w for w in profile.get("workers", []) if isinstance(w, dict)]
+
+
 async def step_5_generate_compatibility_matrix(
-    factory_structure: dict[str, Any],
-    worker_profile: dict[str, Any],
+    factory_structure: dict[str, Any] | None = None,
+    worker_profile: dict[str, Any] | None = None,
     max_workers: int = 4,
     max_attempts: int = 3,
     strict_compatibility: bool = False,
+    factory_id: str | None = None,
+    db: AsyncSession | None = None,
+    persist: bool = True,
 ) -> dict[str, Any]:
-    """Memetakan pencocokan job desk pabrik dengan profil pekerja."""
+    """
+    Memetakan pencocokan job desk pabrik dengan profil pekerja.
+
+    Bila `factory_id` diberikan, struktur pabrik & daftar pekerja dibaca langsung
+    dari Digital Twin DB (hasil Tahap 4 + flowchart manual), dan matriks hasilnya
+    dipersist balik ke tabel `compatibility_evaluations` milik factory tersebut.
+    """
     _log_json(
         "step_5_generate_compatibility_matrix",
         "START",
         payload={
+            "factory_id": factory_id,
             "max_workers": max_workers,
             "max_attempts": max_attempts,
             "strict_compatibility": strict_compatibility,
+            "persist": persist,
         },
     )
 
+    warnings: list[str] = []
+
     try:
-        worker_list = (
-            worker_profile.get("workers", [])
-            if isinstance(worker_profile, dict)
-            else getattr(worker_profile, "workers", [])
-        )
+        if factory_id:
+            if db is None:
+                raise DocumentParserPipelineError(
+                    "factory_lookup",
+                    "Sesi database tidak tersedia untuk mode factory_id.",
+                )
+
+            dt_service = DigitalTwinService(db)
+            if await dt_service.get_factory(factory_id) is None:
+                raise DocumentParserPipelineError(
+                    "factory_lookup",
+                    f"Factory '{factory_id}' tidak ditemukan. Buat factory terlebih "
+                    f"dahulu melalui POST /factories.",
+                )
+
+            factory_structure, worker_list, load_warnings = await dt_service.get_matrix_inputs(
+                factory_id
+            )
+            warnings.extend(load_warnings)
+
+            if not worker_list:
+                raise DocumentParserPipelineError(
+                    "worker_lookup",
+                    f"Factory '{factory_id}' belum memiliki data pekerja. Jalankan "
+                    f"POST /documents/step-4 (unggah ZIP CV) terlebih dahulu.",
+                )
+            if not factory_structure.get("job_desks"):
+                raise DocumentParserPipelineError(
+                    "job_desk_lookup",
+                    f"Factory '{factory_id}' belum memiliki job desk. Simpan flowchart "
+                    f"simulasi terlebih dahulu melalui POST /simulation/{factory_id}.",
+                )
+        else:
+            factory_structure = _to_dict(factory_structure)
+            worker_list = _read_worker_list(worker_profile)
+            if not worker_list:
+                raise DocumentParserPipelineError(
+                    "worker_lookup", "'workerProfile' tidak memuat satu pun pekerja valid."
+                )
 
         registry = get_agent_registry()
         compatibility_agent = registry.get(AgentRole.WORKER_COMPATIBILITY)
@@ -682,16 +893,75 @@ async def step_5_generate_compatibility_matrix(
                 strict=strict_compatibility,
             )
         except CompatibilityEvaluationError as error:
-            raise DocumentParserPipelineError("compatibility", str(error)) from error
+            raise DocumentParserPipelineError(
+                "compatibility", str(error), details=list(error.failures)
+            ) from error
+        except ValueError as error:
+            raise DocumentParserPipelineError(
+                "compatibility",
+                f"Tidak ada pasangan pekerja x job desk yang bisa dievaluasi: {error}",
+            ) from error
         except Exception as error:
             raise DocumentParserPipelineError(
                 "compatibility", f"Gagal membuat matriks kompatibilitas: {error}"
             ) from error
 
-        return {
-            "compatibility_matrix": _to_dict(matrix) if not isinstance(matrix, list) else matrix,
-            "warnings": [],
+        matrix_dict = matrix if isinstance(matrix, dict) else {}
+        meta = matrix_dict.get("meta", {}) if isinstance(matrix_dict.get("meta"), dict) else {}
+        failed_pairs = meta.get("failed_pairs", []) or []
+        for failure in failed_pairs:
+            warnings.append(
+                f"Pasangan worker '{failure.get('worker_id')}' x job "
+                f"'{failure.get('job_id')}' gagal dievaluasi agent."
+            )
+
+        flat_matrix = _flatten_compatibility_matrix(matrix)
+        job_asset_map = {
+            job.get("job_id"): job.get("assigned_asset_id")
+            for job in (factory_structure.get("job_desks") or factory_structure.get("job_descriptions") or [])
+            if isinstance(job, dict)
         }
+        for entry in flat_matrix:
+            if not entry.get("asset_id"):
+                entry["asset_id"] = job_asset_map.get(entry.get("job_id"))
+
+        evaluations_persisted = 0
+        if factory_id and persist and db is not None:
+            try:
+                evaluations_persisted = await persist_compatibility_matrix(
+                    db,
+                    factory_id,
+                    {"llm_compatibility_and_evaluations": flat_matrix},
+                    valid_worker_ids={str(w["worker_id"]) for w in worker_list},
+                    warnings=warnings,
+                )
+                await db.commit()
+            except Exception as error:
+                await db.rollback()
+                raise DocumentParserPipelineError(
+                    "ingestion",
+                    f"Matriks berhasil dibuat namun gagal disimpan ke database: {error}",
+                ) from error
+
+        result = {
+            "factory_id": factory_id,
+            "compatibility_matrix": _to_dict(matrix) if not isinstance(matrix, list) else matrix,
+            "pairs_evaluated": int(meta.get("evaluated_pairs", len(flat_matrix)) or 0),
+            "evaluations_persisted": evaluations_persisted,
+            "failed_pairs": list(failed_pairs),
+            "warnings": warnings,
+        }
+
+        _log_json(
+            "step_5_generate_compatibility_matrix",
+            "SUCCESS",
+            output={
+                "factory_id": factory_id,
+                "pairs_evaluated": result["pairs_evaluated"],
+                "evaluations_persisted": evaluations_persisted,
+            },
+        )
+        return result
 
     except DocumentParserPipelineError as err:
         _log_error("step_5_generate_compatibility_matrix", err, payload={"stage": err.stage})

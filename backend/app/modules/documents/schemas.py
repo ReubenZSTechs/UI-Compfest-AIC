@@ -18,7 +18,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
 
@@ -81,10 +81,12 @@ class ArchiveReportSummary(BaseDocumentSchema):
 
 
 class Step4Response(BaseDocumentSchema):
+    factory_id: str | None = None
     worker_profile: dict[str, Any]
     worker_agent_input: str
     candidates_found: int = 0
     rejected_blocks_count: int = 0
+    workers_persisted: int = 0
     archive_reports: list[ArchiveReportSummary] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
@@ -118,15 +120,36 @@ class ProcessCombinedDocumentsResponse(BaseDocumentSchema):
 # --- Skema Tahap 5 & Job Result ---
 
 class Step5Request(BaseDocumentSchema):
-    factory_structure: dict[str, Any]
-    worker_profile: dict[str, Any]
-    max_workers: int = 4
-    max_attempts: int = 3
+    """
+    Dua mode input yang saling menggantikan:
+    1. `factoryId` saja -- struktur pabrik & profil pekerja dibaca dari Digital Twin DB
+       (dipakai tombol "make digitaltwin" pada UI), hasilnya dipersist balik ke DB.
+    2. `factoryStructure` + `workerProfile` -- mode stateless lama, tanpa akses DB.
+    """
+
+    factory_id: str | None = None
+    factory_structure: dict[str, Any] | None = None
+    worker_profile: dict[str, Any] | None = None
+    max_workers: int = Field(default=4, ge=1, le=32)
+    max_attempts: int = Field(default=3, ge=1, le=10)
     strict_compatibility: bool = False
+    persist: bool = True
+
+    @model_validator(mode="after")
+    def require_input_source(self) -> "Step5Request":
+        if not self.factory_id and not (self.factory_structure and self.worker_profile):
+            raise ValueError(
+                "Kirim 'factoryId', atau pasangan 'factoryStructure' + 'workerProfile'."
+            )
+        return self
 
 
 class Step5Response(BaseDocumentSchema):
+    factory_id: str | None = None
     compatibility_matrix: dict[str, Any] | list[dict[str, Any]]
+    pairs_evaluated: int = 0
+    evaluations_persisted: int = 0
+    failed_pairs: list[dict[str, Any]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
 
