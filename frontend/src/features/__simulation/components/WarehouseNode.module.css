@@ -1,0 +1,57 @@
+/* features/simulation/components/WarehouseNode.module.css */
+
+.node {
+  width: 100%;
+  max-width: 28rem;
+  border-radius: 10px;
+  border: 1px dashed var(--sim-border-strong);
+  background: var(--sim-bg-panel);
+  padding: 0.75rem 1.125rem;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.icon {
+  font-size: 0.875rem;
+}
+
+.title {
+  font-family: var(--sim-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sim-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stockReadout {
+  font-family: var(--sim-font-mono);
+  font-size: 0.75rem;
+  color: var(--sim-text-primary);
+}
+
+.stockTrack {
+  margin-top: 0.5rem;
+  height: 4px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.stockFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--sim-teal);
+  transition: width 0.6s ease-out;
+}

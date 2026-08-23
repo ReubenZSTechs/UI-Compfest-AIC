@@ -1,0 +1,51 @@
+.workspace {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--twin-bg);
+  color: var(--twin-text-primary);
+  font-family: var(--twin-font-sans);
+  overflow: hidden;
+
+  /* Light mode untuk workspace canvas */
+  --twin-bg: #f3f5f8;
+  --twin-surface: #ffffff;
+  --twin-surface-raised: #edf0f4;
+  --twin-border: #d7dce3;
+  --twin-border-hover: #b7c0cb;
+  --twin-text-primary: #1b2129;
+  --twin-text-muted: #5c6572;
+  --twin-text-faint: #8b94a3;
+  --twin-accent-automated: #2d8a83;
+  --twin-accent-manual: #a37e18;
+  --twin-accent-danger: #c2402b;
+  --twin-accent-warning: #bf7d16;
+  --twin-accent-safe: #3d8c52;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+/* Saklar halaman Live / Agent di atas-kanan. */
+.switcherLayer {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+/* Toolbar melayang di sisi kiri tengah */
+.toolbarLayer {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  pointer-events: auto;
+}

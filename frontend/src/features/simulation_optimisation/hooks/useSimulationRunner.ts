@@ -14,8 +14,16 @@ export function useSimulationRunner() {
   const setData = useSimulationStore((s) => s.setData);
   const incrementTick = useSimulationStore((s) => s.incrementTick);
 
-  const latestDataRef = useRef<SimulationResponse | null>(null);
-  latestDataRef.current = useSimulationStore.getState().data;
+  // REVISI (bug fix -- lihat penjelasan sama di features/simulation/hooks/useSimulationRunner.ts):
+  // ref disinkronkan lewat store.subscribe() dalam efek, bukan dimutasi
+  // langsung di badan render.
+  const latestDataRef = useRef<SimulationResponse | null>(useSimulationStore.getState().data);
+
+  useEffect(() => {
+    return useSimulationStore.subscribe((state) => {
+      latestDataRef.current = state.data;
+    });
+  }, []);
 
   useEffect(() => {
     if (status !== 'running') return undefined;

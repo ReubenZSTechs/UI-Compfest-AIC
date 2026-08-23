@@ -92,9 +92,9 @@
         },
         "system_bottlenecks": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string", "maxLength": 80 }
         },
-        "analytical_insight_summary": { "type": "string" }
+        "analytical_insight_summary": { "type": "string", "maxLength": 600 }
       }
     }
   }

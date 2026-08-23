@@ -1,4 +1,3 @@
-# backend/app/api/v1/endpoints/digital_twin_ingestion.py
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,14 +20,16 @@ router = APIRouter()
     "",
     response_model=DigitalTwin,
     status_code=status.HTTP_200_OK,
-    summary="Mendapatkan data lengkap Digital Twin",
+    summary="Mendapatkan Data Digital Twin Lengkap",
+    description="Mengambil data Digital Twin lengkap berdasarkan jobId (opsional). Jika jobId kosong, mengambil data terbaru.",
 )
 async def read_full_twin(
-    factory_id: Optional[str] = Query(None, description="ID Pabrik (opsional)"),
+    job_id: Optional[str] = Query(None, description="ID Job Parsing (opsional)"),
+    jobId: Optional[str] = Query(None, description="ID Job Parsing (alias jobId)", include_in_schema=False),
     db: AsyncSession = Depends(get_db),
 ) -> DigitalTwin:
     service = DigitalTwinService(db)
-    return await service.get_full_twin(factory_id=factory_id)
+    return await service.get_full_twin(job_id=job_id or jobId)
 
 
 @router.get(
@@ -38,11 +39,12 @@ async def read_full_twin(
     summary="Mendapatkan daftar seluruh Asset/Mesin",
 )
 async def read_assets(
-    factory_id: Optional[str] = Query(None, description="ID Pabrik (opsional)"),
+    job_id: Optional[str] = Query(None, description="ID Job Parsing (opsional)"),
+    jobId: Optional[str] = Query(None, description="ID Job Parsing (alias jobId)", include_in_schema=False),
     db: AsyncSession = Depends(get_db),
 ) -> list[Asset]:
     service = DigitalTwinService(db)
-    return await service.get_assets(factory_id=factory_id)
+    return await service.get_assets(job_id=job_id or jobId)
 
 
 @router.get(
@@ -52,11 +54,12 @@ async def read_assets(
     summary="Mendapatkan daftar seluruh Pekerja",
 )
 async def read_workers(
-    factory_id: Optional[str] = Query(None, description="ID Pabrik (opsional)"),
+    job_id: Optional[str] = Query(None, description="ID Job Parsing (opsional)"),
+    jobId: Optional[str] = Query(None, description="ID Job Parsing (alias jobId)", include_in_schema=False),
     db: AsyncSession = Depends(get_db),
 ) -> list[Worker]:
     service = DigitalTwinService(db)
-    return await service.get_workers(factory_id=factory_id)
+    return await service.get_workers(job_id=job_id or jobId)
 
 
 @router.get(
@@ -66,11 +69,12 @@ async def read_workers(
     summary="Mendapatkan daftar seluruh Job Desk",
 )
 async def read_job_desks(
-    factory_id: Optional[str] = Query(None, description="ID Pabrik (opsional)"),
+    job_id: Optional[str] = Query(None, description="ID Job Parsing (opsional)"),
+    jobId: Optional[str] = Query(None, description="ID Job Parsing (alias jobId)", include_in_schema=False),
     db: AsyncSession = Depends(get_db),
 ) -> list[JobDesk]:
     service = DigitalTwinService(db)
-    return await service.get_job_desks(factory_id=factory_id)
+    return await service.get_job_desks(job_id=job_id or jobId)
 
 
 @router.get(
@@ -80,11 +84,12 @@ async def read_job_desks(
     summary="Mendapatkan Matriks Evaluasi Kompatibilitas",
 )
 async def read_compatibility_matrix(
-    factory_id: Optional[str] = Query(None, description="ID Pabrik (opsional)"),
+    job_id: Optional[str] = Query(None, description="ID Job Parsing (opsional)"),
+    jobId: Optional[str] = Query(None, description="ID Job Parsing (alias jobId)", include_in_schema=False),
     db: AsyncSession = Depends(get_db),
 ) -> list[CompatibilityEvaluation]:
     service = DigitalTwinService(db)
-    return await service.get_compatibility_matrix(factory_id=factory_id)
+    return await service.get_compatibility_matrix(job_id=job_id or jobId)
 
 
 @router.get(
@@ -94,8 +99,9 @@ async def read_compatibility_matrix(
     summary="Mendapatkan snapshot arus produksi real-time",
 )
 async def read_live_flow(
-    factory_id: Optional[str] = Query(None, description="ID Pabrik (opsional)"),
+    job_id: Optional[str] = Query(None, description="ID Job Parsing (opsional)"),
+    jobId: Optional[str] = Query(None, description="ID Job Parsing (alias jobId)", include_in_schema=False),
     db: AsyncSession = Depends(get_db),
 ) -> Optional[FactoryFlowRightNow]:
     service = DigitalTwinService(db)
-    return await service.get_live_flow(factory_id=factory_id)
+    return await service.get_live_flow(job_id=job_id or jobId)

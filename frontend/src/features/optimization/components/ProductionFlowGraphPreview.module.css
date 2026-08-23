@@ -1,0 +1,136 @@
+/* frontend/src/features/optimization/components/ProductionFlowGraphPreview.module.css */
+.graphWrapper {
+  padding: 1rem 0.8rem;
+  background: #fdfbf9;
+  border-top: 1px dashed var(--report-border, #e8dfd8);
+  overflow-x: auto;
+}
+
+.nodesRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: max-content;
+}
+
+.nodeGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nodeCard {
+  width: 175px;
+  background: #ffffff;
+  border: 1px solid #e2d7d0;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.nodeCard:hover {
+  transform: translateY(-2px);
+  border-color: #801426;
+}
+
+.node_improved {
+  border-left: 3px solid #c88210;
+}
+
+.node_optimal {
+  border-left: 3px solid #197a48;
+}
+
+.node_bottleneck {
+  border-left: 3px solid #c02b20;
+  background: #fffafa;
+}
+
+.node_automated {
+  border-left: 3px solid #2d7fba;
+}
+
+.nodeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.nodeType {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  color: #8b7d77;
+}
+
+.statusBadge {
+  font-family: var(--twin-font-mono, monospace);
+  font-size: 0.58rem;
+  font-weight: 600;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.badge_improved {
+  background: #fff4dd;
+  color: #a86e00;
+}
+
+.badge_optimal {
+  background: #e8f6ed;
+  color: #197a48;
+}
+
+.badge_bottleneck {
+  background: #fce8e6;
+  color: #c02b20;
+}
+
+.badge_automated {
+  background: #e6f1fc;
+  color: #2d7fba;
+}
+
+.nodeLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1f1917;
+  margin-bottom: 0.4rem;
+}
+
+.workersList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.workerTag {
+  font-size: 0.68rem;
+  color: #5c504a;
+  background: #f5eeea;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edgeArrow {
+  display: flex;
+  align-items: center;
+  color: #bfaea5;
+}
+
+.arrowLine {
+  width: 14px;
+  height: 2px;
+  background: #d8cbc4;
+}
+
+.arrowHead {
+  font-size: 8px;
+  color: #a8958c;
+  margin-left: -2px;
+}

@@ -1,0 +1,87 @@
+.workspace {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--twin-bg);
+  color: var(--twin-text-primary);
+  font-family: var(--twin-font-sans);
+  overflow: hidden;
+
+  /* Light mode untuk workspace Agent (konsisten dengan Live). */
+  --twin-bg: #f3f5f8;
+  --twin-surface: #ffffff;
+  --twin-surface-raised: #edf0f4;
+  --twin-border: #d7dce3;
+  --twin-border-hover: #b7c0cb;
+  --twin-text-primary: #1b2129;
+  --twin-text-muted: #5c6572;
+  --twin-text-faint: #8b94a3;
+  --twin-accent-automated: #2d8a83;
+  --twin-accent-manual: #a37e18;
+  --twin-accent-danger: #c2402b;
+  --twin-accent-warning: #bf7d16;
+  --twin-accent-safe: #3d8c52;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  position: relative;
+}
+
+.backLink {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--twin-border);
+  border-radius: 50%;
+  background: var(--twin-surface);
+  color: var(--twin-text-muted);
+  text-decoration: none;
+  flex-shrink: 0;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.backLink:hover {
+  color: var(--twin-text-primary);
+  border-color: var(--twin-border-hover);
+}
+
+/* AccountMenu memakai posisi mutlak (top 5rem, left 1rem) relatif ke .main. */
+.accountLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 25;
+}
+
+.switcherLayer {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 25;
+}
+
+.chatLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.chatLayer > * {
+  pointer-events: auto;
+  width: 100%;
+  height: 100%;
+}

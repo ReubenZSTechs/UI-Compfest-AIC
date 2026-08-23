@@ -19,11 +19,20 @@ export const ENDPOINTS = {
     SCENARIOS: "/simulation/scenarios",
     RUN: "/simulation/run",
   },
+  // BARU: dipakai oleh features/canvas/api/canvasApi.ts dan store/draftStore.ts
+  CANVAS: {
+    ANALYZE: "/canvas/analyze",
+    PROJECTS: "/canvas/projects",
+    PROJECTS_LATEST: "/canvas/projects/latest",
+  },
+  // BARU: dipakai oleh features/simulation_optimisation/api/simulationApi.ts
+  RL_OPTIMIZATION: {
+    DIGITAL_TWIN: "/rl-optimization/digital-twin",
+  },
   AUTH: {
     LOGIN: "/auth/login",
     LOGOUT: "/auth/logout",
     ME: "/auth/me",
   },
 } as const;
-
 export type Endpoints = typeof ENDPOINTS;

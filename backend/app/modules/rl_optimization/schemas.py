@@ -19,6 +19,21 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, ConfigDict
+from pydantic.alias_generators import to_camel
+
+
+class CamelModel(BaseModel):
+    """Base khusus untuk schema yang diekspos ke frontend sebagai response.
+    Konsisten dengan `digital_twin_ingestion.schemas.BaseDTModel` -- frontend
+    (features/digital-twin, features/simulation_optimisation) mengasumsikan
+    camelCase di seluruh response JSON, bukan campuran snake_case/camelCase
+    antar modul."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
 
 # Enums — membatasi nilai string bebas jadi closed set (validasi otomatis)
@@ -68,7 +83,7 @@ class OptimizationJobStatusEnum(str, Enum):
 
 # 1. DIGITAL TWIN — factory_info, assets, job_descriptions, workers
 
-class FactoryInfo(BaseModel):
+class FactoryInfo(CamelModel):
     factory_id: str
     factory_name: str
     workflow_sequence: list[str] = Field(
@@ -76,13 +91,16 @@ class FactoryInfo(BaseModel):
     )
 
 
-class EnvironmentalFactors(BaseModel):
-    noise_level_db: float
+class EnvironmentalFactors(CamelModel):
+    # noise_level_db dibuat opsional: sumber data (digital_twin_ingestion.Asset
+    # .environmental_factors.noise_level_db) juga opsional -- tidak semua asset
+    # hasil parsing dokumen punya angka ini.
+    noise_level_db: Optional[float] = None
     vibration_hazard_level: VibrationHazardLevel
     physical_strain_index: float = Field(..., ge=0.0, le=1.0)
 
 
-class Asset(BaseModel):
+class Asset(CamelModel):
     asset_id: str
     asset_name: str
     category: str
@@ -96,14 +114,14 @@ class Asset(BaseModel):
     )
 
 
-class JobDemands(BaseModel):
+class JobDemands(CamelModel):
     required_cognitive_focus: float = Field(..., ge=0.0, le=1.0)
     physical_demand_level: PhysicalDemandLevel
     task_complexity: float = Field(..., ge=0.0, le=1.0)
     error_severity: ErrorSeverity
 
 
-class JobDesk(BaseModel):
+class JobDesk(CamelModel):
     job_id: str
     job_title: str
     workflow_step: str
@@ -113,7 +131,7 @@ class JobDesk(BaseModel):
     metric_derivation_reasoning: str
 
 
-class WorkerDemographics(BaseModel):
+class WorkerDemographics(CamelModel):
     age: int = Field(..., ge=15, le=70)
     gender: str
     years_of_experience: float = Field(..., ge=0)
@@ -121,27 +139,29 @@ class WorkerDemographics(BaseModel):
     cognitive_resilience: float = Field(..., ge=0.0, le=1.0)
 
 
-class WorkerShiftContext(BaseModel):
+class WorkerShiftContext(CamelModel):
     hours_worked_today: float = Field(..., ge=0.0, le=24.0)
     consecutive_shifts: int = Field(..., ge=0)
 
 
-class Worker(BaseModel):
+class Worker(CamelModel):
     worker_id: str
     name: str
     demographics: WorkerDemographics
     shift_context: WorkerShiftContext
 
 
-class CompatibilityEvaluation(BaseModel):
+class CompatibilityEvaluation(CamelModel):
     overall_compatibility_score: float = Field(..., ge=0.0, le=1.0)
     throughput_multiplier: float
     error_multiplier: float
-    fatigue_accumulation_rate: float
-    stress_sensitivity_factor: float
+    # Opsional: sama seperti sumbernya (digital_twin_ingestion.Evaluations),
+    # tidak selalu diisi oleh LLM compatibility evaluator.
+    fatigue_accumulation_rate: Optional[float] = None
+    stress_sensitivity_factor: Optional[float] = None
 
 
-class CompatibilityEntry(BaseModel):
+class CompatibilityEntry(CamelModel):
     """Satu baris matriks kompatibilitas N x M (worker x job x asset)."""
 
     worker_id: str
@@ -151,10 +171,8 @@ class CompatibilityEntry(BaseModel):
     llm_reasoning: str
 
 
-class DigitalTwin(BaseModel):
+class DigitalTwin(CamelModel):
     """Struktur lengkap Single Source of Truth — setara factory_workflow_digital_twin.json."""
-
-    model_config = ConfigDict(from_attributes=True)
 
     factory_info: FactoryInfo
     assets: list[Asset]

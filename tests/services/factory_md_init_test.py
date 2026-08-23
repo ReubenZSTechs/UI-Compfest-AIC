@@ -292,6 +292,50 @@ def slim_worker(worker: dict) -> dict:
     }
 
 
+def slim_position(position: dict) -> dict:
+    return {
+        "worker_id": position.get("worker_id"),
+        "current_stage_id": position.get("current_stage_id"),
+        "lane": position.get("lane"),
+        "shift_id": position.get("shift_id"),
+        "current_asset_id": position.get("current_asset_id"),
+        "activity_status": position.get("activity_status"),
+        "moving_to_next_stage_id": position.get("moving_to_next_stage_id"),
+    }
+
+
+def slim_compatibility(entry: dict) -> dict:
+    return {
+        "worker_id": entry.get("worker_id"),
+        "job_id": entry.get("job_id"),
+        "stage_id": entry.get("stage_id"),
+        "asset_id": entry.get("asset_id"),
+        "evaluations": entry.get("evaluations"),
+    }
+
+
+def build_simulation_payload(twin: dict, workers: dict, floor: dict) -> dict:
+    flow = floor.get("factory_flow_rightnow") or {}
+
+    return {
+        "assets": [slim_asset(item) for item in twin.get("assets") or []],
+        "process_stages": [slim_stage(item) for item in twin.get("process_stages") or []],
+        "shifts": twin.get("shifts"),
+        "job_descriptions": [slim_job(item) for item in read_jobs(twin)],
+        "workers": [slim_worker(item) for item in (workers.get("workers") or [])],
+        "factory_flow_rightnow": {
+            **flow,
+            "staff_current_positions": [
+                slim_position(item) for item in flow.get("staff_current_positions") or []
+            ],
+        },
+        "llm_compatibility_and_evaluations": [
+            slim_compatibility(item)
+            for item in floor.get("llm_compatibility_and_evaluations") or []
+        ],
+    }
+
+
 def build_twin_context(twin, workers, floor, simulation) -> dict:
     context = {}
 
@@ -2075,15 +2119,7 @@ def tab_downstream():
         return
 
     if st.button("Jalankan simulation_state_agent"):
-        payload = {
-            "assets": twin.get("assets"),
-            "process_stages": twin.get("process_stages"),
-            "shifts": twin.get("shifts"),
-            "job_descriptions": read_jobs(twin),
-            "workers": workers.get("workers"),
-            "factory_flow_rightnow": floor.get("factory_flow_rightnow"),
-            "llm_compatibility_and_evaluations": floor.get("llm_compatibility_and_evaluations"),
-        }
+        payload = build_simulation_payload(twin, workers, floor)
 
         with st.spinner("Menghitung metrik simulasi..."):
             try:
@@ -2158,12 +2194,23 @@ def tab_downstream():
             return
 
         payload = {
-            "assets": twin.get("assets"),
-            "process_stages": twin.get("process_stages"),
-            "job_descriptions": read_jobs(twin),
-            "workers": workers.get("workers"),
-            "factory_flow_rightnow": floor.get("factory_flow_rightnow"),
-            "llm_compatibility_and_evaluations": floor.get("llm_compatibility_and_evaluations"),
+            "assets": [slim_asset(item) for item in twin.get("assets") or []],
+            "process_stages": [slim_stage(item) for item in twin.get("process_stages") or []],
+            "job_descriptions": [slim_job(item) for item in read_jobs(twin)],
+            "workers": [slim_worker(item) for item in (workers.get("workers") or [])],
+            "factory_flow_rightnow": {
+                **(floor.get("factory_flow_rightnow") or {}),
+                "staff_current_positions": [
+                    slim_position(item)
+                    for item in (floor.get("factory_flow_rightnow") or {}).get(
+                        "staff_current_positions"
+                    ) or []
+                ],
+            },
+            "llm_compatibility_and_evaluations": [
+                slim_compatibility(item)
+                for item in floor.get("llm_compatibility_and_evaluations") or []
+            ],
             "live_simulation_state": simulation.get("live_simulation_state"),
             "rl_scenarios": rl_scenarios,
         }
@@ -2295,6 +2342,7 @@ def tab_reinforcement_learning():
                     callback=StreamlitProgressCallback(
                         config.total_timesteps, progress_bar, status_slot
                     ),
+                    tb_log_name=f"{scenario_id}_seed{config.seed}",
                 )
                 elapsed = time.perf_counter() - started
 

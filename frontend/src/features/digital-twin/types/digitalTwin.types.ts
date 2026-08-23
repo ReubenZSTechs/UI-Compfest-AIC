@@ -164,7 +164,7 @@ export interface Step4Response {
   workerAgentInput?: string;
   candidatesFound: number;
   rejectedBlocksCount: number;
-  archiveReports?: any[];
+  archiveReports?: unknown[];
   warnings?: string[];
 }
 
@@ -188,7 +188,7 @@ export interface ProcessCombinedDocumentsResponse {
   workerAgentInput?: string;
   candidatesFound?: number;
   rejectedBlocksCount?: number;
-  archiveReports?: any[];
+  archiveReports?: unknown[];
   compatibilityMatrix: CompatibilityEvaluation[];
 }
 
@@ -203,9 +203,9 @@ export interface ParseJobResult {
   warnings?: string[];
   errorStage?: string;
   errorMessage?: string;
-  errorDetails?: any[];
-  factoryStructure?: Record<string, any>;
-  workerProfile?: Record<string, any>;
-  compatibilityMatrix?: CompatibilityEvaluation[] | Record<string, any>;
+  errorDetails?: unknown[];
+  factoryStructure?: Record<string, unknown>;
+  workerProfile?: Record<string, unknown>;
+  compatibilityMatrix?: CompatibilityEvaluation[] | Record<string, unknown>;
   createdAt?: string;
 }

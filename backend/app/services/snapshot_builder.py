@@ -172,17 +172,32 @@ class SnapshotBuilder:
     def __init__(
         self,
         factory_md: dict[str, Any],
-        worker_md: dict[str, Any],
+        worker_md: dict[str, Any] | list[dict[str, Any]],
         init_state: dict[str, Any],
+        compatibility_records: Optional[list[dict[str, Any]]] = None,
         simulation_state: Optional[dict[str, Any]] = None,
         tick_minutes: int = 15,
         shift_hours: float = 8.0,
     ) -> None:
         self.factory = factory_md
-        self.workers = worker_md["workers"]
+
+        if isinstance(worker_md, dict):
+            self.workers = worker_md.get("workers", [])
+        else:
+            self.workers = worker_md or []
+
         self.flow = init_state["factory_flow_rightnow"]
-        self.priors = init_state["llm_compatibility_and_evaluations"]
-        self.simulation = simulation_state
+
+        if compatibility_records is not None:
+            self.priors = compatibility_records
+        else:
+            self.priors = init_state.get("llm_compatibility_and_evaluations", [])
+
+        if simulation_state and "live_simulation_state" in simulation_state:
+            self.simulation = simulation_state["live_simulation_state"]
+        else:
+            self.simulation = simulation_state or None
+
         self.tick_minutes = tick_minutes
         self.shift_hours = shift_hours
 
@@ -278,13 +293,13 @@ class SnapshotBuilder:
             row = maps.worker_row.get(position["worker_id"])
             if row is None:
                 continue
-            assignment[row] = maps.station_col[position["current_station"]]
+            assignment[row] = maps.station_col[position["current_stage_id"]]
         return assignment
 
     def _metrics_by_worker(self) -> dict[str, dict[str, Any]]:
-        if self.simulation is None:
+        if not self.simulation:
             return {}
-        assignments = self.simulation["live_simulation_state"]["current_assignments"]
+        assignments = self.simulation.get("current_assignments", [])
         return {entry["worker_id"]: entry["calculated_realtime_metrics"] for entry in assignments}
 
     def _build_worker_static(self, maps: IndexMaps, constraints: Constraints) -> np.ndarray:
@@ -333,7 +348,7 @@ class SnapshotBuilder:
     def _current_station_column(self, maps: IndexMaps, worker_id: str) -> int:
         for position in self.flow["staff_current_positions"]:
             if position["worker_id"] == worker_id:
-                return maps.station_col[position["current_station"]]
+                return maps.station_col[position["current_stage_id"]]
         return -1
 
     def _build_station_static(

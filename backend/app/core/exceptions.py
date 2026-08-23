@@ -87,6 +87,12 @@ class LLMOutputTruncatedError(RuntimeError):
         self.partial_output = partial_output
 
 
+class AgentCallError(RuntimeError):
+    """Pembungkus generik untuk kegagalan panggilan LLM, selalu menyertakan role
+    agent dan konteks max_tokens, terlepas dari jenis error aslinya (timeout,
+    koneksi terputus, dsb) — agar 'Agent gagal: ...' di UI selalu bisa ditelusuri."""
+
+
 
 # =============================================================================
 # Handlers

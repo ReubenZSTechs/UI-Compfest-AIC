@@ -10,7 +10,7 @@ import json
 import threading
 
 from app.core.decorators.log_llm_calls import log_llm_calls, log_output_call
-from app.core.exceptions import SchemaValidationError, LLMOutputTruncatedError
+from app.core.exceptions import SchemaValidationError, LLMOutputTruncatedError, AgentCallError
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,19 @@ CONFIG = {
         'top_p': 1.0
     }
 }
+
+LAST_RESORT_STRATEGIES = [
+    {"repetition_penalty": 1.15, "concise": False},
+    {"repetition_penalty": 1.3, "concise": True},
+]
+
+CONCISE_SUFFIX = (
+    "\n\nPERINGATAN PANJANG TEKS\n"
+    "Percobaan sebelumnya gagal karena keluaran terlalu panjang, berulang, atau "
+    "dipenuhi spasi/baris kosong. Untuk percobaan ini, hasilkan HANYA field yang "
+    "diwajibkan skema dengan nilai singkat dan padat. Dilarang menambahkan spasi, "
+    "baris baru, atau karakter berulang yang tidak diperlukan struktur JSON."
+)
 
 
 def looks_like_stalled_repetition(text: str, tail_window: int = 200,
@@ -95,8 +108,8 @@ class AgentReader:
         
 
 class Agent:
-    TRUNCATION_RETRY_LIMIT = 2
-    MAX_TOKEN_CEILING = 15000
+    DEFAULT_TRUNCATION_RETRY_LIMIT = 2
+    DEFAULT_MAX_TOKEN_CEILING = 12000
 
     def __init__(self, yaml_config: str, model_bridge: dict, schema_dir: Path, default_timeout: float = 300.0, default_max_retries: int = 2, api_key: str = "not-needed"):
         self._local = threading.local()
@@ -127,6 +140,13 @@ class Agent:
 
         self.agent_generation_config = self.agent_config.get("generation", {})
         self.role = self.agent_id["role"]
+
+        self.truncation_retry_limit = self.agent_generation_config.get(
+            "truncation_retry_limit", self.DEFAULT_TRUNCATION_RETRY_LIMIT
+        )
+        self.max_token_ceiling = self.agent_generation_config.get(
+            "max_tokens_ceiling", self.DEFAULT_MAX_TOKEN_CEILING
+        )
 
         self._resolve_bridge()
         self._resolve_structured_output()
@@ -315,13 +335,22 @@ class Agent:
 
         except Exception as error:
             message = str(error).lower()
+
             if "context" in message and ("length" in message or "token" in message):
                 raise SchemaValidationError(
                     f"Role '{self.role}': permintaan melebihi context window model "
                     f"(max_tokens={request_kwargs.get('max_tokens')}). "
                     f"Perkecil ukuran shard atau kurangi isi payload."
                 ) from error
-            raise
+
+            configured_timeout = self.agent_generation_config.get("timeout")
+            prompt_chars = sum(len(str(item.get("content", ""))) for item in msg_payload)
+
+            raise AgentCallError(
+                f"Role '{self.role}' gagal memanggil LLM: {type(error).__name__}: {error} "
+                f"(timeout={configured_timeout}s, max_tokens={request_kwargs.get('max_tokens')}, "
+                f"prompt~{prompt_chars:,} karakter)."
+            ) from error
 
         self.last_usage = response.usage
         self.last_finish_reason = response.choices[0].finish_reason
@@ -333,15 +362,20 @@ class Agent:
         return content
 
     def generate_structured(self, user_prompt, extra_args=None, schema_override=None,
-                            initial_max_tokens=None):
+                            initial_max_tokens=None, max_tokens_ceiling=None,
+                            enable_last_resort=True):
         if not self.structured_enabled:
             raise ValueError(f"Role '{self.role}' is not configured for structured output")
+
+        ceiling = max_tokens_ceiling or self.max_token_ceiling
+        truncation_limit = self.truncation_retry_limit
 
         json_attempt = 0
         truncation_attempt = 0
         prior_messages = None
         last_error = None
         token_budget = initial_max_tokens or self.agent_generation_config.get('max_tokens', 4096)
+        token_budget = min(token_budget, ceiling)
 
         if not isinstance(token_budget, int):
             raise TypeError(
@@ -374,11 +408,11 @@ class Agent:
                         f"Ekor: {raw_output[-200:]!r}"
                     )
 
-                if stalled or truncation_attempt >= self.TRUNCATION_RETRY_LIMIT or token_budget >= self.MAX_TOKEN_CEILING:
+                if stalled or truncation_attempt >= truncation_limit or token_budget >= ceiling:
                     break
 
                 truncation_attempt += 1
-                token_budget = min(int(token_budget * 1.6), self.MAX_TOKEN_CEILING)
+                token_budget = min(int(token_budget * 1.6), ceiling)
                 prior_messages = None
                 logger.warning(
                     f"Role '{self.role}' truncated (percobaan {truncation_attempt}); "
@@ -406,7 +440,57 @@ class Agent:
                     }
                 ]
 
+        if enable_last_resort and isinstance(last_error, LLMOutputTruncatedError):
+            for strategy_index, strategy in enumerate(LAST_RESORT_STRATEGIES, start=1):
+                resort_prompt = user_prompt + (CONCISE_SUFFIX if strategy["concise"] else "")
+                resort_extra = dict(extra_args or {})
+                resort_extra["repetition_penalty"] = strategy["repetition_penalty"]
+
+                try:
+                    raw_output = self.generate_response(
+                        user_prompt=resort_prompt,
+                        extra_args=resort_extra,
+                        prior_messages=None,
+                        schema_override=schema_override,
+                        max_tokens_override=ceiling,
+                    )
+
+                    if self.last_finish_reason == 'length':
+                        stalled = looks_like_stalled_repetition(raw_output)
+                        last_error = LLMOutputTruncatedError(
+                            f"Percobaan darurat #{strategy_index} tetap terpotong pada "
+                            f"{len(raw_output)} karakter dengan max_tokens={ceiling} "
+                            f"(kemungkinan stall: {stalled}).",
+                            raw_output,
+                        )
+                        logger.warning(
+                            f"Role '{self.role}' percobaan darurat #{strategy_index} "
+                            f"(repetition_penalty={strategy['repetition_penalty']}, "
+                            f"ringkas={strategy['concise']}) tetap terpotong. "
+                            f"Kemungkinan stall: {stalled}. Ekor: {raw_output[-200:]!r}"
+                        )
+                        continue
+
+                    return self.parse_structured_output(raw_output)
+
+                except json.JSONDecodeError as error:
+                    last_error = error
+                    logger.warning(
+                        f"Role '{self.role}' percobaan darurat #{strategy_index} "
+                        f"menghasilkan JSON tidak valid: {error}"
+                    )
+
+                except AgentCallError as error:
+                    last_error = error
+                    logger.warning(
+                        f"Role '{self.role}' percobaan darurat #{strategy_index} "
+                        f"gagal memanggil LLM: {error}"
+                    )
+
         if isinstance(last_error, LLMOutputTruncatedError):
+            raise last_error
+
+        if isinstance(last_error, AgentCallError):
             raise last_error
 
         raise SchemaValidationError(

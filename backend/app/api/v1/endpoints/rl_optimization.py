@@ -3,11 +3,24 @@
 Endpoint untuk domain RL Optimization.
 
 Mencakup:
-- Digital Twin snapshot (factory_info, assets, job_descriptions, workers)
-- Live simulation state (kondisi lantai produksi real-time)
-- Trigger & monitoring proses training/inference RL (Maskable PPO)
+- Digital Twin snapshot (factory_info, assets, job_descriptions, workers) --
+  Fase Inisialisasi untuk `features/simulation_optimisation` frontend.
+- Trigger & monitoring proses training/inference RL (Maskable PPO) --
+  compute berat yang GENUINELY berjalan di backend (bukan tick simulasi).
 - Hasil skenario optimasi (Pareto-optimal scenarios)
-- Terapkan (apply) skenario terpilih ke live state
+- Terapkan (apply) skenario terpilih -- menulis ulang posisi staf di DB
+
+REVISI (arsitektur Client-Side Simulation):
+`GET /simulation/live` dan `GET /simulation/live/bottlenecks` SUDAH DIHAPUS.
+Endpoint tersebut dulunya menyiratkan backend menghitung "live simulation
+state" (fatigue/stress/throughput real-time) -- padahal implementasinya
+selalu stub (`NotImplementedError`), dan frontend
+(`features/simulation_optimisation/api/simulationApi.ts` ->
+`fetchLiveSimulationState()`) sudah 100% menjalankan tick simulasi ini
+secara lokal di browser (jitter-based, tanpa network call). Backend hanya
+perlu menyediakan `GET /digital-twin` di bawah sebagai bahan mentah untuk
+initial state, asset config, dan constraint model -- frontend yang
+membangun & menjalankan simulasinya sendiri dari situ.
 """
 
 from uuid import UUID
@@ -62,44 +75,6 @@ async def upsert_digital_twin(
     (mis. ada perubahan assets/job_descriptions dari dokumen sumber).
     """
     return await service.upsert_digital_twin(db, payload=payload)
-
-
-# Live Simulation State
-
-@router.get(
-    "/simulation/live",
-    response_model=schemas.LiveSimulationResponse,
-    summary="Ambil kondisi real-time lantai produksi (factory_flow_rightnow)",
-)
-async def get_live_simulation(
-    factory_id: str,
-    db=Depends(get_db),
-):
-    """
-    Snapshot posisi staf saat ini, calculated_realtime_metrics
-    (fatigue, stress, throughput, error_probability), serta
-    system_bottlenecks dan analytical_insight_summary.
-    """
-    state = await service.get_live_state(db, factory_id=factory_id)
-    if state is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Live simulation state untuk factory_id '{factory_id}' tidak ditemukan.",
-        )
-    return state
-
-
-@router.get(
-    "/simulation/live/bottlenecks",
-    response_model=list[schemas.BottleneckInsight],
-    summary="Ambil daftar bottleneck aktif beserta insight-nya",
-)
-async def get_current_bottlenecks(
-    factory_id: str,
-    db=Depends(get_db),
-):
-    """Shortcut endpoint — berguna untuk dashboard alert/notifikasi."""
-    return await service.get_bottlenecks(db, factory_id=factory_id)
 
 
 # RL Optimization Job — pola asynchronous (training bisa berjalan lama)

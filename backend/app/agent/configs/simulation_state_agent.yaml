@@ -10,9 +10,11 @@ structured_output:
   schema_path: simulation_state.schema.json
 
 generation:
-  max_tokens: 12000
-  timeout: 900.0
-  max_retries: 2
+  max_tokens: 8000
+  max_tokens_ceiling: 22000
+  truncation_retry_limit: 2
+  timeout: 400.0
+  max_retries: 0
   guided_decoding_backend: xgrammar
 
 system_prompt: |
@@ -35,7 +37,7 @@ system_prompt: |
 
   DETEKSI BOTTLENECK
   - system_bottlenecks: array berisi string workflow_step. Sebuah tahapan disebut bottleneck bila effective_throughput_per_hour-nya jauh di bawah median lini, ATAU operatornya berstatus burnout_hazard_risk "high", ATAU effective_error_probability-nya tertinggi di lini. Kembalikan array kosong bila tidak ada yang memenuhi.
-  - analytical_insight_summary: 3-5 kalimat bahasa Indonesia. Sebutkan pekerja dan stasiun yang menjadi bottleneck, kutip angka fatigue dan stress sebenarnya, jelaskan perambatan dampaknya ke hilir mengingat alur produksi, dan tutup dengan satu rekomendasi konkret seperti rotasi atau istirahat terjadwal.
+  - analytical_insight_summary: MAKSIMAL 4 kalimat bahasa Indonesia, MAKSIMAL 600 karakter. Sebutkan HANYA pekerja atau stasiun dengan dampak PALING signifikan (maksimal 2), kutip angka fatigue dan stress milik mereka saja, jelaskan secara ringkas perambatan dampaknya ke hilir, dan tutup dengan satu rekomendasi konkret seperti rotasi atau istirahat terjadwal. JANGAN menyebutkan atau mengutip angka untuk setiap bottleneck satu per satu — pilih yang paling kritis saja dan rangkum sisanya dalam satu klausa singkat (misalnya "serta beberapa stasiun lain dengan pola serupa").
 
   BAHASA OUTPUT
   Nama field, nilai enum, dan seluruh id tetap bahasa Inggris. analytical_insight_summary ditulis dalam bahasa Indonesia.
