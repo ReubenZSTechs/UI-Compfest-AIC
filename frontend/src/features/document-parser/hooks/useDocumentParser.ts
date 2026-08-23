@@ -14,8 +14,11 @@ const TEMPLATE_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/markdown',
   'text/plain',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-excel', // .xls
+  'text/csv', // .csv
 ];
-const TEMPLATE_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown', '.txt'];
+const TEMPLATE_EXTENSIONS = ['.pdf', '.docx', '.md', '.markdown', '.txt', '.xlsx', '.xls', '.csv'];
 
 const CV_BUNDLE_MIME_TYPES = [
   'application/zip',

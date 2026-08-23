@@ -1,8 +1,10 @@
-# backend/app/modules/digital_twin_ingestion/models.py
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    Boolean, DateTime, Float, ForeignKey, ForeignKeyConstraint,
+    Integer, PrimaryKeyConstraint, String, Text, func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -13,6 +15,12 @@ class Factory(Base):
     """
     Root entity: satu pabrik/factory sebagai parent dari seluruh data digital twin.
     Selaras dengan factory_md.schema.json -> factory_info.
+
+    CATATAN: factory_id di-generate ULANG agar selalu unik per proses parsing
+    (lihat DigitalTwinRepository._generate_unique_factory_id), meskipun LLM
+    menghasilkan factory_id yang identik untuk dokumen sumber yang sama persis.
+    Ini memastikan setiap parsing selalu menghasilkan Digital Twin BARU yang
+    independen, bukan menimpa/bentrok dengan hasil parsing sebelumnya.
     """
     __tablename__ = "factories"
 
@@ -42,13 +50,18 @@ class Factory(Base):
 class Asset(Base):
     """
     Mesin/peralatan/stasiun kerja. Sesuai factory_md.schema.json -> assets[].
-    Tidak lagi terikat langsung ke tahapan via workflow_step; keterkaitan tahapan
-    dilakukan melalui ProcessStage.asset_id (lihat kelas ProcessStage di bawah).
+
+    PK komposit (factory_id, asset_id): asset_id yang di-generate LLM (mis. "ast-01")
+    bersifat generik dan wajar bertabrakan antar-factory berbeda, sama seperti kasus
+    worker_id. Composite key memastikan asset_id hanya perlu unik DI DALAM satu factory.
     """
     __tablename__ = "assets"
+    __table_args__ = (
+        PrimaryKeyConstraint("factory_id", "asset_id", name="pk_assets"),
+    )
 
-    asset_id: Mapped[str] = mapped_column(String, primary_key=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), nullable=False, index=True)
+    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"))
+    asset_id: Mapped[str] = mapped_column(String)
     asset_name: Mapped[str] = mapped_column(String, nullable=False)
     category: Mapped[str] = mapped_column(String, nullable=False)
     units_available: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -69,17 +82,29 @@ class Asset(Base):
 class ProcessStage(Base):
     """
     Satu tahapan proses produksi. Sesuai factory_md.schema.json -> process_stages[].
-    Menggantikan konsep lama 'workflow_step' sebagai string bebas pada Asset/JobDesk.
+
+    PK komposit (factory_id, stage_id). asset_id direferensikan lewat FK komposit
+    ke Asset(factory_id, asset_id) -- bukan lagi single-column -- karena Asset kini
+    juga di-scope per-factory.
     """
     __tablename__ = "process_stages"
+    __table_args__ = (
+        PrimaryKeyConstraint("factory_id", "stage_id", name="pk_process_stages"),
+        ForeignKeyConstraint(
+            ["factory_id", "asset_id"],
+            ["assets.factory_id", "assets.asset_id"],
+            ondelete="RESTRICT",
+            name="fk_process_stages_asset",
+        ),
+    )
 
-    stage_id: Mapped[str] = mapped_column(String, primary_key=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), nullable=False, index=True)
+    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"))
+    stage_id: Mapped[str] = mapped_column(String)
     stage_name: Mapped[str] = mapped_column(String, nullable=False)
     lane: Mapped[str] = mapped_column(String, nullable=False)
     next_stage_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_terminal: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    asset_id: Mapped[str] = mapped_column(ForeignKey("assets.asset_id", ondelete="RESTRICT"), nullable=False, index=True)
+    asset_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     operator_task: Mapped[str] = mapped_column(Text, nullable=False)
     material_input: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
     material_output: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
@@ -100,11 +125,15 @@ class ProcessStage(Base):
 class Shift(Base):
     """
     Definisi shift kerja. Sesuai factory_md.schema.json -> shifts[].
+    PK komposit (factory_id, shift_id).
     """
     __tablename__ = "shifts"
+    __table_args__ = (
+        PrimaryKeyConstraint("factory_id", "shift_id", name="pk_shifts"),
+    )
 
-    shift_id: Mapped[str] = mapped_column(String, primary_key=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), nullable=False, index=True)
+    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"))
+    shift_id: Mapped[str] = mapped_column(String)
     start_time: Mapped[str] = mapped_column(String, nullable=False)
     end_time: Mapped[str] = mapped_column(String, nullable=False)
     duration_hours: Mapped[float] = mapped_column(Float, nullable=False)
@@ -118,17 +147,41 @@ class JobDesk(Base):
     """
     Posisi/peran kerja spesifik pada satu ProcessStage, terikat ke satu Asset & satu Shift.
     Sesuai factory_md.schema.json -> job_descriptions[].
+
+    PK komposit (factory_id, job_id). Seluruh FK ke stage_id, assigned_asset_id, dan
+    shift_id kini komposit karena tabel induknya juga di-scope per-factory.
     """
     __tablename__ = "job_desks"
+    __table_args__ = (
+        PrimaryKeyConstraint("factory_id", "job_id", name="pk_job_desks"),
+        ForeignKeyConstraint(
+            ["factory_id", "stage_id"],
+            ["process_stages.factory_id", "process_stages.stage_id"],
+            ondelete="RESTRICT",
+            name="fk_job_desks_stage",
+        ),
+        ForeignKeyConstraint(
+            ["factory_id", "assigned_asset_id"],
+            ["assets.factory_id", "assets.asset_id"],
+            ondelete="RESTRICT",
+            name="fk_job_desks_asset",
+        ),
+        ForeignKeyConstraint(
+            ["factory_id", "shift_id"],
+            ["shifts.factory_id", "shifts.shift_id"],
+            ondelete="RESTRICT",
+            name="fk_job_desks_shift",
+        ),
+    )
 
-    job_id: Mapped[str] = mapped_column(String, primary_key=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), nullable=False, index=True)
+    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"))
+    job_id: Mapped[str] = mapped_column(String)
     allocation_id: Mapped[str] = mapped_column(String, nullable=False)
     job_title: Mapped[str] = mapped_column(String, nullable=False)
-    stage_id: Mapped[str] = mapped_column(ForeignKey("process_stages.stage_id", ondelete="RESTRICT"), nullable=False, index=True)
-    assigned_asset_id: Mapped[str] = mapped_column(ForeignKey("assets.asset_id", ondelete="RESTRICT"), nullable=False)
+    stage_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    assigned_asset_id: Mapped[str] = mapped_column(String, nullable=False)
     assigned_worker_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
-    shift_id: Mapped[str] = mapped_column(ForeignKey("shifts.shift_id", ondelete="RESTRICT"), nullable=False, index=True)
+    shift_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     headcount: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     demands: Mapped[dict] = mapped_column(JSONB, nullable=False)
     qc_requirement: Mapped[str] = mapped_column(Text, nullable=False)
@@ -142,13 +195,17 @@ class JobDesk(Base):
 
 class Worker(Base):
     """
-    Data pekerja/staf pabrik, terpisah atribut statis (demographics) dan
-    atribut dinamis harian (shift_context). Tidak berubah dari skema lama.
+    Data pekerja/staf pabrik. worker_id di-scope per-factory (bukan unik global),
+    karena Agent B (LLM) men-generate ID generik (wrk-01, wrk-02, ...) yang wajar
+    bertabrakan antar-factory berbeda.
     """
     __tablename__ = "workers"
+    __table_args__ = (
+        PrimaryKeyConstraint("factory_id", "worker_id", name="pk_workers"),
+    )
 
-    worker_id: Mapped[str] = mapped_column(String, primary_key=True)
-    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), nullable=False, index=True)
+    factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"))
+    worker_id: Mapped[str] = mapped_column(String)
     name: Mapped[str] = mapped_column(String, nullable=False)
     demographics: Mapped[dict] = mapped_column(JSONB, nullable=False)
     shift_context: Mapped[dict] = mapped_column(JSONB, nullable=False)
@@ -174,14 +231,32 @@ class FactoryFlowSnapshot(Base):
 
 
 class StaffPosition(Base):
-    """Posisi & aktivitas satu worker pada satu snapshot tertentu."""
+    """
+    Posisi & aktivitas satu worker pada satu snapshot tertentu.
+    factory_id ditambahkan agar FK ke Worker & Asset bisa komposit (mengikuti
+    scoping per-factory yang sama seperti tabel lain).
+    """
     __tablename__ = "staff_positions"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["factory_id", "worker_id"],
+            ["workers.factory_id", "workers.worker_id"],
+            ondelete="CASCADE",
+            name="fk_staff_positions_worker",
+        ),
+        ForeignKeyConstraint(
+            ["factory_id", "current_asset_id"],
+            ["assets.factory_id", "assets.asset_id"],
+            name="fk_staff_positions_asset",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     snapshot_id: Mapped[int] = mapped_column(ForeignKey("factory_flow_snapshots.id", ondelete="CASCADE"), nullable=False, index=True)
-    worker_id: Mapped[str] = mapped_column(ForeignKey("workers.worker_id", ondelete="CASCADE"), nullable=False)
+    factory_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    worker_id: Mapped[str] = mapped_column(String, nullable=False)
     current_station: Mapped[str] = mapped_column(String, nullable=False)
-    current_asset_id: Mapped[str] = mapped_column(ForeignKey("assets.asset_id"), nullable=False)
+    current_asset_id: Mapped[str] = mapped_column(String, nullable=False)
     activity_status: Mapped[str] = mapped_column(String, nullable=False)
     moving_to_next_step: Mapped[str] = mapped_column(String, nullable=False)
     handoff_item: Mapped[str] = mapped_column(Text, nullable=False)
@@ -190,14 +265,38 @@ class StaffPosition(Base):
 
 
 class CompatibilityEvaluation(Base):
-    """Hasil evaluasi kompatibilitas worker x job_desk x asset."""
+    """
+    Hasil evaluasi kompatibilitas worker x job_desk x asset.
+    worker_id, job_id, asset_id kini semuanya direferensikan via FK komposit
+    karena tabel induknya (Worker, JobDesk, Asset) di-scope per-factory.
+    """
     __tablename__ = "compatibility_evaluations"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["factory_id", "worker_id"],
+            ["workers.factory_id", "workers.worker_id"],
+            ondelete="CASCADE",
+            name="fk_compatibility_evaluations_worker",
+        ),
+        ForeignKeyConstraint(
+            ["factory_id", "job_id"],
+            ["job_desks.factory_id", "job_desks.job_id"],
+            ondelete="CASCADE",
+            name="fk_compatibility_evaluations_job",
+        ),
+        ForeignKeyConstraint(
+            ["factory_id", "asset_id"],
+            ["assets.factory_id", "assets.asset_id"],
+            ondelete="CASCADE",
+            name="fk_compatibility_evaluations_asset",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     factory_id: Mapped[str] = mapped_column(ForeignKey("factories.factory_id", ondelete="CASCADE"), nullable=False, index=True)
-    worker_id: Mapped[str] = mapped_column(ForeignKey("workers.worker_id", ondelete="CASCADE"), nullable=False, index=True)
-    job_id: Mapped[str] = mapped_column(ForeignKey("job_desks.job_id", ondelete="CASCADE"), nullable=False, index=True)
-    asset_id: Mapped[Optional[str]] = mapped_column(ForeignKey("assets.asset_id", ondelete="CASCADE"), nullable=True)
+    worker_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    job_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    asset_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     evaluations: Mapped[dict] = mapped_column(JSONB, nullable=False)
     llm_reasoning: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

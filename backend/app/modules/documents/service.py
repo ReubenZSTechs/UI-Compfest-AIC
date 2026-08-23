@@ -46,9 +46,11 @@ from app.services.cv_pdf_parser_service import (
 )
 from app.services.extract_input_field_service import (
     UnsupportedDocumentError,
-    build_agent_input,
+    build_any_agent_input,
     extract_any,
 )
+from app.services.extract_xlsx_input_service import UnsupportedWorkbookError
+
 from app.services.extract_worker_archive_service import (
     ArchiveError,
     extract_worker_uploads,
@@ -455,7 +457,7 @@ async def process_factory_document_pipeline(
             try:
                 # `source` bisa berupa objek PDF/DOCX (Document) atau mode Workbook
                 source = await run_in_threadpool(extract_any, tmp_path)
-            except UnsupportedDocumentError as error:
+            except (UnsupportedDocumentError, UnsupportedWorkbookError) as error:
                 raise DocumentParserPipelineError("extract", str(error)) from error
 
         # Mengambil atribut secara defensif karena mode workbook mungkin tidak memilikinya
@@ -465,7 +467,7 @@ async def process_factory_document_pipeline(
         raw_text = getattr(source, "raw_text", "")
 
         _log_json(
-            "process_factory_document_pipeline.extract_any",
+            "process_factory_document_pipeline.extract_document",
             "SUCCESS",
             output={
                 "tables_count": tables_count,
@@ -501,7 +503,7 @@ async def process_factory_document_pipeline(
             )
 
         # 2. Formulasi prompt untuk Agent A
-        agent_input = build_agent_input(source)
+        agent_input = build_any_agent_input(source)
 
         # 3. Eksekusi Agent A (Struktur Pabrik)
         registry = get_agent_registry()
