@@ -23,10 +23,14 @@ from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, Upload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.modules.digital_twin_ingestion.service import DigitalTwinService
 from app.modules.documents import service
 from app.modules.documents.exceptions import DocumentParserPipelineError
+from app.worker import tasks as worker_tasks
 
 from app.modules.documents.schemas import (
+    CompatibilityJobRequest,
+    CompatibilityJobResponse,
     ParseJobResult,
     ProcessCombinedDocumentsManualRequest,
     ProcessCombinedDocumentsManualResponse,
@@ -99,6 +103,13 @@ async def process_combined_documents(
         3,
         description="Jumlah batas percobaan ulang evaluasi kompatibilitas",
     ),
+    factory_id: str | None = Query(
+        None,
+        description=(
+            "Tautkan hasil parsing ke factory yang sudah ada (POST /factories). "
+            "Dikosongkan berarti factory_id kanonik baru akan dibuat otomatis."
+        ),
+    ),
     db: AsyncSession = Depends(get_db),
 ) -> ProcessCombinedDocumentsResponse:
     """
@@ -117,6 +128,7 @@ async def process_combined_documents(
             strict=strict,
             max_workers=max_workers,
             max_attempts=max_attempts,
+            factory_id=factory_id,
         )
         return ProcessCombinedDocumentsResponse.model_validate(result)
     except DocumentParserPipelineError as err:
@@ -282,29 +294,96 @@ async def generate_compatibility_matrix(
         raise _handle_error(err) from err
 
 
-# --- Endpoint Tahap 5 (Matriks Kompatibilitas) ---
+# --- Endpoint Tahap 5 Asinkron (Background Worker + Polling) ---
 
 @router.post(
-    "/step-5",
-    response_model=Step5Response,
+    "/step-5/jobs",
+    response_model=CompatibilityJobResponse,
     response_model_by_alias=True,
-    summary="Tahap 5: Matriks Kompatibilitas Pekerja x Job Desk",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Tahap 5 (Asinkron): Jadwalkan pembuatan matriks kompatibilitas",
 )
-async def generate_compatibility_matrix(
-    payload: Step5Request,
-) -> Step5Response:
-    """Mengevaluasi kesesuaian antara struktur pabrik dan profil pekerja."""
-    try:
-        result = await service.step_5_generate_compatibility_matrix(
-            factory_structure=payload.factory_structure,
-            worker_profile=payload.worker_profile,
-            max_workers=payload.max_workers,
-            max_attempts=payload.max_attempts,
-            strict_compatibility=payload.strict_compatibility,
+async def enqueue_compatibility_matrix_job(
+    payload: CompatibilityJobRequest,
+    db: AsyncSession = Depends(get_db),
+) -> CompatibilityJobResponse:
+    """
+    Menjadwalkan Tahap 5 di background worker dan langsung membalas 202 dengan
+    `jobId`. Ini jalur yang dipakai tombol "make digitaltwin": jumlah panggilan
+    agent tumbuh sebagai (worker x job desk), sehingga menjalankannya di dalam
+    request HTTP akan kena timeout reverse proxy pada pabrik berukuran wajar.
+    Pantau progresnya lewat `GET /documents/step-5/jobs/{job_id}`.
+    """
+    dt_service = DigitalTwinService(db)
+    if await dt_service.get_factory(payload.factory_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Factory '{payload.factory_id}' tidak ditemukan.",
         )
-        return Step5Response.model_validate(result)
-    except DocumentParserPipelineError as err:
-        raise _handle_error(err) from err
+    job = await worker_tasks.enqueue_compatibility_matrix(
+        factory_id=payload.factory_id,
+        max_workers=payload.max_workers,
+        max_attempts=payload.max_attempts,
+        strict_compatibility=payload.strict_compatibility,
+        persist=payload.persist,
+    )
+    return CompatibilityJobResponse.from_job(job)
+
+@router.get(
+    "/step-5/jobs",
+    response_model=list[CompatibilityJobResponse],
+    response_model_by_alias=True,
+    summary="Daftar job matriks kompatibilitas (opsional difilter per factory)",
+)
+async def list_compatibility_matrix_jobs(
+    factory_id: str | None = Query(None, description="Filter berdasarkan factory_id"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> list[CompatibilityJobResponse]:
+    jobs = await worker_tasks.list_jobs(factory_id=factory_id, limit=limit, offset=offset)
+    return [CompatibilityJobResponse.from_job(job) for job in jobs]
+
+@router.get(
+    "/step-5/jobs/{job_id}",
+    response_model=CompatibilityJobResponse,
+    response_model_by_alias=True,
+    summary="Polling status & progres satu job matriks kompatibilitas",
+)
+async def get_compatibility_matrix_job(
+    job_id: str = Path(..., description="ID job hasil POST /documents/step-5/jobs"),
+) -> CompatibilityJobResponse:
+    job = await worker_tasks.get_job(job_id)
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job matriks kompatibilitas '{job_id}' tidak ditemukan.",
+        )
+    return CompatibilityJobResponse.from_job(job)
+
+@router.delete(
+    "/step-5/jobs/{job_id}",
+    response_model=CompatibilityJobResponse,
+    response_model_by_alias=True,
+    summary="Batalkan job matriks kompatibilitas yang masih berjalan",
+)
+async def cancel_compatibility_matrix_job(
+    job_id: str = Path(..., description="ID job hasil POST /documents/step-5/jobs"),
+) -> CompatibilityJobResponse:
+    job = await worker_tasks.get_job(job_id)
+    if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job matriks kompatibilitas '{job_id}' tidak ditemukan.",
+        )
+    if not await worker_tasks.cancel_job(job_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Job '{job_id}' sudah berstatus '{job.status}' atau dijalankan "
+                f"oleh proses backend lain, sehingga tidak bisa dibatalkan."
+            ),
+        )
+    return CompatibilityJobResponse.from_job(await worker_tasks.get_job(job_id))
 
 
 # --- Endpoint Audit Log & Status Job ---
@@ -327,8 +406,6 @@ async def get_parse_job_detail(
             detail=f"Parse job dengan ID '{job_id}' tidak ditemukan.",
         )
     return ParseJobResult.model_validate(job)
-
-# 
 
 @router.get(
     "/factories",

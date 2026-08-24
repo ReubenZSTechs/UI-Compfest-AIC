@@ -17,9 +17,8 @@ Perubahan pada revisi ini:
 4. FIX: Menambahkan dukungan ekstensi Excel (.xlsx, .xls) dan CSV ke TEMPLATE_SUFFIXES.
 5. FIX RUNTIME BUG: Penggunaan `str(factory_id)[:8]` pada `get_parsed_factories_list` untuk
    mencegah TypeError jika `factory_id` bernilai `int`.
-6. UPDATE FACTORY ID LOGIC: Memperbarui `_apply_job_id_to_factory_id` agar menggabungkan
-   `parseJobId` (contoh: `fac-ptxyz-yog-01-job6`) atau UUID unik ke `factory_id` untuk
-   menjamin keunikan entitas pabrik di database.
+6. UPDATE FACTORY ID LOGIC: Memperbarui fungsi untuk menggunakan ID kanonik sehingga sinkron 
+   antara API response dan baris database. Mengatasi 404 GET /digitaltwin/{id}.
 7. BARU: `process_combined_documents_manual_pipeline` -- versi Kombinasi Tahap 1, 2, 4, & 5
    yang menerima data langsung dari form frontend (bukan PDF/ZIP), dengan validasi silang
    FK (setara node D01-D08 pada spesifikasi flowchart form manual) dilakukan SEBELUM data
@@ -29,15 +28,12 @@ Perubahan pada revisi ini:
 
 from __future__ import annotations
 
-import asyncio
 import json
-import re
 import tempfile
 import traceback
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from fastapi import UploadFile
 from sqlalchemy import select
@@ -183,65 +179,28 @@ def _to_dict(obj: Any) -> dict[str, Any]:
     return {}
 
 
-def _apply_job_id_to_factory_id(
-    factory_struct: Any,
-    job_id: int | str | None = None,
-    unique_suffix: str | None = None,
+def assign_canonical_factory_id(
+    factory_structure: dict[str, Any],
+    factory_id: str | None = None,
 ) -> str:
     """
-    Menggabungkan parseJobId (contoh: fac-ptxyz-yog-01-job6) atau UUID unik
-    ke factory_id untuk menjamin keunikan ID pabrik di database.
+    Menetapkan `factory_info.factory_id` ke bentuk kanonik SATU KALI, sebelum data
+    dipersist -- menggantikan `_apply_job_id_to_factory_id()` yang dulu menempelkan
+    sufiks `-job{N}` SETELAH `persist_completed_pipeline()` selesai. Pola lama itu
+    membuat id yang dikembalikan API tidak pernah cocok dengan baris yang benar-benar
+    tersimpan, sehingga `GET /digitaltwin/{id}` selalu 404 untuk hasil alur otomatis.
+    Format kanoniknya sama persis dengan alur manual (`POST /factories`), yaitu
+    `DigitalTwinService.generate_factory_id()` -- satu konvensi id untuk kedua alur.
+    Id hasil ekstraksi LLM tidak dipakai sebagai primary key karena tidak dijamin
+    unik antar-dokumen.
     """
-    if job_id is not None and str(job_id).strip():
-        suffix = f"-job{job_id}"
-    elif unique_suffix:
-        clean_suffix = str(unique_suffix).strip()
-        suffix = clean_suffix if clean_suffix.startswith("-") else f"-{clean_suffix}"
-    else:
-        suffix = f"-{uuid.uuid4().hex[:6]}"
-
-    final_id = ""
-
-    def _format_id(raw_id: Any) -> str:
-        s_raw = str(raw_id or "FAC").strip()
-        if not s_raw:
-            s_raw = "FAC"
-
-        if s_raw.endswith(suffix):
-            return s_raw
-
-        # Hapus suffix lama (-jobX atau UUID hex) jika ada agar tidak bertumpuk
-        pattern = r"(-job\d+|-job-[a-f0-9]+|-[a-f0-9]{6,8})$"
-        if re.search(pattern, s_raw, re.IGNORECASE):
-            base_id = re.sub(pattern, "", s_raw, flags=re.IGNORECASE)
-        else:
-            base_id = s_raw
-
-        return f"{base_id}{suffix}"
-
-    if isinstance(factory_struct, dict):
-        factory_info = factory_struct.get("factory_info", {})
-        if isinstance(factory_info, dict):
-            raw_id = factory_info.get("factory_id", "FAC")
-            final_id = _format_id(raw_id)
-            factory_info["factory_id"] = final_id
-            factory_struct["factory_info"] = factory_info
-    else:
-        if hasattr(factory_struct, "factory_info") and factory_struct.factory_info:
-            factory_info = getattr(factory_struct, "factory_info")
-            if isinstance(factory_info, dict):
-                raw_id = factory_info.get("factory_id", "FAC")
-                final_id = _format_id(raw_id)
-                factory_info["factory_id"] = final_id
-            elif hasattr(factory_info, "factory_id"):
-                raw_id = getattr(factory_info, "factory_id", "FAC")
-                final_id = _format_id(raw_id)
-                try:
-                    setattr(factory_info, "factory_id", final_id)
-                except Exception:
-                    pass
-
-    return final_id
+    factory_info = factory_structure.get("factory_info")
+    if not isinstance(factory_info, dict):
+        factory_info = {}
+        factory_structure["factory_info"] = factory_info
+    resolved = (factory_id or "").strip() or DigitalTwinService.generate_factory_id()
+    factory_info["factory_id"] = resolved
+    return resolved
 
 
 def _build_placeholder_asset(asset_id: str) -> dict[str, Any]:
@@ -427,6 +386,7 @@ def build_digital_twin_from_results(
 async def process_factory_document_pipeline(
     template: UploadFile,
     db: AsyncSession | None = None,
+    factory_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Menggabungkan Tahap 1 (Ekstraksi Dokumen Pabrik) dan Tahap 2 (Agent A)
@@ -493,27 +453,32 @@ async def process_factory_document_pipeline(
                 "llm_parse", f"Agent struktur pabrik gagal: {error}"
             ) from error
 
-        if job is not None and job.id:
-            _apply_job_id_to_factory_id(twin, job_id=job.id)
-        else:
-            _apply_job_id_to_factory_id(twin, unique_suffix=uuid.uuid4().hex[:6])
-
         fac_structure_dict = _to_dict(twin)
-
-        if job is not None and job.id:
-            _apply_job_id_to_factory_id(fac_structure_dict, job_id=job.id)
-        else:
-            _apply_job_id_to_factory_id(fac_structure_dict, unique_suffix=uuid.uuid4().hex[:6])
+        extracted_id = (fac_structure_dict.get("factory_info") or {}).get("factory_id")
+        resolved_factory_id = assign_canonical_factory_id(fac_structure_dict, factory_id)
+        
+        if extracted_id and extracted_id != resolved_factory_id:
+            warnings.append(
+                f"factory_id hasil ekstraksi ('{extracted_id}') diganti dengan id "
+                f"kanonik '{resolved_factory_id}' agar konsisten dengan alur manual."
+            )
 
         if db is not None and job is not None:
-            factory_info = fac_structure_dict.get("factory_info", {})
             parsed_job_desks = (
                 fac_structure_dict.get("job_desks")
                 or fac_structure_dict.get("job_descriptions")
                 or []
             )
             job.status = "success"
-            job.factory_id = factory_info.get("factory_id")
+            # FK document_parse_jobs.factory_id -> factories.factory_id: tahap ini
+            # belum menulis baris `factories` apa pun (persistence penuh baru terjadi
+            # di persist_completed_pipeline), jadi id hanya ditautkan bila barisnya
+            # memang sudah ada. Tanpa guard ini commit di bawah kena IntegrityError.
+            job.factory_id = (
+                resolved_factory_id
+                if await db.get(Factory, resolved_factory_id) is not None
+                else None
+            )
             job.job_desks_parsed = len(parsed_job_desks)
             job.warnings = warnings
             job.factory_structure = fac_structure_dict
@@ -816,6 +781,7 @@ async def step_5_generate_compatibility_matrix(
     factory_id: str | None = None,
     db: AsyncSession | None = None,
     persist: bool = True,
+    progress: Callable[[int, int], None] | None = None,
 ) -> dict[str, Any]:
     """
     Memetakan pencocokan job desk pabrik dengan profil pekerja.
@@ -891,6 +857,7 @@ async def step_5_generate_compatibility_matrix(
                 max_workers=max_workers,
                 max_attempts=max_attempts,
                 strict=strict_compatibility,
+                progress=progress,
             )
         except CompatibilityEvaluationError as error:
             raise DocumentParserPipelineError(
@@ -982,6 +949,7 @@ async def process_combined_documents_pipeline(
     strict: bool = False,
     max_workers: int = 4,
     max_attempts: int = 3,
+    factory_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Eksekusi penuh pipeline terpadu dari Tahap 1 hingga Tahap 5, berdasarkan upload
@@ -1011,8 +979,12 @@ async def process_combined_documents_pipeline(
     try:
         # Step 1 + 2: Pipeline Dokumen Pabrik
         _log_json("process_combined_documents_pipeline.stage_1_2", "START")
-        factory_result = await process_factory_document_pipeline(template, db=None)
+        factory_result = await process_factory_document_pipeline(
+            template, db=None, factory_id=factory_id
+        )
         fac_structure_dict = _to_dict(factory_result["factory_structure"])
+        resolved_factory_id = assign_canonical_factory_id(fac_structure_dict, factory_id)
+
         if factory_result.get("extraction_summary", {}).get("warnings"):
             combined_warnings.extend(factory_result["extraction_summary"]["warnings"])
         _log_json("process_combined_documents_pipeline.stage_1_2", "SUCCESS")
@@ -1067,10 +1039,6 @@ async def process_combined_documents_pipeline(
                     warnings=dt_model.warnings,
                 )
                 parse_job_id = persist_res.get("job_id")
-                if parse_job_id:
-                    _apply_job_id_to_factory_id(fac_structure_dict, job_id=parse_job_id)
-                    _apply_job_id_to_factory_id(dt_model, job_id=parse_job_id)
-
                 _log_json("process_combined_documents_pipeline.persist", "SUCCESS", output=persist_res)
             except Exception as persist_err:
                 _log_error("process_combined_documents_pipeline.persist", persist_err)
@@ -1080,6 +1048,7 @@ async def process_combined_documents_pipeline(
 
         final_response = {
             "parse_job_id": parse_job_id,
+            "factory_id": resolved_factory_id,
             "extraction_summary": factory_result.get("extraction_summary", {}),
             "agent_input": factory_result.get("agent_input", ""),
             "factory_structure": fac_structure_dict,

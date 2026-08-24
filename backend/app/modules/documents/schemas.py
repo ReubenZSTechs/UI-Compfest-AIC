@@ -371,3 +371,66 @@ class ProcessCombinedDocumentsManualResponse(BaseDocumentSchema):
     workers_parsed: int = 0
     job_desks_parsed: int = 0
     warnings: list[str] = Field(default_factory=list)
+
+# ==========================================================================
+# SKEMA JOB BACKGROUND TAHAP 5 (Matriks Kompatibilitas Asinkron)
+# ==========================================================================
+
+CompatibilityJobStatus = Literal["queued", "running", "success", "error"]
+
+
+class CompatibilityJobRequest(BaseDocumentSchema):
+    """
+    Payload untuk menjadwalkan Tahap 5 di background worker. Hanya mendukung
+    mode `factoryId` -- mode stateless (factoryStructure + workerProfile) tetap
+    dilayani secara sinkron oleh `POST /documents/step-5`.
+    """
+
+    factory_id: str
+    max_workers: int = Field(default=4, ge=1, le=32)
+    max_attempts: int = Field(default=3, ge=1, le=10)
+    strict_compatibility: bool = False
+    persist: bool = True
+
+
+class CompatibilityJobResponse(BaseDocumentSchema):
+    job_id: str
+    factory_id: str
+    status: CompatibilityJobStatus
+    total_pairs: int = 0
+    completed_pairs: int = 0
+    progress_percent: float = 0.0
+    evaluations_persisted: int = 0
+    compatibility_matrix: dict[str, Any] | list[dict[str, Any]] | None = None
+    failed_pairs: list[dict[str, Any]] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    error_stage: str | None = None
+    error_message: str | None = None
+    error_details: list[Any] | None = None
+    created_at: str | None = None
+    started_at: str | None = None
+    finished_at: str | None = None
+
+    @classmethod
+    def from_job(cls, job: Any) -> "CompatibilityJobResponse":
+        total = job.total_pairs or 0
+        completed = job.completed_pairs or 0
+        percent = round(completed / total * 100, 2) if total else 0.0
+        return cls(
+            job_id=job.job_id,
+            factory_id=job.factory_id,
+            status=job.status,
+            total_pairs=total,
+            completed_pairs=completed,
+            progress_percent=100.0 if job.status == "success" else percent,
+            evaluations_persisted=job.evaluations_persisted or 0,
+            compatibility_matrix=job.compatibility_matrix,
+            failed_pairs=job.failed_pairs or [],
+            warnings=job.warnings or [],
+            error_stage=job.error_stage,
+            error_message=job.error_message,
+            error_details=job.error_details,
+            created_at=job.created_at.isoformat() if job.created_at else None,
+            started_at=job.started_at.isoformat() if job.started_at else None,
+            finished_at=job.finished_at.isoformat() if job.finished_at else None,
+        )
