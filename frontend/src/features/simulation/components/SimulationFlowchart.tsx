@@ -12,9 +12,12 @@ interface SimulationFlowchartProps {
   workerNames?: Record<string, string>;
   /** job_id -> job title, e.g. built from useDigitalTwin()'s job_desks list */
   jobTitles?: Record<string, string>;
+  // --- PEMBARUAN: Tambahkan isMock ke tipe Props ---
+  isMock?: boolean;
 }
 
-export function SimulationFlowchart({ workerNames = {}, jobTitles = {} }: SimulationFlowchartProps) {
+// --- PEMBARUAN: Terima isMock sebagai prop ---
+export function SimulationFlowchart({ workerNames = {}, jobTitles = {}, isMock }: SimulationFlowchartProps) {
   const status = useSimulationStore((s) => s.status);
   const data = useSimulationStore((s) => s.data);
 
@@ -34,7 +37,7 @@ export function SimulationFlowchart({ workerNames = {}, jobTitles = {} }: Simula
     return (
       <div className={styles.emptyState}>
         <p className={styles.emptyStateText}>
-          Simulasi belum dijalankan. Tekan <span className={styles.emptyStateAccent}>Mulai Simulasi</span> untuk
+          Simulasi {isMock && <strong>(MOCK)</strong>} belum dijalankan. Tekan <span className={styles.emptyStateAccent}>Mulai Simulasi</span> untuk
           memvisualisasikan alur produksi secara real-time.
         </p>
       </div>

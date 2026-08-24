@@ -1,3 +1,4 @@
+/* frontend/src/pages/DigitalTwinPage.module.css */
 .page {
   display: flex;
   flex-direction: column;
@@ -150,4 +151,37 @@
   border: 1px dashed var(--twin-border);
   border-radius: 6px;
   margin: 0;
+}
+
+/* Tambahan untuk Header Actions & Tombol Rekomendasi */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.recommendationBtn {
+  background-color: var(--twin-accent-automated, #2563eb);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.25rem;
+  font-family: var(--twin-font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.recommendationBtn:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+}
+
+.recommendationBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
 }

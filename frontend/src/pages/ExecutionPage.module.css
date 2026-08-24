@@ -1,28 +1,35 @@
 /* frontend/src/pages/ExecutionPage.module.css */
 .pageContainer {
   min-height: 100vh;
-  background-color: #f7f5f2;
-  color: #1f1b1a;
-  font-family: var(--twin-font-sans, "Plus Jakarta Sans", -apple-system, sans-serif);
+  background-color: var(--twin-bg);
+  color: var(--twin-text-primary);
+  font-family: var(--twin-font-sans, "IBM Plex Sans", -apple-system, sans-serif);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
 
-  /* Consistent Theme Tokens */
-  --rep-bg: #f7f5f2;
-  --rep-surface: #ffffff;
-  --rep-surface-hover: #fdfbf9;
-  --rep-border: #e6ded8;
-  --rep-border-light: #f0eae5;
-  --rep-border-active: #801426;
-  --rep-crimson: #801426;
-  --rep-crimson-light: #fbeeed;
-  --rep-crimson-hover: #9c1a30;
-  --rep-amber: #b8740c;
-  --rep-green: #147d48;
-  --rep-text-primary: #1f1a18;
-  --rep-text-muted: #665b55;
-  --rep-text-faint: #9c8e87;
+  /* Consistent Theme Tokens - Mapped to globals.css */
+  --rep-bg: var(--twin-bg);
+  --rep-surface: var(--twin-surface);
+  --rep-surface-hover: var(--twin-surface-raised);
+  --rep-border: var(--twin-border);
+  --rep-border-light: var(--twin-border);
+  --rep-border-active: var(--twin-accent-automated);
+  
+  /* Primary Action Color (Mapped from crimson to twin automated teal) */
+  --rep-crimson: var(--twin-accent-automated);
+  --rep-crimson-light: rgba(79, 168, 160, 0.15); /* #4fa8a0 with opacity */
+  --rep-crimson-hover: #3d8680;
+  
+  /* Status Colors */
+  --rep-amber: var(--twin-accent-warning);
+  --rep-green: var(--twin-accent-safe);
+  --rep-danger: var(--twin-accent-danger);
+  
+  /* Text Colors */
+  --rep-text-primary: var(--twin-text-primary);
+  --rep-text-muted: var(--twin-text-muted);
+  --rep-text-faint: var(--twin-text-faint);
 }
 
 /* 1. TOP APP BAR */
@@ -33,7 +40,7 @@
   padding: 0.75rem 1.75rem;
   background: var(--rep-surface);
   border-bottom: 1px solid var(--rep-border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   flex-wrap: wrap;
   gap: 1rem;
 }
@@ -80,7 +87,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(128, 20, 38, 0.25);
+  box-shadow: 0 2px 6px rgba(79, 168, 160, 0.25);
 }
 
 .brandTexts {
@@ -113,7 +120,7 @@
   font-weight: 600;
   color: var(--rep-crimson);
   background: var(--rep-crimson-light);
-  border: 1px solid #ebd0cd;
+  border: 1px solid var(--twin-border);
   padding: 0.25rem 0.65rem;
   border-radius: 6px;
 }
@@ -123,7 +130,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--rep-green);
-  box-shadow: 0 0 0 2px rgba(20, 125, 72, 0.2);
+  box-shadow: 0 0 0 2px rgba(95, 174, 114, 0.2);
   animation: pulseDotAnim 2s infinite ease-in-out;
 }
 
@@ -152,7 +159,7 @@
   font-family: var(--twin-font-mono, monospace);
   font-size: 0.74rem;
   color: var(--rep-text-primary);
-  background: #ede6df;
+  background: var(--twin-surface-raised);
   padding: 0.25rem 0.65rem;
   border-radius: 6px;
   font-weight: 500;
@@ -182,14 +189,14 @@
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(128, 20, 38, 0.2);
+  box-shadow: 0 2px 6px rgba(79, 168, 160, 0.2);
   transition: all 0.15s ease;
 }
 
 .primaryActionButton:hover {
   background: var(--rep-crimson-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(128, 20, 38, 0.3);
+  box-shadow: 0 4px 10px rgba(79, 168, 160, 0.3);
 }
 
 .actionArrow {
@@ -221,7 +228,7 @@
   align-items: flex-start;
   gap: 0.45rem;
   padding: 1rem 1.15rem;
-  background: #faf8f5;
+  background: var(--twin-surface-raised);
   border: 1px solid var(--rep-border);
   border-radius: 10px;
   text-align: left;
@@ -232,16 +239,16 @@
 }
 
 .scenarioCard:hover {
-  background: #ffffff;
-  border-color: #d1c1b8;
+  background: var(--twin-surface);
+  border-color: var(--twin-border-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .scenarioCardActive {
-  background: #ffffff;
+  background: var(--twin-surface);
   border-color: var(--rep-crimson);
-  box-shadow: 0 4px 16px rgba(128, 20, 38, 0.08);
+  box-shadow: 0 4px 16px rgba(79, 168, 160, 0.15);
 }
 
 .scenarioCardActive::after {
@@ -277,8 +284,8 @@
   width: 22px;
   height: 22px;
   border-radius: 4px;
-  background: #e8dfd8;
-  color: #6b5c55;
+  background: var(--twin-border);
+  color: var(--twin-text-primary);
   font-family: var(--twin-font-mono, monospace);
   font-size: 0.72rem;
   font-weight: 700;
@@ -313,7 +320,7 @@
   letter-spacing: 0.08em;
   color: var(--rep-crimson);
   background: var(--rep-crimson-light);
-  border: 1px solid #ebd0cd;
+  border: 1px solid var(--twin-border);
   padding: 0.1rem 0.4rem;
   border-radius: 3px;
   flex-shrink: 0;
@@ -348,12 +355,12 @@
 
 .tagPositive {
   color: var(--rep-green);
-  background: #e8f6ed;
+  background: rgba(95, 174, 114, 0.15);
 }
 
 .tagNeutral {
-  color: #a1928b;
-  background: #f0e9e4;
+  color: var(--twin-text-faint);
+  background: var(--twin-surface-raised);
 }
 
 .budgetChip {
@@ -412,13 +419,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: transform 0.15s, border-color 0.15s;
 }
 
 .kpiTile:hover {
   transform: translateY(-2px);
-  border-color: #d1c1b8;
+  border-color: var(--twin-border-hover);
 }
 
 .kpiTop {
@@ -444,7 +451,7 @@
 }
 
 .kpiIconAmber {
-  background: #fdf5e6;
+  background: rgba(224, 160, 48, 0.15);
 }
 
 .kpiName {
@@ -462,7 +469,7 @@
   font-weight: 700;
   color: var(--rep-crimson);
   background: var(--rep-crimson-light);
-  border: 1px solid #ebd0cd;
+  border: 1px solid var(--twin-border);
   padding: 0.18rem 0.5rem;
   border-radius: 4px;
 }
@@ -472,8 +479,8 @@
   font-size: 0.74rem;
   font-weight: 700;
   color: var(--rep-amber);
-  background: #fdf6ec;
-  border: 1px solid #f9dfb5;
+  background: rgba(224, 160, 48, 0.15);
+  border: 1px solid var(--rep-amber);
   padding: 0.18rem 0.5rem;
   border-radius: 4px;
 }
@@ -502,7 +509,7 @@
   font-family: var(--twin-font-mono, monospace);
   font-size: 1.05rem;
   font-weight: 700;
-  color: #4b413c;
+  color: var(--twin-text-primary);
 }
 
 .valSeparator {
@@ -522,7 +529,7 @@
 .kpiProgressBar {
   width: 100%;
   height: 4px;
-  background: #f0eae5;
+  background: var(--twin-border);
   border-radius: 99px;
   overflow: hidden;
 }
@@ -559,7 +566,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .cardHeader {
@@ -587,8 +594,8 @@
 .cardMetaCount {
   font-family: var(--twin-font-mono, monospace);
   font-size: 0.68rem;
-  color: var(--rep-text-faint);
-  background: #f5eeea;
+  color: var(--rep-text-primary);
+  background: var(--twin-surface-raised);
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
 }
@@ -613,7 +620,7 @@
 }
 
 .stationCard {
-  background: #fdfaf8;
+  background: var(--twin-surface-raised);
   border: 1px solid var(--rep-border);
   border-radius: 8px;
   padding: 0.75rem 0.6rem;
@@ -628,8 +635,8 @@
 .stationCard:hover {
   transform: translateY(-2px);
   border-color: var(--rep-crimson);
-  background: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+  background: var(--twin-surface);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .stationIcon {
@@ -656,27 +663,27 @@
 }
 
 .badge_amber {
-  background: #fff4dd;
-  color: #a86e00;
-  border: 1px solid #fae1b3;
+  background: rgba(224, 160, 48, 0.15);
+  color: var(--rep-amber);
+  border: 1px solid var(--rep-amber);
 }
 
 .badge_green {
-  background: #e8f6ed;
-  color: #197a48;
-  border: 1px solid #ccebd7;
+  background: rgba(95, 174, 114, 0.15);
+  color: var(--rep-green);
+  border: 1px solid var(--rep-green);
 }
 
 .badge_red {
-  background: #fce8e6;
-  color: #c02b20;
-  border: 1px solid #f7cfcc;
+  background: rgba(209, 85, 61, 0.15);
+  color: var(--rep-danger);
+  border: 1px solid var(--rep-danger);
 }
 
 .badge_blue {
-  background: #e6f1fc;
-  color: #2d7fba;
-  border: 1px solid #c9e2f8;
+  background: rgba(79, 168, 160, 0.15);
+  color: var(--rep-crimson);
+  border: 1px solid var(--rep-crimson);
 }
 
 /* ACCORDION */
@@ -719,21 +726,20 @@
 }
 
 .toggleBtn {
-  background: #fbf8f5;
+  background: var(--twin-surface-raised);
   border: 1px solid var(--rep-border);
   border-radius: 6px;
   padding: 0.35rem 0.65rem;
   font-family: var(--twin-font-mono, monospace);
   font-size: 0.68rem;
-  color: var(--rep-text-muted);
+  color: var(--rep-text-primary);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .toggleBtn:hover {
-  border-color: #d1c1b8;
-  color: var(--rep-text-primary);
-  background: #ffffff;
+  border-color: var(--twin-border-hover);
+  background: var(--twin-surface);
 }
 
 .openCanvasBtn {
@@ -749,14 +755,14 @@
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 5px rgba(128, 20, 38, 0.18);
+  box-shadow: 0 2px 5px rgba(79, 168, 160, 0.18);
   transition: all 0.15s ease;
 }
 
 .openCanvasBtn:hover {
   background: var(--rep-crimson-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(128, 20, 38, 0.28);
+  box-shadow: 0 4px 8px rgba(79, 168, 160, 0.28);
 }
 
 .arrowIcon {
@@ -772,7 +778,7 @@
 }
 
 .recItem {
-  background: #faf8f5;
+  background: var(--twin-surface-raised);
   border: 1px solid var(--rep-border);
   border-radius: 8px;
   padding: 0.85rem 1.1rem;
@@ -784,8 +790,8 @@
 }
 
 .recItem:hover {
-  border-color: #d1c1b8;
-  background: #ffffff;
+  border-color: var(--twin-border-hover);
+  background: var(--twin-surface);
 }
 
 .recRankGroup {
@@ -807,7 +813,7 @@
   font-size: 0.62rem;
   font-weight: 700;
   color: var(--rep-crimson);
-  border: 1px solid #ebd0cd;
+  border: 1px solid var(--rep-crimson);
   background: var(--rep-crimson-light);
   padding: 0.12rem 0.4rem;
   border-radius: 3px;
@@ -817,7 +823,7 @@
   margin: 0;
   flex: 1;
   font-size: 0.8rem;
-  color: #382d28;
+  color: var(--twin-text-primary);
   line-height: 1.45;
 }
 
@@ -827,7 +833,7 @@
   font-weight: 700;
   color: var(--rep-crimson);
   background: var(--rep-crimson-light);
-  border: 1px solid #ebd0cd;
+  border: 1px solid var(--twin-border);
   padding: 0.25rem 0.65rem;
   border-radius: 6px;
   white-space: nowrap;

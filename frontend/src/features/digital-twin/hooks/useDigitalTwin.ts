@@ -1,12 +1,24 @@
 import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useDigitalTwinStore } from "../store/digitalTwinStore";
+import { mockDigitalTwin } from "../mocks/mockDigitalTwin";
 
 export function useDigitalTwin(factoryId?: string) {
-  const { data, isLoading, isFetched, error, fetchTwin } = useDigitalTwinStore();
+  const [searchParams] = useSearchParams();
+  // Mode testing frontend: aktif lewat query param ?mock=true, contoh:
+  // http://localhost:5173/DigitalTwinPage?mock=true
+  const isMockMode = searchParams.get("mock") === "true";
+
+  const { data, isLoading, isFetched, error, fetchTwin, setMockData } = useDigitalTwinStore();
 
   useEffect(() => {
+    if (isMockMode) {
+      // Isi store langsung dengan data dummy, tanpa memanggil API backend.
+      setMockData(mockDigitalTwin);
+      return;
+    }
     fetchTwin(factoryId);
-  }, [factoryId, fetchTwin]);
+  }, [factoryId, fetchTwin, isMockMode, setMockData]);
 
   return {
     data,

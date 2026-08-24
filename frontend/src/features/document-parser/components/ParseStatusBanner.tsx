@@ -1,3 +1,4 @@
+// frontend/src/features/document-parser/components/ParseStatusBanner.tsx
 import styles from './ParseStatusBanner.module.css';
 import type { ParseJobStatus, ParseStep } from '../types/documentParser.types';
 

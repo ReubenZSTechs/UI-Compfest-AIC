@@ -28,6 +28,12 @@ export function DigitalTwinPage() {
     searchParams.get("job_id") ||
     undefined;
 
+  // --- PEMBARUAN 1: Deteksi parameter mock=success atau mock=true di URL ---
+  const isMockMode = 
+    searchParams.get("mock") === "success" || 
+    searchParams.get("mock") === "true";
+  // -------------------------------------------------------------------------
+
   const { data, isLoading, isFetched, error } = useDigitalTwin(factoryId);
 
   // Validasi keberadaan data hasil parsing
@@ -59,6 +65,15 @@ export function DigitalTwinPage() {
       }
     }
   }, [isFetched, isLoading, error, hasParsedData, factoryId, navigate]);
+
+  // Fungsi navigasi ke halaman rekomendasi
+  const handleGoToRecommendations = () => {
+    if (factoryId) {
+      navigate(`/project/${encodeURIComponent(factoryId)}/recommendations`);
+    } else {
+      alert("ID Factory tidak ditemukan untuk melihat rekomendasi.");
+    }
+  };
 
   // State pencarian terpisah untuk masing-masing seksi
   const [assetSearchQuery, setAssetSearchQuery] = useState("");
@@ -186,6 +201,8 @@ export function DigitalTwinPage() {
         <div>
           <span className={styles.eyebrow}>
             Digital Twin {factoryId ? `(ID: ${factoryId})` : ""}
+            {/* Indikator UI untuk Mock Mode */}
+            {isMockMode && <span style={{ color: "var(--twin-accent-warning)", marginLeft: "8px" }}>[MOCK MODE]</span>}
           </span>
           <h1 className={styles.factoryName}>
             {data.factoryInfo?.factoryName ?? "Digital Twin Pabrik"}
@@ -194,16 +211,27 @@ export function DigitalTwinPage() {
             {data.factoryInfo?.factoryId ?? "-"}
           </span>
         </div>
-        <div className={styles.snapshotInfo}>
-          <span className={styles.readoutLabel}>Snapshot Terakhir</span>
-          <time className={styles.snapshotTime}>
-            {data.factoryFlowRightnow?.snapshotTimestamp
-              ? new Date(data.factoryFlowRightnow.snapshotTimestamp).toLocaleString(
-                  "id-ID",
-                  { dateStyle: "medium", timeStyle: "short" }
-                )
-              : "-"}
-          </time>
+        
+        {/* Kontrol Aksi & Info di sisi Kanan Header */}
+        <div className={styles.headerActions}>
+          <div className={styles.snapshotInfo}>
+            <span className={styles.readoutLabel}>Snapshot Terakhir</span>
+            <time className={styles.snapshotTime}>
+              {data.factoryFlowRightnow?.snapshotTimestamp
+                ? new Date(data.factoryFlowRightnow.snapshotTimestamp).toLocaleString(
+                    "id-ID",
+                    { dateStyle: "medium", timeStyle: "short" }
+                  )
+                : "-"}
+            </time>
+          </div>
+          
+          <button 
+            onClick={handleGoToRecommendations}
+            className={styles.recommendationBtn}
+          >
+            Optimisasi Reinfocement Learning
+          </button>
         </div>
       </header>
 
@@ -211,11 +239,17 @@ export function DigitalTwinPage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Live Simulation</h2>
-          <SimulationControls />
+          {/* --- PEMBARUAN 2: Melempar prop isMockMode ke SimulationControls --- */}
+          <SimulationControls isMock={isMockMode} />
         </div>
         <div className={simulationSectionStyles.simulationGrid}>
-          <SimulationFlowchart workerNames={workerNames} jobTitles={jobTitles} />
-          <SimulationSummaryPanel />
+          {/* --- PEMBARUAN 3: Melempar prop isMockMode ke Flowchart dan Summary Panel --- */}
+          <SimulationFlowchart 
+            workerNames={workerNames} 
+            jobTitles={jobTitles} 
+            isMock={isMockMode} 
+          />
+          <SimulationSummaryPanel isMock={isMockMode} />
         </div>
       </section>
 

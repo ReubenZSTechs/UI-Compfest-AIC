@@ -12,6 +12,8 @@ interface DigitalTwinState {
   error: Error | null;
   simulationId?: string;
   fetchTwin: (simulationId?: string) => Promise<void>;
+  /** Mengisi store langsung dengan data mock (dipakai saat mode `?mock=true`), tanpa memanggil API. */
+  setMockData: (data: DigitalTwin) => void;
 
   // Filter bar (global)
   searchQuery: string;
@@ -58,6 +60,10 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set) => ({
         isFetched: true,
       });
     }
+  },
+
+  setMockData: (data: DigitalTwin) => {
+    set({ data, isLoading: false, isFetched: true, error: null });
   },
 
   searchQuery: "",

@@ -6,7 +6,8 @@ import styles from "./SimulationControls.module.css";
 
 const SPEED_OPTIONS: SpeedMultiplier[] = [1, 2, 5, 10];
 
-export function SimulationControls() {
+// --- PEMBARUAN: Tambahkan parameter isMock ke dalam Props komponen ---
+export function SimulationControls({ isMock }: { isMock?: boolean }) {
   const status = useSimulationStore((s) => s.status);
   const tick = useSimulationStore((s) => s.tick);
   const data = useSimulationStore((s) => s.data);
@@ -16,7 +17,8 @@ export function SimulationControls() {
   const reset = useSimulationStore((s) => s.reset);
   const setSpeedMultiplier = useSimulationStore((s) => s.setSpeedMultiplier);
 
-  useSimulationRunner();
+  // --- PEMBARUAN: Teruskan nilai isMock ke dalam runner hook ---
+  useSimulationRunner(isMock);
 
   const shiftInfo = data?.live_simulation_state?.shift_info;
 

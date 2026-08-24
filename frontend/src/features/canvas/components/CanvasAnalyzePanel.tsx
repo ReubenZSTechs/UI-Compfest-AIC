@@ -1,11 +1,7 @@
 // frontend/src/features/canvas/components/CanvasAnalyzePanel.tsx
-// Panel aksi di bawah-tengah canvas: Simpan draft (modal judul), status
-// analisis, dan SATU tombol utama "Mulai Analisis AI".
-// Klik "Mulai Analisis AI" => memicu proses analisis lalu LANGSUNG
-// mengarahkan user ke halaman rekomendasi /project/:id/recommendations
-// (tanpa tombol/konfirmasi sekunder).
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/app/router/routes";
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { useToastStore } from "@/store/toast";
 import { useDraftStore } from "@/store/draftStore";
@@ -29,11 +25,18 @@ export function CanvasAnalyzePanel() {
 
   async function runAnalysis() {
     if (isEmpty || isRunning) return;
-    // Tunggu analisis selesai sebelum navigasi ke halaman rekomendasi.
+    // Jalankan proses analisis lalu arahkan ke DocumentParserPage (/parser)
     const result = await runCanvasAnalysis();
     const projectId = useDraftStore.getState().activeDraftId;
+    
     if (result.status === "done") {
-      navigate(`/project/${encodeURIComponent(projectId ?? "")}/recommendations`);
+      // --- PEMBARUAN: Tambahkan parameter &mock=success atau ?mock=success ---
+      const url = projectId 
+        ? `${ROUTES.PARSER}?projectId=${encodeURIComponent(projectId)}&mock=success` 
+        : `${ROUTES.PARSER}?mock=success`;
+      // ---------------------------------------------------------------------
+      
+      navigate(url);
     } else {
       showToast(result.message || "Analisis gagal, coba lagi.", "error");
     }
@@ -92,7 +95,7 @@ export function CanvasAnalyzePanel() {
           onClick={runAnalysis}
           disabled={isEmpty || isRunning}
         >
-          {isRunning ? "Menganalisis…" : "Mulai Analisis AI"}
+          {isRunning ? "Memproses…" : "Generate Digital Twin"}
         </button>
       </div>
 

@@ -1,3 +1,4 @@
+// frontend/src/features/document-parser/components/ParsedDataInspector.tsx
 import { useState } from 'react';
 import type {
   ParseJobResult,

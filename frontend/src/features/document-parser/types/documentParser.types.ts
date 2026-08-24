@@ -14,6 +14,30 @@ export interface UploadSlotState {
   errorMessage?: string;
 }
 
+/**
+ * Payload JSON hasil ekstraksi dokumen yang sudah dilakukan pada halaman
+ * sebelumnya (upload + ekstraksi template pabrik & bundel CV karyawan).
+ * `DocumentParserPage` tidak lagi menangani upload berkas mentah -- ia hanya
+ * menerima struktur ini (via route state) dan meneruskannya ke pipeline
+ * tahap 1 - 5 (LLM parse -> validasi -> matriks kompatibilitas).
+ *
+ * Sesuaikan bentuk field di bawah ini dengan kontrak nyata dari halaman
+ * upload/ekstraksi & endpoint backend yang menerimanya.
+ */
+export interface DocumentIngestionPayload {
+  /** Hasil ekstraksi template dokumen pabrik (workflow, aset, job desk mentah). */
+  templateData: Record<string, unknown>;
+  /** Hasil ekstraksi bundel CV karyawan (per-worker, sudah dalam bentuk JSON). */
+  workerCvData: Record<string, unknown>;
+  /** Metadata opsional yang dibawa dari halaman upload (mis. nama sumber berkas). */
+  sourceMeta?: {
+    templateFileName?: string;
+    cvBundleFileName?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 export type ParseStepId =
   | 'upload'
   | 'extract'
@@ -230,4 +254,9 @@ export interface DocumentParserErrorDetail {
   stage: ParseStepId;
   message: string;
   details?: unknown[];
+}
+
+/** State yang dibawa lewat navigasi (react-router `location.state`) menuju DocumentParserPage. */
+export interface DocumentParserPageLocationState {
+  documentPayload: DocumentIngestionPayload;
 }
