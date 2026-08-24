@@ -1,3 +1,4 @@
+// frontend/src/app/router/routes.tsx
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProtectedRoute } from "@/app/router/ProtectedRoute";

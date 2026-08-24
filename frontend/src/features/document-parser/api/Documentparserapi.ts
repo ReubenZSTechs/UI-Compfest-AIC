@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 import { apiClient } from '@/api/client';
 import { ENDPOINTS } from '@/api/endpoints';
 import type {
+  DocumentIngestionPayload,
   ParseJobResult,
   ParseStepId,
   ParseStepStatus,
@@ -12,6 +13,14 @@ import type {
 interface StartParseArgs {
   templateFile: File;
   cvBundleFile: File;
+  strict?: boolean;
+  maxWorkers?: number;
+  maxAttempts?: number;
+  onStepUpdate: (step: ParseStepId, status: ParseStepStatus, detail?: string) => void;
+}
+
+interface StartParseFromPayloadArgs {
+  payload: DocumentIngestionPayload;
   strict?: boolean;
   maxWorkers?: number;
   maxAttempts?: number;
@@ -71,7 +80,81 @@ function parseErrorResponse(error: unknown): { stage: ParseStepId; message: stri
   return { stage: 'upload', message: 'Terjadi kesalahan tak terduga saat parsing.' };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeParseResponse(data: Record<string, any>): ParseJobResult {
+  // Backend mengembalikan bentuk response yang tidak konsisten (snake_case/
+  // camelCase campur, field opsional berbeda per jalur pipeline) -- lihat
+  // akses properti longgar di bawah. Mengetatkan ini butuh mendefinisikan
+  // union type penuh untuk seluruh kemungkinan bentuk response backend
+  // (pipeline kombinasi vs per-tahap), di luar scope perbaikan lint kali ini.
+
+  // Backend baru mengembalikan `simulation_id` dan membungkus hasil LLM di `data`
+  const simulationId = data.simulation_id ?? data.job_id ?? data.jobId ?? `sim-${Date.now()}`;
+  const factoryId = data.factory_id ?? data.factoryId ?? null;
+  const workersParsed = data.workers_parsed ?? data.workersParsed ?? 0;
+  const jobDesksParsed = data.job_desks_parsed ?? data.jobDesksParsed ?? 0;
+  const warnings: string[] = data.warnings ?? [];
+
+  // Ekstrak payload LLM dari properti `data` (jika ada) atau dari top-level
+  const nestedData = data.data ?? data;
+  const factoryStructure = nestedData.factory_structure ?? nestedData.factoryStructure ?? null;
+  const workerProfile = nestedData.worker_profile ?? nestedData.workerProfile ?? null;
+  const compatibilityMatrix = nestedData.compatibility_matrix ?? nestedData.compatibilityMatrix ?? null;
+  const floorState = nestedData.floor_state ?? nestedData.floorState ?? null;
+
+  return {
+    jobId: simulationId, // Tetap dipetakan ke jobId agar kompatibel dengan komponen UI
+    simulationId,       // Menyimpan simulation_id secara eksplisit
+    factoryId,
+    workersParsed,
+    jobDesksParsed,
+    warnings,
+    factoryStructure,
+    workerProfile,
+    compatibilityMatrix,
+    floorState,
+  };
+}
+
+function reportSuccessSteps(
+  result: ParseJobResult,
+  onStepUpdate: (step: ParseStepId, status: ParseStepStatus, detail?: string) => void
+) {
+  // Update indikator UI bertahap setelah request sukses -- identik untuk
+  // jalur upload berkas (multipart) maupun jalur payload JSON pre-extracted.
+  onStepUpdate('upload', 'success');
+  onStepUpdate('extract', 'success');
+  onStepUpdate('llm_parse', 'success');
+  onStepUpdate(
+    'validate',
+    'success',
+    result.warnings.length > 0 ? `${result.warnings.length} peringatan` : undefined
+  );
+  onStepUpdate('compatibility', 'success', 'Matriks kompatibilitas terbentuk');
+  onStepUpdate(
+    'done',
+    'success',
+    `${result.workersParsed} pekerja, ${result.jobDesksParsed} job desk tersimpan`
+  );
+}
+
+function reportFailureSteps(
+  stage: ParseStepId,
+  message: string,
+  onStepUpdate: (step: ParseStepId, status: ParseStepStatus, detail?: string) => void
+) {
+  const failedIndex = STEP_ORDER.indexOf(stage);
+  STEP_ORDER.forEach((step, index) => {
+    if (index < failedIndex) {
+      onStepUpdate(step, 'success');
+    } else if (index === failedIndex) {
+      onStepUpdate(step, 'error', message);
+    }
+  });
+}
+
 export const documentParserApi = {
+  /** Jalur lama: upload berkas mentah (template + ZIP CV) sebagai multipart/form-data. */
   parse: async ({
     templateFile,
     cvBundleFile,
@@ -95,71 +178,61 @@ export const documentParserApi = {
     onStepUpdate('upload', 'active');
 
     try {
-      // Backend mengembalikan bentuk response yang tidak konsisten (snake_case/
-      // camelCase campur, field opsional berbeda per jalur pipeline) -- lihat
-      // akses properti longgar di bawah. Mengetatkan ini butuh mendefinisikan
-      // union type penuh untuk seluruh kemungkinan bentuk response backend
-      // (pipeline kombinasi vs per-tahap), di luar scope perbaikan lint kali ini.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await apiClient.post<Record<string, any>>(endpointUrl, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: PARSE_TIMEOUT_MS,
       });
 
-      // Backend baru mengembalikan `simulation_id` dan membungkus hasil LLM di `data`
-      const simulationId = data.simulation_id ?? data.job_id ?? data.jobId ?? `sim-${Date.now()}`;
-      const factoryId = data.factory_id ?? data.factoryId ?? null;
-      const workersParsed = data.workers_parsed ?? data.workersParsed ?? 0;
-      const jobDesksParsed = data.job_desks_parsed ?? data.jobDesksParsed ?? 0;
-      const warnings: string[] = data.warnings ?? [];
-
-      // Ekstrak payload LLM dari properti `data` (jika ada) atau dari top-level
-      const nestedData = data.data ?? data;
-      const factoryStructure = nestedData.factory_structure ?? nestedData.factoryStructure ?? null;
-      const workerProfile = nestedData.worker_profile ?? nestedData.workerProfile ?? null;
-      const compatibilityMatrix = nestedData.compatibility_matrix ?? nestedData.compatibilityMatrix ?? null;
-      const floorState = nestedData.floor_state ?? nestedData.floorState ?? null;
-
-      // Update indikator UI bertahap setelah request sukses
-      onStepUpdate('upload', 'success');
-      onStepUpdate('extract', 'success');
-      onStepUpdate('llm_parse', 'success');
-      onStepUpdate(
-        'validate',
-        'success',
-        warnings.length > 0 ? `${warnings.length} peringatan` : undefined
-      );
-      onStepUpdate('compatibility', 'success', 'Matriks kompatibilitas terbentuk');
-      onStepUpdate(
-        'done',
-        'success',
-        `${workersParsed} pekerja, ${jobDesksParsed} job desk tersimpan`
-      );
-
-      return {
-        jobId: simulationId, // Tetap dipetakan ke jobId agar kompatibel dengan komponen UI
-        simulationId,       // Menyimpan simulation_id secara eksplisit
-        factoryId,
-        workersParsed,
-        jobDesksParsed,
-        warnings,
-        factoryStructure,
-        workerProfile,
-        compatibilityMatrix,
-        floorState,
-      };
+      const result = normalizeParseResponse(data);
+      reportSuccessSteps(result, onStepUpdate);
+      return result;
     } catch (error) {
       const { stage, message } = parseErrorResponse(error);
+      reportFailureSteps(stage, message, onStepUpdate);
+      throw new Error(message, { cause: error });
+    }
+  },
 
-      const failedIndex = STEP_ORDER.indexOf(stage);
-      STEP_ORDER.forEach((step, index) => {
-        if (index < failedIndex) {
-          onStepUpdate(step, 'success');
-        } else if (index === failedIndex) {
-          onStepUpdate(step, 'error', message);
-        }
+  /**
+   * Jalur baru: dokumen sudah diunggah & diekstrak pada halaman sebelumnya.
+   * Kirim hasil ekstraksi tersebut sebagai JSON, langsung ke tahap LLM parse
+   * dst. Logika normalisasi response & pelaporan step identik dengan `parse`.
+   */
+  parseFromPayload: async ({
+    payload,
+    strict = false,
+    maxWorkers = 4,
+    maxAttempts = 3,
+    onStepUpdate,
+  }: StartParseFromPayloadArgs): Promise<ParseJobResult> => {
+    const queryParams = new URLSearchParams({
+      strict: String(strict),
+      max_workers: String(maxWorkers),
+      max_attempts: String(maxAttempts),
+    });
+
+    // TODO: sesuaikan dengan endpoint backend aktual untuk menerima data
+    // yang sudah diekstrak (JSON), bila berbeda dari endpoint kombinasi lama.
+    const endpointUrl = `${ENDPOINTS.DOCUMENT_PARSER.PROCESS_COMBINED}?${queryParams.toString()}`;
+
+    // Berkas sudah diunggah & diekstrak di halaman sebelumnya, jadi step
+    // 'upload' & 'extract' langsung ditandai aktif->sukses di sisi klien.
+    onStepUpdate('upload', 'active');
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await apiClient.post<Record<string, any>>(endpointUrl, payload, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: PARSE_TIMEOUT_MS,
       });
 
+      const result = normalizeParseResponse(data);
+      reportSuccessSteps(result, onStepUpdate);
+      return result;
+    } catch (error) {
+      const { stage, message } = parseErrorResponse(error);
+      reportFailureSteps(stage, message, onStepUpdate);
       throw new Error(message, { cause: error });
     }
   },

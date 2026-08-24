@@ -1,3 +1,4 @@
+// frontend/src/features/document-parser/components/FactoryListSection.tsx
 import React from 'react';
 import type { FactoryItem } from '../hooks/useFactoryList';
 import styles from './FactoryListSection.module.css'; // Import terpisah & lokal

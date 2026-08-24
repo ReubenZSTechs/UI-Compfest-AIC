@@ -1,3 +1,4 @@
+// frontend/src/features/document-parser/components/UploadDropzone.tsx
 import { useCallback, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import styles from './UploadDropzone.module.css';

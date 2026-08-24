@@ -1,49 +1,52 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/app/router/routes';
-import { UploadDropzone } from '@/features/document-parser/components/UploadDropzone';
 import { ParseStatusBanner } from '@/features/document-parser/components/ParseStatusBanner';
 import { ParsedDataInspector } from '@/features/document-parser/components/ParsedDataInspector';
-import { FactoryListSection } from '@/features/document-parser/components/FactoryListSection';
-import { useDocumentParser } from '@/features/document-parser/hooks/useDocumentParser';
-import { useFactoryList } from '@/features/document-parser/hooks/useFactoryList';
+import { useDocumentJsonParser } from '@/features/document-parser/hooks/useDocumentJsonParser';
+import type { DocumentParserPageLocationState } from '@/features/document-parser/types/documentParser.types';
 import styles from './DocumentParserPage.module.css';
 
+/**
+ * DocumentParserPage kini murni sebuah "processor": tidak ada lagi daftar
+ * factory maupun langkah pemilihan/penambahan factory untuk melihat Digital
+ * Twin. Halaman ini selalu langsung berada dalam mode running/processing,
+ * mengolah `documentPayload` (hasil upload + ekstraksi di DashboardPage)
+ * yang dibawa lewat route state.
+ */
 export function DocumentParserPage() {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<'list' | 'parse'>('list');
+  const location = useLocation();
 
-  const { factories, isLoading, error, refetch } = useFactoryList();
-  const {
-    templateSlot,
-    cvBundleSlot,
-    steps,
-    jobStatus,
-    result,
-    errorMessage,
-    canParse,
-    selectTemplate,
-    selectCvBundle,
-    clearTemplate,
-    clearCvBundle,
-    runParse,
-    reset,
-  } = useDocumentParser();
+  const documentPayload =
+    (location.state as DocumentParserPageLocationState | undefined)?.documentPayload ?? null;
 
-  // Sinkronkan daftar factory saat parsing sukses
-  useEffect(() => {
-    if (jobStatus === 'success') {
-      refetch();
-    }
-  }, [jobStatus, refetch]);
+  const { steps, jobStatus, result, errorMessage, retry, hasPayload } =
+    useDocumentJsonParser(documentPayload);
 
-  const handleProceedToDigitalTwin = (factoryId?: string) => {
-    const targetId = factoryId || result?.factoryId || result?.simulationId || result?.jobId;
+  const resultSummary = useMemo(
+    () =>
+      result
+        ? `${result.workersParsed} pekerja & ${result.jobDesksParsed} job desk berhasil diparsing.`
+        : undefined,
+    [result]
+  );
+
+  // --- PEMBARUAN: Penambahan parameter &mock=true atau ?mock=true ---
+  const handleProceedToDigitalTwin = () => {
+    const targetId = result?.factoryId || result?.simulationId || result?.jobId;
     if (targetId) {
-      navigate(`${ROUTES.DIGITAL_TWIN}?factory_id=${targetId}`);
+      navigate(`${ROUTES.DIGITAL_TWIN}?factory_id=${targetId}&mock=true`);
     } else {
-      navigate(ROUTES.DIGITAL_TWIN);
+      navigate(`${ROUTES.DIGITAL_TWIN}?mock=true`);
     }
+  };
+  // ------------------------------------------------------------------
+
+  // Upload & ekstraksi dokumen dilakukan di DashboardPage; hasilnya (JSON)
+  // dikirim ke sini lewat navigate(ROUTES.PARSER, { state: { documentPayload } }).
+  const handleBackToDashboard = () => {
+    navigate(ROUTES.DASHBOARD);
   };
 
   return (
@@ -52,129 +55,66 @@ export function DocumentParserPage() {
         <div className={styles.headerTop}>
           <div>
             <span className={styles.eyebrow}>Document Ingestion</span>
-            <h1 className={styles.title}>
-              {viewMode === 'list' ? 'Daftar Factory' : 'Tambah Factory Baru'}
-            </h1>
+            <h1 className={styles.title}>Memproses Factory Baru</h1>
             <p className={styles.subtitle}>
-              {viewMode === 'list'
-                ? 'Pilih factory terdaftar untuk melihat Digital Twin atau tambahkan baru.'
-                : 'Unggah template pabrik dan bundel CV karyawan untuk diparsing terpadu.'}
+              Data hasil ekstraksi sedang diproses melalui pipeline tahap 1 - 5.
             </p>
           </div>
-          {viewMode === 'list' ? (
-            <button
-              type="button"
-              className={styles.parseButton}
-              onClick={() => {
-                reset();
-                setViewMode('parse');
-              }}
-            >
-              + Add Factory Baru
-            </button>
-          ) : (
-            <button
-              type="button"
-              className={styles.resetButton}
-              onClick={() => setViewMode('list')}
-            >
-              ← Kembali ke Daftar
+          {jobStatus !== 'running' && (
+            <button type="button" className={styles.resetButton} onClick={handleBackToDashboard}>
+              ← Kembali ke Dashboard
             </button>
           )}
         </div>
       </header>
 
-      {viewMode === 'list' ? (
-        <FactoryListSection
-          factories={factories}
-          isLoading={isLoading}
-          error={error}
-          onSelectFactory={handleProceedToDigitalTwin}
-          onAddNewClick={() => {
-            reset();
-            setViewMode('parse');
-          }}
-          onRetry={refetch}
+      {!hasPayload ? (
+        <ParseStatusBanner
+          steps={steps}
+          jobStatus="error"
+          errorMessage="Tidak ada data hasil ekstraksi yang diterima. Silakan unggah ulang dokumen dari Dashboard."
         />
       ) : (
-        <>
-          <section className={styles.uploadGrid}>
-            <UploadDropzone
-              id="template-upload"
-              eyebrow="01 — Template Pabrik"
-              title="Template Dokumen Pabrik"
-              description="Formulir workflow, aset, dan job desk (PDF, DOCX, MD, TXT)."
-              accept=".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
-              acceptLabel="PDF, DOCX, MD, TXT"
-              accent="automated"
-              file={templateSlot.file}
-              errorMessage={templateSlot.errorMessage}
-              disabled={jobStatus === 'running'}
-              onFileSelect={selectTemplate}
-              onClear={clearTemplate}
-            />
+        <ParseStatusBanner
+          steps={steps}
+          jobStatus={jobStatus}
+          resultSummary={resultSummary}
+          errorMessage={errorMessage}
+        />
+      )}
 
-            <UploadDropzone
-              id="cv-bundle-upload"
-              eyebrow="02 — Data Karyawan"
-              title="Bundel CV (ZIP)"
-              description="Kumpulan CV karyawan pabrik dalam satu berkas arsip terkompresi."
-              accept=".zip,application/zip,application/x-zip-compressed,application/x-zip"
-              acceptLabel="ZIP"
-              accent="manual"
-              file={cvBundleSlot.file}
-              errorMessage={cvBundleSlot.errorMessage}
-              disabled={jobStatus === 'running'}
-              onFileSelect={selectCvBundle}
-              onClear={clearCvBundle}
-            />
-          </section>
+      <section className={styles.actionRow}>
+        {!hasPayload && (
+          <button type="button" className={styles.parseButton} onClick={handleBackToDashboard}>
+            Kembali ke Dashboard
+          </button>
+        )}
 
-          <section className={styles.actionRow}>
-            <button
-              type="button"
-              className={styles.parseButton}
-              disabled={!canParse || jobStatus === 'running'}
-              onClick={runParse}
-            >
-              {jobStatus === 'running' ? 'Memproses Tahap 1 - 5...' : 'Mulai Parsing Terpadu'}
-            </button>
+        {jobStatus === 'error' && (
+          <button type="button" className={styles.parseButton} onClick={retry}>
+            Coba Lagi
+          </button>
+        )}
 
-            {jobStatus === 'success' && (
-              <button
-                type="button"
-                className={`${styles.parseButton} ${styles.successButton}`}
-                onClick={() => setViewMode('list')}
-              >
-                Selesai & Lihat Daftar Factory
-              </button>
-            )}
+        {jobStatus === 'success' && (
+          <button
+            type="button"
+            className={`${styles.parseButton} ${styles.successButton}`}
+            onClick={handleProceedToDigitalTwin}
+          >
+            Lanjut ke Digital Twin
+          </button>
+        )}
 
-            {(jobStatus === 'success' || jobStatus === 'error') && (
-              <button type="button" className={styles.resetButton} onClick={reset}>
-                Unggah Berkas Baru
-              </button>
-            )}
-          </section>
+        {(jobStatus === 'success' || jobStatus === 'error') && (
+          <button type="button" className={styles.resetButton} onClick={handleBackToDashboard}>
+            Unggah Berkas Baru
+          </button>
+        )}
+      </section>
 
-          <ParseStatusBanner
-            steps={steps}
-            jobStatus={jobStatus}
-            resultSummary={
-              result
-                ? `${result.workersParsed} pekerja & ${result.jobDesksParsed} job desk berhasil diparsing.`
-                : undefined
-            }
-            errorMessage={errorMessage}
-          />
-
-          {jobStatus === 'success' && result && (
-            <ParsedDataInspector
-              result={result}
-              onProceed={() => handleProceedToDigitalTwin()}
-            />
-          )}
-        </>
+      {jobStatus === 'success' && result && (
+        <ParsedDataInspector result={result} onProceed={handleProceedToDigitalTwin} />
       )}
     </div>
   );

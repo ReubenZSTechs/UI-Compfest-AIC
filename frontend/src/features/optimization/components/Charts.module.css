@@ -2,8 +2,8 @@
 .chartContainer {
   display: flex;
   flex-direction: column;
-  background: var(--report-surface, #ffffff);
-  border: 1px solid var(--report-border, #e8dfd8);
+  background: var(--twin-surface);
+  border: 1px solid var(--twin-border);
   border-radius: 8px;
   padding: 0.85rem 1rem 0.6rem;
   height: 100%;
@@ -14,7 +14,7 @@
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: var(--report-text-muted, #726560);
+  color: var(--twin-text-muted);
   text-transform: uppercase;
   margin-bottom: 0.4rem;
 }
@@ -32,30 +32,31 @@
 }
 
 .gridLine {
-  stroke: var(--report-grid, #f0e7e1);
+  stroke: var(--twin-border);
   stroke-width: 1;
 }
 
 .axisLabel {
   font-family: var(--twin-font-mono, "IBM Plex Mono", monospace);
   font-size: 8.5px;
-  fill: var(--report-text-faint, #9d908a);
+  fill: var(--twin-text-faint);
 }
 
 .categoryLabel {
   font-size: 8.5px;
   font-weight: 500;
+  fill: var(--twin-text-primary);
 }
 
 /* Throughput line paths */
 .beforeLine {
-  stroke: #c8bcb6;
+  stroke: var(--twin-text-faint);
   stroke-width: 1.5;
   stroke-dasharray: 4 3;
 }
 
 .afterLine {
-  stroke: #801426;
+  stroke: var(--twin-accent-automated);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -63,16 +64,16 @@
 
 /* Data points */
 .pointBefore {
-  fill: #c8bcb6;
-  stroke: #ffffff;
-  stroke-width: 1;
+  fill: var(--twin-surface);
+  stroke: var(--twin-text-faint);
+  stroke-width: 1.5;
   transition: r 0.15s ease;
 }
 
 .pointAfter {
-  fill: #801426;
-  stroke: #ffffff;
-  stroke-width: 1.5;
+  fill: var(--twin-surface);
+  stroke: var(--twin-accent-automated);
+  stroke-width: 2;
   transition: r 0.15s ease;
 }
 
@@ -81,7 +82,7 @@
 }
 
 .hoverGuideLine {
-  stroke: #801426;
+  stroke: var(--twin-accent-automated);
   stroke-width: 1;
   stroke-dasharray: 2 2;
   opacity: 0.4;
@@ -89,8 +90,8 @@
 
 /* Tooltip */
 .tooltipBg {
-  fill: #1f1917;
-  stroke: #801426;
+  fill: var(--twin-surface-raised);
+  stroke: var(--twin-border-hover);
   stroke-width: 1;
 }
 
@@ -98,39 +99,39 @@
   font-family: var(--twin-font-mono, monospace);
   font-size: 8.5px;
   font-weight: 600;
-  fill: #ffffff;
+  fill: var(--twin-text-primary);
 }
 
 .tooltipBefore {
   font-family: var(--twin-font-mono, monospace);
   font-size: 7.5px;
-  fill: #c8bcb6;
+  fill: var(--twin-text-muted);
 }
 
 .tooltipAfter {
   font-family: var(--twin-font-mono, monospace);
   font-size: 7.5px;
   font-weight: 600;
-  fill: #ff9aa8;
+  fill: var(--twin-accent-automated);
 }
 
 /* Cost Bar chart */
 .barBefore {
-  fill: #dfd3cc;
+  fill: var(--twin-border-hover);
   transition: opacity 0.15s;
 }
 
 .barAfter {
-  fill: #801426;
+  fill: var(--twin-accent-automated);
   transition: opacity 0.15s, transform 0.15s;
 }
 
 .interactiveGroup:hover .barAfter {
-  fill: #9a1a30;
+  fill: #3d8680; /* Darker teal for hover */
 }
 
 .interactiveGroup:hover .barBefore {
-  fill: #cebfb6;
+  fill: var(--twin-text-faint);
 }
 
 /* Legend */
@@ -142,7 +143,7 @@
   margin-top: 0.3rem;
   font-family: var(--twin-font-mono, "IBM Plex Mono", monospace);
   font-size: 0.68rem;
-  color: var(--report-text-muted, #726560);
+  color: var(--twin-text-muted);
 }
 
 .legendItem {
@@ -155,27 +156,27 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1.5px solid #a89b94;
-  background: #ffffff;
+  border: 1.5px solid var(--twin-text-faint);
+  background: var(--twin-surface);
 }
 
 .legendDotAfter {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #801426;
+  background: var(--twin-accent-automated);
 }
 
 .legendBoxBefore {
   width: 10px;
   height: 8px;
-  background: #dfd3cc;
+  background: var(--twin-border-hover);
   border-radius: 1px;
 }
 
 .legendBoxAfter {
   width: 10px;
   height: 8px;
-  background: #801426;
+  background: var(--twin-accent-automated);
   border-radius: 1px;
 }

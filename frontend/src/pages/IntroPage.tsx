@@ -2,7 +2,7 @@
 // Halaman 1: Introduction — pengenalan aplikasi, panduan singkat,
 // pilihan template canvas, dan CTA "Mulai Desain Canvas".
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/app/router/routes";
 import {
   CANVAS_TEMPLATES,
@@ -43,8 +43,6 @@ export function IntroPage() {
 
   function startCanvas() {
     const ds = useDraftStore.getState();
-    // Reuse draft kosong baru-baru ini dengan template yang sama agar tidak
-    // menumpuk draft saat user menekan Back lalu memilih template lagi.
     const existing = ds.drafts.find(
       (d) =>
         d.templateId === selectedTemplate &&
@@ -63,7 +61,7 @@ export function IntroPage() {
   return (
     <div className={styles.page}>
       {/* Hero */}
-      <section className={styles.hero}>
+<section className={styles.hero}>
         <span className={styles.eyebrow}>Smart Manufacturing · Interactive Canvas Workspace</span>
         <h1 className={styles.title}>
           Desain Alur Pabrikmu, <span className={styles.accent}>Lalu Biarkan AI Bekerja</span>
@@ -73,9 +71,19 @@ export function IntroPage() {
           tarik garis relasi — tanpa API call. Eksekusi AI hanya terjadi saat kamu menekan
           <strong> "Mulai Analisis AI"</strong>, dengan payload JSON yang bersih dari data visual.
         </p>
-        <button type="button" className={styles.cta} onClick={startCanvas}>
-          Mulai Desain Canvas →
-        </button>
+        
+        {/* Tombol Aksi */}
+        <div className={styles.heroActions}>
+          <button type="button" className={styles.cta} onClick={startCanvas}>
+            Mulai Desain Canvas →
+          </button>
+          <Link 
+            to={ROUTES.DASHBOARD ?? "/dashboard"} 
+            className={styles.dashboardBtn}
+          >
+            Lihat Saved Drafts / Dashboard
+          </Link>
+        </div>
       </section>
 
       {/* Template picker */}

@@ -102,37 +102,19 @@ export function ExecutionPage() {
     }
   }
 
-  function handleExecuteScenario() {
-    showToast(
-      `Skenario "${currentScenario.title}" berhasil diaktifkan untuk lini produksi!`,
-      "success"
-    );
+  // --- PEMBARUAN 1: FUNGSI KEMBALI KE DASHBOARD ---
+  function handleBackToDashboard() {
+    showToast("Kembali ke Dashboard Utama", "info");
+    navigate("/dashboard");
   }
 
-  /**
-   * Mengambil workflow canvas yang sudah tersimpan di proyek tersebut
-   * dan kembali ke halaman Canvas Workspace (/live).
-   */
-  function handleOpenSavedCanvas() {
+  // --- PEMBARUAN 2: FUNGSI MENUJU DIGITAL TWIN PAGE ---
+  function handleGoToDigitalTwin() {
     const ds = useDraftStore.getState();
-    const targetId = effectiveProjectId || ds.activeDraftId || ds.drafts[0]?.projectId;
+    const targetId = effectiveProjectId || ds.activeDraftId || ds.drafts[0]?.projectId || "default-factory-id";
 
-    if (!targetId) {
-      // Tidak ada proyek tersimpan — buat canvas baru.
-      // createDraft() sudah otomatis hydrate + activate, jadi skip loadDraft.
-      const newId = ds.createDraft("serial");
-      ds.setCurrentStep("canvas");
-      showToast("Tidak ada proyek tersimpan, membuat canvas baru...", "info");
-      navigate(`/live?projectId=${encodeURIComponent(newId)}`);
-      return;
-    }
-
-    // Restore state canvas & operational limits dari record draft proyek
-    ds.loadDraft(targetId);
-    ds.setCurrentStep("canvas");
-
-    showToast("Memuat workflow canvas yang tersimpan di proyek...", "info");
-    navigate(`/live?projectId=${encodeURIComponent(targetId)}`);
+    showToast("Membuka Digital Twin...", "info");
+    navigate(`/digital-twin?factoryId=${encodeURIComponent(targetId)}`);
   }
 
   return (
@@ -194,12 +176,14 @@ export function ExecutionPage() {
             </div>
           )}
           <span className={styles.timestampBadge}>Generated: {generatedDate}</span>
+          
+          {/* --- PEMBARUAN 1: TOMBOL KEMBALI KE DASHBOARD --- */}
           <button
             type="button"
             className={styles.primaryActionButton}
-            onClick={handleExecuteScenario}
+            onClick={handleBackToDashboard}
           >
-            <span>Terapkan Skenario</span>
+            <span>Kembali ke Dashboard</span>
             <span className={styles.actionArrow}>→</span>
           </button>
         </div>
@@ -511,11 +495,13 @@ export function ExecutionPage() {
                 >
                   {showGraph ? "Tutup ⌃" : "Preview ⌄"}
                 </button>
+                
+                {/* --- PEMBARUAN 2: TOMBOL MENUJU DIGITAL TWIN --- */}
                 <button
                   type="button"
                   className={styles.openCanvasBtn}
-                  onClick={handleOpenSavedCanvas}
-                  title="Ambil workflow canvas tersimpan dan buka di halaman Canvas"
+                  onClick={handleGoToDigitalTwin}
+                  title="Buka Digital Twin berdasarkan skenario ini"
                 >
                   <span>Tampilkan graf</span>
                   <span className={styles.arrowIcon}>↗</span>

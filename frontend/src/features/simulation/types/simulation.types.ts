@@ -40,6 +40,9 @@ export interface SimulationSummary {
   total_operational_cost_idr: number;
   cost_per_unit_idr: number;
   efficiency_score: number; // 0 - 100
+  // --- TAMBAHAN BARU ---
+  total_human_errors?: number; 
+  workers_at_risk?: number;
 }
 
 export interface MaterialInProcess {
