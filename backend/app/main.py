@@ -13,6 +13,9 @@ from app.db.session import engine
 from app.db.create_all import create_all
 from app.services.agent_registry_service import get_agent_registry
 
+# [BARU] Import fungsi mark_stale_jobs
+from app.worker.tasks import mark_stale_jobs
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,9 +25,24 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     setup_logging()
 
-    logger.info("Memastikan skema database sudah siap...")
-    await create_all()
-    logger.info("Skema database siap.")
+    # [BARU] Membungkus inisialisasi DB dan sweeping job dengan try-except
+    try:
+        logger.info("Memastikan skema database sudah siap...")
+        await create_all()
+        logger.info("Skema database siap.")
+        
+        # [BARU] Menjalankan startup sweep
+        # Job Tahap 5 berjalan in-process; apa pun yang masih `queued`/`running` di DB
+        # saat startup berarti prosesnya mati di tengah jalan dan tidak akan pernah
+        # selesai. Tandai sebagai gagal supaya UI tidak menunggu selamanya.
+        stale_jobs = await mark_stale_jobs()
+        if stale_jobs:
+            logger.warning(f"{stale_jobs} job matriks kompatibilitas menggantung ditandai gagal.")
+            
+    except Exception as e:
+        logger.error(f"Terjadi kesalahan kritis saat inisialisasi database atau startup sweep: {e}")
+        # Jika Anda ingin aplikasi gagal menyala (fail-fast) saat DB error, uncomment baris di bawah:
+        # raise e
 
     agent_settings = get_agent_settings()
     agent_registry = get_agent_registry()
@@ -34,9 +52,11 @@ async def lifespan(app: FastAPI):
 
     if settings.is_production or agent_settings.AGENT_EAGER_LOAD:
         agent_registry.preload()
-        logger.info(f"All agent eagerly loaded")
+        logger.info("All agents eagerly loaded")
 
     yield
+    
+    # Menutup koneksi database dengan aman saat shutdown
     await engine.dispose()
 
 

@@ -236,6 +236,7 @@ class FactoryGraphInput(BaseSimModel):
 
 class StationInput(BaseSimModel):
     ordinal: int = Field(ge=1)
+    stage_id: str | None = None
     step_name: str
     material_name: str = "Material"
     material_unit: str = "pcs"

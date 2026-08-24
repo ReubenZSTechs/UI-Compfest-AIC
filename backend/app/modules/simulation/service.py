@@ -247,6 +247,7 @@ def _derive_stations(
         stations.append(
             StationInput(
                 ordinal=ordinal,
+                stage_id=stage.stage_id,
                 step_name=stage.stage_name,
                 material_name=material_name,
                 material_unit=material_unit,
@@ -356,6 +357,22 @@ def _validate_design(
         errors.append(
             f"stations.ordinal duplikat: {', '.join(str(o) for o in duplicate_ordinals)}"
         )
+
+    station_stage_ids = [s.stage_id for s in payload.stations if s.stage_id]
+    duplicate_station_stages = sorted(
+        {s for s in station_stage_ids if station_stage_ids.count(s) > 1}
+    )
+    if duplicate_station_stages:
+        errors.append(
+            f"stations.stageId dipakai lebih dari satu stasiun: "
+            f"{', '.join(duplicate_station_stages)}"
+        )
+    for station in payload.stations:
+        if station.stage_id and station.stage_id not in stage_set:
+            errors.append(
+                f"Station ordinal {station.ordinal} merujuk stageId "
+                f"'{station.stage_id}' yang tidak ada pada daftar processStages."
+            )
 
     seen_workers: set[str] = set()
     for assignment in payload.seed_assignments:
@@ -659,7 +676,9 @@ async def get_simulation_overview(
         config = _static_fallback_config()
 
     stations = await repository.load_stations(factory_id)
-    ordinal_by_step = {station.step_name: station.ordinal for station in stations}
+    ordinal_by_stage = {
+        station.stage_id: station.ordinal for station in stations if station.stage_id
+    }
 
     jobs_by_stage: dict[str, list[Any]] = {}
     for job in jobs:
@@ -670,7 +689,7 @@ async def get_simulation_overview(
             stage_id=stage.stage_id,
             stage_name=stage.stage_name,
             lane=stage.lane,
-            ordinal=ordinal_by_step.get(stage.stage_name),
+            ordinal=ordinal_by_stage.get(stage.stage_id),
             asset_id=stage.asset_id,
             next_stage_id=stage.next_stage_id,
             is_terminal=stage.is_terminal,

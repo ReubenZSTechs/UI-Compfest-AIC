@@ -183,9 +183,9 @@ async def persist_factory_structure(
     # --- Asset (harus ada sebelum ProcessStage merujuk asset_id) ---
     for asset_data in twin.get("assets", []):
         asset_id = asset_data["asset_id"]
-        asset = await session.get(Asset, asset_id)
+        asset = await session.get(Asset, {"factory_id": factory_id, "asset_id": asset_id})
         if asset is None:
-            asset = Asset(asset_id=asset_id)
+            asset = Asset(factory_id=factory_id, asset_id=asset_id)
             session.add(asset)
         asset.factory_id = factory_id
         asset.asset_name = asset_data.get("asset_name", asset_id)
@@ -205,9 +205,9 @@ async def persist_factory_structure(
     # --- ProcessStage (harus ada sebelum JobDesk merujuk stage_id) ---
     for stage_data in twin.get("process_stages", []):
         stage_id = stage_data["stage_id"]
-        stage = await session.get(ProcessStage, stage_id)
+        stage = await session.get(ProcessStage, {"factory_id": factory_id, "stage_id": stage_id})
         if stage is None:
-            stage = ProcessStage(stage_id=stage_id)
+            stage = ProcessStage(factory_id=factory_id, stage_id=stage_id)
             session.add(stage)
         stage.factory_id = factory_id
         stage.stage_name = stage_data.get("stage_name", stage_id)
@@ -232,9 +232,9 @@ async def persist_factory_structure(
     # --- Shift (harus ada sebelum JobDesk merujuk shift_id) ---
     for shift_data in twin.get("shifts", []):
         shift_id = shift_data["shift_id"]
-        shift = await session.get(Shift, shift_id)
+        shift = await session.get(Shift, {"factory_id": factory_id, "shift_id": shift_id})
         if shift is None:
-            shift = Shift(shift_id=shift_id)
+            shift = Shift(factory_id=factory_id, shift_id=shift_id)
             session.add(shift)
         shift.factory_id = factory_id
         shift.start_time = shift_data.get("start_time", "")
@@ -247,9 +247,9 @@ async def persist_factory_structure(
     # --- JobDesk (bergantung pada Asset, ProcessStage, & Shift di atas) ---
     for job_data in _read_jobs(twin):
         job_id = job_data["job_id"]
-        job = await session.get(JobDesk, job_id)
+        job = await session.get(JobDesk, {"factory_id": factory_id, "job_id": job_id})
         if job is None:
-            job = JobDesk(job_id=job_id)
+            job = JobDesk(factory_id=factory_id, job_id=job_id)
             session.add(job)
         job.factory_id = factory_id
         job.allocation_id = job_data.get("allocation_id")
@@ -282,9 +282,9 @@ async def persist_worker_profile(
         if not worker_id:
             continue
         worker_id = str(worker_id)
-        worker = await session.get(Worker, worker_id)
+        worker = await session.get(Worker, {"factory_id": factory_id, "worker_id": worker_id})
         if worker is None:
-            worker = Worker(worker_id=worker_id)
+            worker = Worker(factory_id=factory_id, worker_id=worker_id)
             session.add(worker)
         worker.factory_id = factory_id
         worker.name = worker_data.get("name") or worker_id

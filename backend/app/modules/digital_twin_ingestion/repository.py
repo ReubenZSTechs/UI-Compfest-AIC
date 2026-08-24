@@ -163,6 +163,7 @@ class DigitalTwinRepository:
             for sp in data.factory_flow_rightnow.staff_current_positions:
                 self.db.add(models.StaffPosition(
                     snapshot_id=snapshot.id,
+                    factory_id=factory.factory_id,
                     worker_id=sp.worker_id,
                     current_station=sp.current_station,
                     current_asset_id=sp.current_asset_id,

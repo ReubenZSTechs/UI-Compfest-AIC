@@ -123,16 +123,16 @@ class SimulationRepository:
     ) -> int:
         await self.db.execute(
             delete(WorkerThroughputMultiplier).where(
-                WorkerThroughputMultiplier.worker_id.in_(
-                    select(Worker.worker_id).where(Worker.factory_id == factory_id)
-                )
+                WorkerThroughputMultiplier.factory_id == factory_id
             )
         )
         await self.db.flush()
 
         for worker_id, multiplier in multipliers.items():
             self.db.add(
-                WorkerThroughputMultiplier(worker_id=worker_id, multiplier=multiplier)
+                WorkerThroughputMultiplier(
+                    factory_id=factory_id, worker_id=worker_id, multiplier=multiplier
+                )
             )
 
         await self.db.flush()
@@ -167,9 +167,7 @@ class SimulationRepository:
 
     async def load_worker_multipliers(self, factory_id: str) -> dict[str, float]:
         stmt = select(WorkerThroughputMultiplier).where(
-            WorkerThroughputMultiplier.worker_id.in_(
-                select(Worker.worker_id).where(Worker.factory_id == factory_id)
-            )
+            WorkerThroughputMultiplier.factory_id == factory_id
         )
         rows = (await self.db.execute(stmt)).scalars().all()
         return {row.worker_id: row.multiplier for row in rows}

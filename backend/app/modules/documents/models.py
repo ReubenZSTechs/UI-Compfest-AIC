@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -70,5 +70,52 @@ class DocumentParseJob(Base):
     floor_state: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    factory: Mapped[Factory | None] = relationship()
+
+class CompatibilityMatrixJob(Base):
+    """
+    State satu eksekusi Tahap 5 (matriks kompatibilitas) yang dijalankan di
+    background worker, bukan di dalam siklus request HTTP.
+
+    Tahap 5 memanggil agent LLM sebanyak (jumlah worker x jumlah job desk).
+    Untuk 10 worker x 10 job desk itu 100 panggilan dalam satu request -- lewat
+    batas timeout reverse proxy mana pun. Baris ini menyimpan status & progres
+    eksekusi sehingga frontend cukup melakukan polling.
+
+    Alur status: queued -> running -> success | error.
+    `stale` dipakai saat proses backend restart di tengah eksekusi, sehingga job
+    yang menggantung tidak selamanya tampak `running` di UI.
+    """
+
+    __tablename__ = "compatibility_matrix_jobs"
+
+    job_id: Mapped[str] = mapped_column(String, primary_key=True)
+    factory_id: Mapped[str] = mapped_column(
+        ForeignKey("factories.factory_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    status: Mapped[str] = mapped_column(String, nullable=False, default="queued", index=True)
+
+    total_pairs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    completed_pairs: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    evaluations_persisted: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    max_workers: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    strict_compatibility: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    persist_result: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    compatibility_matrix: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(JSONB, nullable=True)
+    failed_pairs: Mapped[list[Any]] = mapped_column(JSONB, nullable=False, default=list)
+    warnings: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+
+    error_stage: Mapped[str | None] = mapped_column(String, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_details: Mapped[list[Any] | None] = mapped_column(JSONB, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     factory: Mapped[Factory | None] = relationship()
