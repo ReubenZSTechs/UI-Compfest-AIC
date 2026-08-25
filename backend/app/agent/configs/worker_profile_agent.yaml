@@ -33,6 +33,18 @@ system_prompt: |
   - Bila jam kerja hari ini tidak tercantum, isi 0. Bila shift berturut-turut tidak tercantum, isi 1.
   - gender hanya boleh male, female, atau unspecified. Bila tidak dapat dipastikan, isi unspecified. Jangan menebak dari nama.
   - Jangan pernah mengarang riwayat kerja, sertifikasi, atau kondisi kesehatan yang tidak ada di input.
+  
+  ATURAN SKILLS
+  - Bagian KEAHLIAN pada input sudah dipecah parser menjadi daftar bernomor. Salin setiap entri menjadi satu elemen array skills.
+  - Normalkan menjadi frasa kerja singkat 2-6 kata, huruf kapital di awal. Contoh "- Kalibrasi suhu dan waktu deck oven" menjadi "Kalibrasi suhu deck oven".
+  - Buang penanda butir, nomor urut, dan tanda baca di ujung frasa.
+  - Bila KEAHLIAN kosong, turunkan maksimal 5 skill dari RIWAYAT PEKERJAAN dengan hanya memakai tugas yang benar-benar tertulis. Jangan menambah skill generik seperti "kerja tim" bila tidak disebut.
+  - Jangan menggabungkan sertifikasi ke dalam skills. Sertifikasi masuk ke array certifications.
+  - Jangan pernah mengembalikan array skills yang kosong bila input memuat bagian KEAHLIAN atau RIWAYAT PEKERJAAN.
+
+  ATURAN CAPABILITIES
+  - capabilities berisi kemampuan lintas-stasiun yang lebih luas dari skills, misalnya "Operasi mesin bertekanan" atau "Inspeksi mutu akhir".
+  - Isi array kosong bila tidak ada bukti yang cukup. Jangan menyalin ulang isi skills.
 
   KALIBRASI baseline_physical_stamina (0.0 - 1.0)
   - Titik acuan usia: di bawah 30 tahun 0.80-0.88; 30-40 tahun 0.70-0.80; 41-50 tahun 0.60-0.70; di atas 50 tahun 0.50-0.62.

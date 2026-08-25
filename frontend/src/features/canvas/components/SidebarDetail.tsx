@@ -4,8 +4,21 @@
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { WorkerCard } from "@/features/digital-twin/components/WorkerCard";
 import { resolveProcessSpecs } from "../utils/processSpecs";
-import type { CanvasFlowNode } from "../types/canvas.types";
+import { FieldModeToggle } from "./FieldModeToggle";
+import type {
+  AutofillFieldKey,
+  CanvasFlowNode,
+  CanvasProcessData,
+  FieldFillMode,
+} from "../types/canvas.types";
 import styles from "./SidebarDetail.module.css";
+
+const NODE_EYEBROW: Record<string, string> = {
+  process: "NODE PROSES",
+  output: "NODE OUTPUT",
+  warehouse: "NODE GUDANG",
+  worker: "NODE PEKERJA",
+};
 
 export function SidebarDetail() {
   const selectedNodeId = useCanvasUIStore((s) => s.selectedNodeId);
@@ -26,9 +39,7 @@ export function SidebarDetail() {
     <aside className={styles.propertyBox}>
       <header className={styles.header}>
         <div>
-          <span className={styles.eyebrow}>
-            {d.kind === "process" ? "NODE PROSES" : d.kind === "output" ? "NODE OUTPUT" : "NODE PEKERJA"}
-          </span>
+          <span className={styles.eyebrow}>{NODE_EYEBROW[d.kind] ?? "NODE"}</span>
           <h2 className={styles.title}>{d.label}</h2>
         </div>
         <button
@@ -43,13 +54,11 @@ export function SidebarDetail() {
 
       <div className={styles.body}>
         {d.kind === "process" ? (
-          <ProcessDetail
-            node={node}
-            updateNodeData={updateNodeData}
-            snapshot={snapshot}
-          />
+          <ProcessDetail node={node} updateNodeData={updateNodeData} snapshot={snapshot} />
         ) : d.kind === "output" ? (
           <OutputDetail node={node} updateNodeData={updateNodeData} snapshot={snapshot} />
+        ) : d.kind === "warehouse" ? (
+          <WarehouseDetail node={node} updateNodeData={updateNodeData} snapshot={snapshot} />
         ) : (
           <WorkerDetail node={node} updateNodeData={updateNodeData} snapshot={snapshot} />
         )}
@@ -101,6 +110,32 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
     updateNodeData(node.id, { job: { ...job, ...patch } });
   }
 
+  const autoFields = (d as CanvasProcessData).autoFields ?? {};
+  
+  function modeOf(key: AutofillFieldKey): FieldFillMode {
+    return autoFields[key] === "auto" ? "auto" : "manual";
+  }
+  
+  function isAuto(key: AutofillFieldKey): boolean {
+    return modeOf(key) === "auto";
+  }
+  
+  function setFieldMode(key: AutofillFieldKey, mode: FieldFillMode) {
+    snapshot();
+    updateNodeData(node.id, { autoFields: { ...autoFields, [key]: mode } });
+  }
+  
+  function fieldToggle(key: AutofillFieldKey) {
+    return (
+      <FieldModeToggle
+        fieldKey={key}
+        nodeId={node.id}
+        mode={modeOf(key)}
+        onChange={(mode) => setFieldMode(key, mode)}
+      />
+    );
+  }
+
   function applySkills(text: string) {
     const skills = text
       .split(",")
@@ -125,13 +160,15 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
       <label className={styles.field}>
         <span className={styles.fieldLabel}>
           Skill yang Dibutuhkan <em>(pisahkan dengan koma)</em>
+          {fieldToggle("requiredSkills")}
         </span>
         <input
           type="text"
           className={styles.input}
-          value={d.requiredSkills.join(", ")}
+          value={isAuto("requiredSkills") ? "" : d.requiredSkills.join(", ")}
           onFocus={snapshot}
-          placeholder="Contoh: Sewing, Cutting"
+          disabled={isAuto("requiredSkills")}
+          placeholder={isAuto("requiredSkills") ? "Auto" : "Contoh: Sewing, Cutting"}
           onChange={(event) => applySkills(event.target.value)}
         />
       </label>
@@ -154,24 +191,34 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
         <legend className={styles.groupLegend}>Process Stage</legend>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Lane</span>
+          <span className={styles.fieldLabel}>
+            Lane
+            {fieldToggle("lane")}
+          </span>
           <input
             type="text"
             className={styles.input}
-            value={stage.lane}
+            value={isAuto("lane") ? "" : stage.lane}
             onFocus={snapshot}
+            disabled={isAuto("lane")}
+            placeholder={isAuto("lane") ? "Auto" : ""}
             onChange={(event) => patchStage({ lane: event.target.value })}
           />
         </label>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Cycle Time (detik)</span>
+          <span className={styles.fieldLabel}>
+            Cycle Time (detik)
+            {fieldToggle("cycleTimeSeconds")}
+          </span>
           <input
             type="number"
             min={1}
             className={styles.input}
-            value={stage.cycleTimeSeconds}
+            value={isAuto("cycleTimeSeconds") ? "" : stage.cycleTimeSeconds}
             onFocus={snapshot}
+            disabled={isAuto("cycleTimeSeconds")}
+            placeholder={isAuto("cycleTimeSeconds") ? "Auto" : ""}
             onChange={(event) =>
               patchStage({ cycleTimeSeconds: Number(event.target.value) || 1 })
             }
@@ -193,12 +240,17 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
         </label>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Material Input (koma)</span>
+          <span className={styles.fieldLabel}>
+            Material Input (koma)
+            {fieldToggle("materialInput")}
+          </span>
           <input
             type="text"
             className={styles.input}
-            value={stage.materialInput.join(", ")}
+            value={isAuto("materialInput") ? "" : stage.materialInput.join(", ")}
             onFocus={snapshot}
+            disabled={isAuto("materialInput")}
+            placeholder={isAuto("materialInput") ? "Auto" : ""}
             onChange={(event) =>
               patchStage({
                 materialInput: event.target.value
@@ -211,12 +263,17 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
         </label>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Material Output (koma)</span>
+          <span className={styles.fieldLabel}>
+            Material Output (koma)
+            {fieldToggle("materialOutput")}
+          </span>
           <input
             type="text"
             className={styles.input}
-            value={stage.materialOutput.join(", ")}
+            value={isAuto("materialOutput") ? "" : stage.materialOutput.join(", ")}
             onFocus={snapshot}
+            disabled={isAuto("materialOutput")}
+            placeholder={isAuto("materialOutput") ? "Auto" : ""}
             onChange={(event) =>
               patchStage({
                 materialOutput: event.target.value
@@ -229,12 +286,17 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
         </label>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>QC Requirement</span>
+          <span className={styles.fieldLabel}>
+            QC Requirement
+            {fieldToggle("qcRequirement")}
+          </span>
           <input
             type="text"
             className={styles.input}
-            value={stage.qcRequirement}
+            value={isAuto("qcRequirement") ? "" : stage.qcRequirement}
             onFocus={snapshot}
+            disabled={isAuto("qcRequirement")}
+            placeholder={isAuto("qcRequirement") ? "Auto" : ""}
             onChange={(event) => patchStage({ qcRequirement: event.target.value })}
           />
         </label>
@@ -360,12 +422,17 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
         <legend className={styles.groupLegend}>Job Desk</legend>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Judul Pekerjaan</span>
+          <span className={styles.fieldLabel}>
+            Judul Pekerjaan
+            {fieldToggle("jobTitle")}
+          </span>
           <input
             type="text"
             className={styles.input}
-            value={job.jobTitle}
+            value={isAuto("jobTitle") ? "" : job.jobTitle}
             onFocus={snapshot}
+            disabled={isAuto("jobTitle")}
+            placeholder={isAuto("jobTitle") ? "Auto" : ""}
             onChange={(event) => patchJob({ jobTitle: event.target.value })}
           />
         </label>
@@ -386,22 +453,35 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
         </label>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Headcount</span>
+          <span className={styles.fieldLabel}>
+            Headcount
+            {fieldToggle("headcount")}
+          </span>
           <input
             type="number"
             min={1}
             className={styles.input}
-            value={job.headcount}
+            value={isAuto("headcount") ? "" : job.headcount}
             onFocus={snapshot}
+            disabled={isAuto("headcount")}
+            placeholder={isAuto("headcount") ? "Auto" : ""}
             onChange={(event) => patchJob({ headcount: Number(event.target.value) || 1 })}
           />
         </label>
+      </fieldset>
 
+      <fieldset className={styles.group}>
+        <legend className={styles.groupLegend}>
+          Beban Kerja (Demands)
+          {fieldToggle("demands")}
+        </legend>
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Beban Fisik</span>
           <select
             className={styles.input}
             value={job.demands.physicalDemandLevel}
+            disabled={isAuto("demands")}
             onChange={(event) =>
               patchJob({
                 demands: {
@@ -425,8 +505,10 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             max={1}
             step={0.05}
             className={styles.input}
-            value={job.demands.taskComplexity}
+            value={isAuto("demands") ? "" : job.demands.taskComplexity}
             onFocus={snapshot}
+            disabled={isAuto("demands")}
+            placeholder={isAuto("demands") ? "Auto" : ""}
             onChange={(event) =>
               patchJob({
                 demands: { ...job.demands, taskComplexity: Number(event.target.value) || 0 },
@@ -443,8 +525,10 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             max={1}
             step={0.05}
             className={styles.input}
-            value={job.demands.requiredCognitiveFocus}
+            value={isAuto("demands") ? "" : job.demands.requiredCognitiveFocus}
             onFocus={snapshot}
+            disabled={isAuto("demands")}
+            placeholder={isAuto("demands") ? "Auto" : ""}
             onChange={(event) =>
               patchJob({
                 demands: {
@@ -461,6 +545,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
           <select
             className={styles.input}
             value={job.demands.errorSeverity}
+            disabled={isAuto("demands")}
             onChange={(event) =>
               patchJob({
                 demands: {
@@ -552,6 +637,184 @@ function WorkerDetail({ node, updateNodeData, snapshot }: DetailProps) {
   );
 }
 
+function WarehouseDetail({ node, updateNodeData, snapshot }: DetailProps) {
+  const data = node.data;
+  if (data.kind !== "warehouse") return null;
+  const d: Extract<CanvasFlowNode["data"], { kind: "warehouse" }> = data;
+
+  function patchItem(itemId: string, patch: Partial<(typeof d.outputItems)[number]>) {
+    updateNodeData(node.id, {
+      outputItems: d.outputItems.map((item) =>
+        item.itemId === itemId ? { ...item, ...patch } : item
+      ),
+    });
+  }
+
+  function addItem() {
+    snapshot();
+    const nextIndex = d.outputItems.length + 1;
+    updateNodeData(node.id, {
+      outputItems: [
+        ...d.outputItems,
+        {
+          itemId: `item-${String(nextIndex).padStart(2, "0")}`,
+          materialName: "",
+          materialUnit: "pcs",
+          quantityPerFeed: 0,
+        },
+      ],
+    });
+  }
+
+  function removeItem(itemId: string) {
+    snapshot();
+    updateNodeData(node.id, {
+      outputItems: d.outputItems.filter((item) => item.itemId !== itemId),
+    });
+  }
+
+  const totalPerFeed = d.outputItems.reduce((sum, item) => sum + item.quantityPerFeed, 0);
+
+  return (
+    <div className={styles.form}>
+      <label className={styles.field}>
+        <span className={styles.fieldLabel}>Nama Gudang</span>
+        <input
+          type="text"
+          className={styles.input}
+          value={d.label}
+          onFocus={snapshot}
+          placeholder="Contoh: Gudang Bahan Baku"
+          onChange={(event) => updateNodeData(node.id, { label: event.target.value })}
+        />
+      </label>
+      <fieldset className={styles.group}>
+        <legend className={styles.groupLegend}>Perilaku Suplai</legend>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Mode Suplai</span>
+          <select
+            className={styles.input}
+            value={d.supplyMode}
+            onChange={(event) =>
+              updateNodeData(node.id, {
+                supplyMode: event.target.value as typeof d.supplyMode,
+              })
+            }
+          >
+            <option value="finite">Terbatas (stok habis)</option>
+            <option value="continuous">Berkelanjutan (selalu terisi)</option>
+          </select>
+        </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Kapasitas Gudang</span>
+          <input
+            type="number"
+            min={1}
+            className={styles.input}
+            value={d.capacity}
+            onFocus={snapshot}
+            onChange={(event) =>
+              updateNodeData(node.id, { capacity: Number(event.target.value) || 1 })
+            }
+          />
+        </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Stok Awal</span>
+          <input
+            type="number"
+            min={0}
+            max={d.capacity}
+            className={styles.input}
+            value={d.initialStock}
+            onFocus={snapshot}
+            onChange={(event) =>
+              updateNodeData(node.id, {
+                initialStock: Math.min(d.capacity, Number(event.target.value) || 0),
+              })
+            }
+          />
+        </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Laju Suplai (per tick)</span>
+          <input
+            type="number"
+            min={0}
+            step={0.5}
+            className={styles.input}
+            value={d.feedRate}
+            onFocus={snapshot}
+            onChange={(event) =>
+              updateNodeData(node.id, { feedRate: Number(event.target.value) || 0 })
+            }
+          />
+        </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Restock per Tick</span>
+          <input
+            type="number"
+            min={0}
+            step={0.5}
+            className={styles.input}
+            value={d.replenishPerTick}
+            onFocus={snapshot}
+            disabled={d.supplyMode === "continuous"}
+            onChange={(event) =>
+              updateNodeData(node.id, { replenishPerTick: Number(event.target.value) || 0 })
+            }
+          />
+        </label>
+      </fieldset>
+      <fieldset className={styles.group}>
+        <legend className={styles.groupLegend}>Item yang Dikeluarkan</legend>
+        {d.outputItems.map((item) => (
+          <div key={item.itemId} className={styles.itemRow}>
+            <input
+              type="text"
+              className={styles.input}
+              value={item.materialName}
+              onFocus={snapshot}
+              placeholder="Nama material"
+              onChange={(event) => patchItem(item.itemId, { materialName: event.target.value })}
+            />
+            <input
+              type="text"
+              className={styles.inputNarrow}
+              value={item.materialUnit}
+              onFocus={snapshot}
+              placeholder="unit"
+              onChange={(event) => patchItem(item.itemId, { materialUnit: event.target.value })}
+            />
+            <input
+              type="number"
+              min={0}
+              className={styles.inputNarrow}
+              value={item.quantityPerFeed}
+              onFocus={snapshot}
+              onChange={(event) =>
+                patchItem(item.itemId, { quantityPerFeed: Number(event.target.value) || 0 })
+              }
+            />
+            <button
+              type="button"
+              className={styles.rowRemove}
+              onClick={() => removeItem(item.itemId)}
+              aria-label="Hapus item"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button type="button" className={styles.ghostButton} onClick={addItem}>
+          + Tambah Item
+        </button>
+        <p className={styles.hint}>
+          Total {totalPerFeed} unit dikeluarkan tiap suplai ke stasiun hilir yang terhubung.
+        </p>
+      </fieldset>
+    </div>
+  );
+}
+
 function OutputDetail({ node, updateNodeData, snapshot }: DetailProps) {
   const data = node.data;
   if (data.kind !== "output") return null;
@@ -572,6 +835,39 @@ function OutputDetail({ node, updateNodeData, snapshot }: DetailProps) {
           placeholder="Contoh: Finished Goods Storage"
           onChange={(e) => updateNodeData(node.id, { label: e.target.value })}
         />
+      </label>
+
+      <label className={styles.field}>
+        <span className={styles.fieldLabel}>Nama Produk Jadi</span>
+        <input
+          type="text"
+          className={styles.input}
+          value={d.materialName}
+          onFocus={snapshot}
+          placeholder="Contoh: Roti Manis Terkemas"
+          onChange={(e) => updateNodeData(node.id, { materialName: e.target.value })}
+        />
+      </label>
+      
+      <label className={styles.field}>
+        <span className={styles.fieldLabel}>Satuan</span>
+        <input
+          type="text"
+          className={styles.input}
+          value={d.materialUnit}
+          onFocus={snapshot}
+          placeholder="pcs / pack / kg"
+          onChange={(e) => updateNodeData(node.id, { materialUnit: e.target.value })}
+        />
+      </label>
+
+      <label className={styles.checkboxField}>
+        <input
+          type="checkbox"
+          checked={d.acceptsDefective}
+          onChange={(e) => updateNodeData(node.id, { acceptsDefective: e.target.checked })}
+        />
+        <span className={styles.fieldLabel}>Terima unit cacat (rework bin)</span>
       </label>
 
       <label className={styles.field}>

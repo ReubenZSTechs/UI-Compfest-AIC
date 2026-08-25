@@ -10,7 +10,7 @@
 // - Migrasi otomatis dari penyimpanan lama (canvas-projects-v2) bila ada.
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { useCanvasUIStore } from "@/store/canvasUI";
+import { useCanvasUIStore, createDefaultShift } from "@/store/canvasUI"; // <-- Updated Import
 import { useAgentChatStore } from "@/store/agentChat";
 import {
   CANVAS_TEMPLATES
@@ -161,7 +161,7 @@ export const useDraftStore = create<DraftState>()(
               nodes,
               edges,
               factoryMeta: meta,
-              shifts: [{ shiftId: "shift-01", startTime: "08:00", endTime: "16:00" }],
+              shifts: [createDefaultShift()], // <-- Updated line (uses the factory instead of hardcoded literal)
               simulationSettings: {} as CanvasSimulationSettings,
               workerPool: [],
               workerAssignments: {},

@@ -6,6 +6,10 @@ import type {
   CanvasShift,
   CanvasSimulationSettings,
   CanvasWorkerData,
+  CanvasWarehouseData,
+  CanvasOutputData,
+  ShiftAssignmentMap,
+  CanvasWorkerProfile,
 } from "../types/canvas.types";
 import { computeExecutionRounds, toFlowGraph } from "./flowLogic";
 import { DEFAULT_SHIFT_ID, resolveProcessSpecs } from "./processSpecs";
@@ -17,6 +21,8 @@ export interface DesignPayloadInput {
   shifts: CanvasShift[];
   settings: CanvasSimulationSettings;
   workerAssignments: Record<string, string[]>;
+  shiftAssignments: ShiftAssignmentMap;
+  workerPool: CanvasWorkerProfile[];
 }
 
 export interface DesignValidationIssue {
@@ -28,8 +34,39 @@ function isProcessNode(node: CanvasFlowNode): boolean {
   return node.data.kind === "process";
 }
 
-function findWarehouseNode(nodes: CanvasFlowNode[]): CanvasFlowNode | undefined {
-  return nodes.find((node) => node.data.kind === "warehouse");
+function collectWarehouseNodes(nodes: CanvasFlowNode[]): CanvasFlowNode[] {
+  return nodes.filter((node) => node.data.kind === "warehouse");
+}
+
+function collectOutputNodes(nodes: CanvasFlowNode[]): CanvasFlowNode[] {
+  return nodes.filter((node) => node.data.kind === "output");
+}
+
+function downstreamStageIds(
+  nodeId: string,
+  edges: CanvasFlowEdge[],
+  stageIdByNodeId: Map<string, string>
+): string[] {
+  return edges
+    .filter((edge) => edge.source === nodeId && edge.data?.relation === "FLOW")
+    .map((edge) => stageIdByNodeId.get(edge.target))
+    .filter((stageId): stageId is string => Boolean(stageId));
+}
+
+function upstreamStageIds(
+  nodeId: string,
+  edges: CanvasFlowEdge[],
+  stageIdByNodeId: Map<string, string>
+): string[] {
+  return edges
+    .filter((edge) => edge.target === nodeId && edge.data?.relation === "FLOW")
+    .map((edge) => stageIdByNodeId.get(edge.source))
+    .filter((stageId): stageId is string => Boolean(stageId));
+}
+
+function shiftStartMinutes(shift: CanvasShift): number {
+  const [hours, minutes] = shift.startTime.split(":").map(Number);
+  return hours * 60 + minutes;
 }
 
 function orderProcessNodes(nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]): CanvasFlowNode[] {
@@ -116,7 +153,7 @@ export function validateDesignInput(input: DesignPayloadInput): DesignValidation
 }
 
 export function buildSimulationDesignPayload(input: DesignPayloadInput) {
-  const { nodes, edges, factoryMeta, shifts, settings, workerAssignments } = input;
+  const { nodes, edges, factoryMeta, shifts, settings, workerAssignments, shiftAssignments, workerPool } = input;
   const orderedNodes = orderProcessNodes(nodes, edges);
   const specsByNodeId = new Map(
     orderedNodes.map((node, index) => [node.id, resolveProcessSpecs(node, index)])
@@ -145,8 +182,19 @@ export function buildSimulationDesignPayload(input: DesignPayloadInput) {
     incoming.set(edge.toStageId, [...(incoming.get(edge.toStageId) ?? []), edge.fromStageId]);
   }
 
-  const effectiveShifts =
-    shifts.length > 0 ? shifts : [{ shiftId: DEFAULT_SHIFT_ID, startTime: "08:00", endTime: "16:00" }];
+  const effectiveShifts: CanvasShift[] =
+    shifts.length > 0
+      ? shifts
+      : [
+          {
+            shiftId: DEFAULT_SHIFT_ID,
+            shiftName: "Default Shift",
+            startTime: "08:00",
+            endTime: "16:00",
+            handoverMinutes: 15,
+            breaks: [],
+          },
+        ];
 
   const assets = orderedNodes.map((node) => {
     const { asset } = specsByNodeId.get(node.id)!;
@@ -210,6 +258,81 @@ export function buildSimulationDesignPayload(input: DesignPayloadInput) {
     };
   });
 
+  const jobIdByNodeId = new Map(
+    orderedNodes.map((node) => [node.id, specsByNodeId.get(node.id)!.job.jobId])
+  );
+
+  const warehouses = collectWarehouseNodes(nodes).map((node, index) => {
+    const data = node.data as CanvasWarehouseData;
+    const primaryItem = data.outputItems?.[0];
+    return {
+      warehouseId: `warehouse-${String(index + 1).padStart(2, "0")}`,
+      warehouseName: data.label || `Gudang ${index + 1}`,
+      materialName: primaryItem?.materialName || data.materialName,
+      materialUnit: primaryItem?.materialUnit || data.materialUnit,
+      capacity: Math.max(1, data.capacity),
+      feedRate: Math.max(
+        0.1,
+        data.outputItems?.reduce((sum, item) => sum + item.quantityPerFeed, 0) || data.feedRate
+      ),
+      initialStock: data.supplyMode === "continuous" ? data.capacity : data.initialStock,
+      replenishPerTick: data.supplyMode === "continuous" ? data.capacity : data.replenishPerTick,
+      supplyMode: data.supplyMode,
+      targetStageIds: downstreamStageIds(node.id, edges, stageIdByNodeId),
+    };
+  });
+
+  const outputs = collectOutputNodes(nodes).map((node, index) => {
+    const data = node.data as CanvasOutputData;
+    return {
+      outputId: `output-${String(index + 1).padStart(2, "0")}`,
+      outputName: data.label || `Finished Goods ${index + 1}`,
+      materialName: data.materialName || "Produk Jadi",
+      materialUnit: data.materialUnit || "pcs",
+      targetOutputUnits: data.targetOutput > 0 ? data.targetOutput : settings.targetOutputUnits,
+      acceptsDefective: data.acceptsDefective,
+      sourceStageIds: upstreamStageIds(node.id, edges, stageIdByNodeId),
+    };
+  });
+
+  const shiftPlans = effectiveShifts.map((shift) => ({
+    shiftId: shift.shiftId,
+    startTime: shift.startTime,
+    endTime: shift.endTime,
+    handoverMinutes: shift.handoverMinutes ?? 15,
+    breaks: (shift.breaks ?? []).map((window) => ({
+      breakId: window.breakId,
+      label: window.label,
+      startElapsedMinutes: window.startOffsetMinutes,
+      durationMinutes: window.durationMinutes,
+    })),
+  }));
+
+  const shiftAssignmentPayload = Object.entries(shiftAssignments).flatMap(
+    ([shiftId, nodeMap]) =>
+      Object.entries(nodeMap)
+        .map(([nodeId, workerIds]) => ({
+          shiftId,
+          stageId: stageIdByNodeId.get(nodeId),
+          jobId: jobIdByNodeId.get(nodeId),
+          workerIds,
+        }))
+        .filter(
+          (entry): entry is { shiftId: string; stageId: string; jobId: string; workerIds: string[] } =>
+            Boolean(entry.stageId) && Boolean(entry.jobId) && entry.workerIds.length > 0
+        )
+  );
+
+  const workerProfiles = workerPool.map((worker) => ({
+    workerId: worker.workerId,
+    name: worker.name,
+    yearsOfExperience: Number(worker.demographics.yearsOfExperience ?? 0),
+    baselinePhysicalStamina: Number(worker.demographics.baselinePhysicalStamina ?? 0.5),
+    cognitiveResilience: Number(worker.demographics.cognitiveResilience ?? 0.5),
+    skills: worker.skills,
+    compatibilityByJobId: {},
+  }));
+
   const stations = orderedNodes.map((node, index) => {
     const { station, stage } = specsByNodeId.get(node.id)!;
     return {
@@ -231,28 +354,29 @@ export function buildSimulationDesignPayload(input: DesignPayloadInput) {
   const terminalStages = stageIds.filter((id) => (outgoing.get(id) ?? []).length === 0);
   const lanes = [...new Set(processStages.map((stage) => stage.lane))];
 
-  const outputNode = nodes.find((node) => node.data.kind === "output");
-  const targetOutputUnits =
-    outputNode && outputNode.data.kind === "output" && outputNode.data.targetOutput > 0
-      ? outputNode.data.targetOutput
-      : settings.targetOutputUnits;
-
-  const warehouseNode = findWarehouseNode(nodes);
-  const warehouseData =
-    warehouseNode && warehouseNode.data.kind === "warehouse" ? warehouseNode.data : null;
+  const primaryWarehouse = warehouses[0];
+  const earliestShift = [...effectiveShifts].sort(
+    (a, b) => shiftStartMinutes(a) - shiftStartMinutes(b)
+  )[0];
+  const primaryBreak = earliestShift.breaks?.[0];
 
   const settingsPayload = {
     bottleneckFillThreshold: settings.bottleneckFillThreshold,
     idleQtyThreshold: settings.idleQtyThreshold,
     station1SafetyMargin: settings.station1SafetyMargin,
-    warehouseCapacity: warehouseData ? warehouseData.capacity : settings.warehouseCapacity,
-    warehouseFeedRate: warehouseData ? warehouseData.feedRate : settings.warehouseFeedRate,
-    shiftStartMinutes: settings.shiftStartMinutes,
-    breakStartElapsed: settings.breakStartElapsed,
-    breakEndElapsed: settings.breakEndElapsed,
+    warehouseCapacity: primaryWarehouse ? primaryWarehouse.capacity : settings.warehouseCapacity,
+    warehouseFeedRate: primaryWarehouse ? primaryWarehouse.feedRate : settings.warehouseFeedRate,
+    shiftStartMinutes: shiftStartMinutes(earliestShift),
+    breakStartElapsed: primaryBreak ? primaryBreak.startOffsetMinutes : settings.breakStartElapsed,
+    breakEndElapsed: primaryBreak
+      ? primaryBreak.startOffsetMinutes + primaryBreak.durationMinutes
+      : settings.breakEndElapsed,
     shiftEndElapsed: settings.shiftEndElapsed,
     analyticalInsightSummary: settings.analyticalInsightSummary,
-    targetOutputUnits,
+    targetOutputUnits: outputs.reduce(
+      (sum, output) => sum + output.targetOutputUnits,
+      0
+    ) || settings.targetOutputUnits,
     initialBatchSeq: settings.initialBatchSeq,
   };
 
@@ -275,6 +399,11 @@ export function buildSimulationDesignPayload(input: DesignPayloadInput) {
     workerMultipliers: [],
     seedAssignments: [],
     pruneMissing: true,
+    warehouses,
+    outputs,
+    shiftPlans,
+    shiftAssignments: shiftAssignmentPayload,
+    workerProfiles,
   };
 }
 

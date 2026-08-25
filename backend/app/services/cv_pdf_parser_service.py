@@ -106,6 +106,15 @@ MIN_EVIDENCE_SCORE = 2
 NON_CV_STEMS = {"readme", "read me", "notes", "catatan", "index", "license", "lisensi",
                 "changelog", "manifest", "daftar isi", "petunjuk", "instructions"}
 
+BULLET_PREFIX = re.compile(r"^\s*(?:[-\u2013\u2014*\u2022\u00b7\u25cf\u25aa]|\d{1,2}[.)])\s*")
+
+INLINE_LIST_SPLIT = re.compile(r"\s*(?:[;|\u2022\u00b7]|,(?!\d))\s*")
+
+SKILL_MIN_LENGTH = 2
+SKILL_MAX_LENGTH = 80
+SKILL_MAX_ITEMS = 24
+
+LIST_SECTIONS = ("skills", "certifications")
 
 @dataclass
 class ExtractedCandidate:
@@ -114,6 +123,7 @@ class ExtractedCandidate:
     source_name: str = ""
     fields: dict[str, str] = field(default_factory=dict)
     sections: dict[str, str] = field(default_factory=dict)
+    section_items: dict[str, list[str]] = field(default_factory=dict)
     derived: dict[str, Any] = field(default_factory=dict)
     raw_text: str = ""
 
@@ -169,7 +179,76 @@ def _heading_patterns(mapping: dict[str, list[str]]) -> list[tuple[str, int, re.
 
 FIELD_PATTERNS = _label_patterns(WORKER_FIELD_ALIASES)
 SECTION_PATTERNS = _heading_patterns(SECTION_ALIASES)
+SECTION_INLINE_PATTERNS = _label_patterns(SECTION_ALIASES)
 
+
+def match_section_inline(line: str) -> Optional[tuple[str, str]]:
+    text = strip_decoration(line)
+    if not text:
+        return None
+    for key, _, pattern in SECTION_INLINE_PATTERNS:
+        found = pattern.match(text)
+        if found:
+            return key, clean_cell(found.group(1))
+    return None
+
+
+def clean_list_entry(value: str) -> str:
+    text = strip_decoration(BULLET_PREFIX.sub("", str(value)))
+    text = re.sub(r"\s+", " ", text).strip(" .;:,-")
+    return text
+
+
+def split_list_entries(values: Sequence[str]) -> list[str]:
+    entries: list[str] = []
+
+    for value in values:
+        stripped = str(value).strip()
+        if not stripped:
+            continue
+
+        if BULLET_PREFIX.match(stripped):
+            entries.append(clean_list_entry(stripped))
+            continue
+
+        for piece in INLINE_LIST_SPLIT.split(stripped):
+            cleaned = clean_list_entry(piece)
+            if cleaned:
+                entries.append(cleaned)
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+
+    for entry in entries:
+        if not (SKILL_MIN_LENGTH <= len(entry) <= SKILL_MAX_LENGTH):
+            continue
+        marker = normalize(entry)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        ordered.append(entry)
+
+    return ordered[:SKILL_MAX_ITEMS]
+
+
+def derive_list_section(section_items: dict[str, list[str]], key: str) -> list[str]:
+    return split_list_entries(section_items.get(key, []))
+
+
+def derive_skills_from_history(section_items: dict[str, list[str]]) -> list[str]:
+    history = section_items.get("work_history", [])
+    candidates: list[str] = []
+
+    for entry in history:
+        cleaned = clean_list_entry(entry)
+        if not cleaned:
+            continue
+        for clause in re.split(r"(?<=[a-z])\.\s+|\.\s*$", cleaned):
+            phrase = clause.strip(" .,;")
+            if SKILL_MIN_LENGTH <= len(phrase) <= SKILL_MAX_LENGTH:
+                candidates.append(phrase)
+
+    return split_list_entries(candidates)[:5]
 
 def strip_decoration(value: str) -> str:
     return clean_cell(str(value).replace("**", "").replace("__", "").lstrip("#").strip())
@@ -333,14 +412,18 @@ def parse_candidate(lines: Sequence[TextLine], index: int) -> ExtractedCandidate
         text = strip_decoration(line.text)
         if not text:
             continue
+
         body.append(text)
+
         if CANDIDATE_HEADING.match(text) and len(text) < 48:
             continue
+
         section = match_section_heading(text)
         if section is not None:
             active_section, pending_field = section, None
             buckets.setdefault(section, [])
             continue
+
         matched = match_worker_field(text)
         if matched is not None:
             key, value = matched
@@ -350,11 +433,22 @@ def parse_candidate(lines: Sequence[TextLine], index: int) -> ExtractedCandidate
             else:
                 pending_field = key
             continue
+
+        inline = match_section_inline(text)
+        if inline is not None:
+            key, value = inline
+            buckets.setdefault(key, [])
+            if value:
+                buckets[key].append(value)
+            active_section, pending_field = key, None
+            continue
+
         if pending_field is not None:
             fields.setdefault(pending_field, text)
             pending_field = None
             continue
-        buckets.setdefault(active_section or "summary", []).append(text)
+
+        buckets.setdefault(active_section or "summary", []).append(line.text.strip())
 
     if "name" not in fields:
         for text in body[:4]:
@@ -362,7 +456,16 @@ def parse_candidate(lines: Sequence[TextLine], index: int) -> ExtractedCandidate
                 fields["name"] = text
                 break
 
-    sections = {key: " ".join(values).strip() for key, values in buckets.items() if values}
+    section_items = {key: list(values) for key, values in buckets.items() if values}
+    sections = {
+        key: " ".join(strip_decoration(item) for item in values).strip()
+        for key, values in section_items.items()
+    }
+
+    skills = derive_list_section(section_items, "skills")
+    if not skills:
+        skills = derive_skills_from_history(section_items)
+
     derived = {
         "name": fields.get("name", ""),
         "age": derive_age(fields),
@@ -372,6 +475,8 @@ def parse_candidate(lines: Sequence[TextLine], index: int) -> ExtractedCandidate
         "consecutive_shifts": derive_shift_value(fields.get("consecutive_shifts", ""), 31.0),
         "current_position": fields.get("current_position", ""),
         "shift_pattern": fields.get("shift_pattern", ""),
+        "skills": skills,
+        "certifications": derive_list_section(section_items, "certifications"),
     }
 
     return ExtractedCandidate(
@@ -379,14 +484,103 @@ def parse_candidate(lines: Sequence[TextLine], index: int) -> ExtractedCandidate
         worker_id=f"wrk-{index:02d}",
         fields=fields,
         sections=sections,
+        section_items=section_items,
         derived=derived,
         raw_text="\n".join(body),
     )
 
+def parse_candidate(lines: Sequence[TextLine], index: int) -> ExtractedCandidate:
+    fields: dict[str, str] = {}
+    buckets: dict[str, list[str]] = {}
+    active_section: Optional[str] = None
+    pending_field: Optional[str] = None
+    body: list[str] = []
+
+    for line in lines:
+        text = strip_decoration(line.text)
+        if not text:
+            continue
+
+        body.append(text)
+
+        if CANDIDATE_HEADING.match(text) and len(text) < 48:
+            continue
+
+        section = match_section_heading(text)
+        if section is not None:
+            active_section, pending_field = section, None
+            buckets.setdefault(section, [])
+            continue
+
+        matched = match_worker_field(text)
+        if matched is not None:
+            key, value = matched
+            if value:
+                fields.setdefault(key, value)
+                pending_field = None
+            else:
+                pending_field = key
+            continue
+
+        inline = match_section_inline(text)
+        if inline is not None:
+            key, value = inline
+            buckets.setdefault(key, [])
+            if value:
+                buckets[key].append(value)
+            active_section, pending_field = key, None
+            continue
+
+        if pending_field is not None:
+            fields.setdefault(pending_field, text)
+            pending_field = None
+            continue
+
+        buckets.setdefault(active_section or "summary", []).append(line.text.strip())
+
+    if "name" not in fields:
+        for text in body[:4]:
+            if looks_like_person_name(text):
+                fields["name"] = text
+                break
+
+    section_items = {key: list(values) for key, values in buckets.items() if values}
+    sections = {
+        key: " ".join(strip_decoration(item) for item in values).strip()
+        for key, values in section_items.items()
+    }
+
+    skills = derive_list_section(section_items, "skills")
+    if not skills:
+        skills = derive_skills_from_history(section_items)
+
+    derived = {
+        "name": fields.get("name", ""),
+        "age": derive_age(fields),
+        "gender": derive_gender(fields),
+        "years_of_experience": derive_experience(fields, sections),
+        "hours_worked_today": derive_shift_value(fields.get("hours_worked_today", ""), 24.0),
+        "consecutive_shifts": derive_shift_value(fields.get("consecutive_shifts", ""), 31.0),
+        "current_position": fields.get("current_position", ""),
+        "shift_pattern": fields.get("shift_pattern", ""),
+        "skills": skills,
+        "certifications": derive_list_section(section_items, "certifications"),
+    }
+
+    return ExtractedCandidate(
+        index=index,
+        worker_id=f"wrk-{index:02d}",
+        fields=fields,
+        sections=sections,
+        section_items=section_items,
+        derived=derived,
+        raw_text="\n".join(body),
+    )
 
 def evidence_score(candidate: ExtractedCandidate) -> int:
     signals = [key for key in candidate.fields if key != "name" and candidate.fields[key]]
-    return len(signals) + len(candidate.sections)
+    list_signals = 1 if candidate.derived.get("skills") else 0
+    return len(signals) + len(candidate.sections) + list_signals
 
 
 def looks_like_curriculum_vitae(candidate: ExtractedCandidate,
@@ -438,41 +632,55 @@ def extract_worker_document(path: str | Path, offset: int = 0, min_evidence: int
 
 def merge_worker_documents(documents: Sequence[ExtractedWorkerDocument]) -> ExtractedWorkerDocument:
     merged = ExtractedWorkerDocument()
+
     for document in documents:
         merged.source_names.extend(document.source_names)
         merged.rejected_blocks.extend(document.rejected_blocks)
+
         for candidate in document.candidates:
             candidate.index = len(merged.candidates) + 1
             candidate.worker_id = f"wrk-{candidate.index:02d}"
             merged.candidates.append(candidate)
+
     merged.raw_text = "\n\n".join(document.raw_text for document in documents)
     return merged
 
 
 def candidate_payload(candidate: ExtractedCandidate) -> str:
     blocks = [f"KANDIDAT {candidate.index} — gunakan worker_id: {candidate.worker_id}"]
+
     for key, label in FIELD_LABELS.items():
         value = candidate.derived.get(key)
         blocks.append(f"{label}: {value if value not in (None, '') else 'tidak tercantum'}")
+
+    for key in LIST_SECTIONS:
+        entries = candidate.derived.get(key) or []
+        label = SECTION_LABELS[key]
+        if entries:
+            numbered = "\n".join(f"  {position}. {entry}"
+                                 for position, entry in enumerate(entries, start=1))
+            blocks.append(f"{label} (daftar terpisah):\n{numbered}")
+        else:
+            blocks.append(f"{label} (daftar terpisah): tidak tercantum")
+
     for key, label in SECTION_LABELS.items():
+        if key in LIST_SECTIONS:
+            continue
         value = candidate.sections.get(key)
         if value:
             blocks.append(f"{label}: {value}")
+
     missing = candidate.missing_fields()
     if missing:
         blocks.append(f"FIELD TIDAK TERBACA: {', '.join(missing)}")
+
     return "\n".join(blocks)
 
-
 def build_worker_agent_input(document: ExtractedWorkerDocument) -> str:
     header = f"Jumlah kandidat terbaca: {len(document.candidates)}"
     payloads = [candidate_payload(candidate) for candidate in document.candidates]
     return "\n\n".join([header] + payloads)
 
-def build_worker_agent_input(document: ExtractedWorkerDocument) -> str:
-    header = f"Jumlah kandidat terbaca: {len(document.candidates)}"
-    payloads = [candidate_payload(candidate) for candidate in document.candidates]
-    return "\n\n".join([header] + payloads)
 
 
 def build_worker_agent_input_chunks(

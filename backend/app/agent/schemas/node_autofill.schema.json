@@ -15,11 +15,44 @@
       "properties": {
         "required_cognitive_focus": { "type": "number", "minimum": 0, "maximum": 1 },
         "physical_demand_level": { "type": "string", "enum": ["low", "medium", "high"] },
-        "task_complexity": { "type": "number", "minimum": 0, "maximum": 1 },     
+        "task_complexity": { "type": "number", "minimum": 0, "maximum": 1 },
         "error_severity": {
           "type": "string",
           "enum": ["low", "moderate", "high", "critical"]
         }
+      }
+    },
+    "suggestions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operator_task": { "type": "string", "maxLength": 400 },
+        "qc_requirement": { "type": "string", "maxLength": 240 },
+        "required_skills": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "type": "string", "minLength": 2, "maxLength": 60 }
+        },
+        "material_input": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "type": "string", "minLength": 2, "maxLength": 60 }
+        },
+        "material_output": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "type": "string", "minLength": 2, "maxLength": 60 }
+        },
+        "material_name": { "type": "string", "maxLength": 60 },
+        "material_unit": { "type": "string", "maxLength": 16 },
+        "cycle_time_seconds": { "type": "number", "minimum": 1, "maximum": 86400 },
+        "capacity": { "type": "number", "minimum": 1 },
+        "batch_in": { "type": "number", "minimum": 0.1 },
+        "batch_out": { "type": "number", "minimum": 0.1 },
+        "cycle_ticks": { "type": "integer", "minimum": 1, "maximum": 240 },
+        "headcount": { "type": "integer", "minimum": 1, "maximum": 40 },
+        "lane": { "type": "string", "maxLength": 40 },
+        "job_title": { "type": "string", "maxLength": 80 }
       }
     },
     "reasoning": { "type": "string", "minLength": 1 }

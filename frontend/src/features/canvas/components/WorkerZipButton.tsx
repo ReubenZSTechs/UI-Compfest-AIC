@@ -1,7 +1,8 @@
 import { useRef } from "react";
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { useToastStore } from "@/store/toast";
-import { createFactory, uploadWorkerArchive } from "../api/canvasApi";
+import type { ApiError } from "@/api/client";
+import { createFactory, getFactorySummary, uploadWorkerArchive } from "../api/canvasApi";
 import styles from "./WorkerZipButton.module.css";
 
 const MAX_ZIP_BYTES = 20 * 1024 * 1024;
@@ -24,7 +25,14 @@ export function WorkerZipButton() {
   const isUploading = workerUpload.status === "uploading";
 
   async function ensureFactoryId(): Promise<string> {
-    if (factoryId) return factoryId;
+    if (factoryId) {
+      try {
+        const existing = await getFactorySummary(factoryId);
+        return existing.factoryId;
+      } catch (error) {
+        if ((error as ApiError).status !== 404) throw error;
+      }
+    }
 
     const summary = await createFactory({
       factoryName: factoryMeta.factoryName || projectTitle,
@@ -53,15 +61,23 @@ export function WorkerZipButton() {
     setWorkerUpload({
       status: "uploading",
       fileName: file.name,
-      message: "Mengekstraksi profil pekerja...",
+      message: "Menyiapkan factory...",
     });
 
     try {
       const targetFactoryId = await ensureFactoryId();
+
+      setWorkerUpload({ message: "Mengekstraksi profil pekerja..." });
+
       const result = await uploadWorkerArchive(targetFactoryId, file);
 
       setWorkerPool(result.workers);
       autoDistributeWorkers();
+
+      const withoutSkills = result.workers.filter(
+        (worker) => worker.skills.length === 0
+      ).length;
+
       setWorkerUpload({
         status: "success",
         message: `${result.workersPersisted} pekerja tersimpan dari ${result.candidatesFound} kandidat.`,
@@ -69,9 +85,15 @@ export function WorkerZipButton() {
         rejectedCount: result.rejectedBlocksCount,
       });
 
-      if (result.warnings.length > 0) {
+      if (withoutSkills > 0) {
+        showToast(
+          `${withoutSkills} pekerja tersimpan tanpa skill terbaca; periksa format CV di dalam arsip.`,
+          "error"
+        );
+      } else if (result.warnings.length > 0) {
         showToast(`${result.warnings.length} peringatan saat ekstraksi arsip.`, "error");
       }
+
       openMapping();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal memproses arsip pekerja.";

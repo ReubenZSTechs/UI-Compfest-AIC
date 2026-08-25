@@ -49,6 +49,72 @@ class SeedAssignment(BaseModel):
     assigned_asset_id: str
     calculated_realtime_metrics: RealtimeMetrics
 
+class WarehouseSource(BaseModel):
+    warehouse_id: str
+    warehouse_name: str
+    material_name: str
+    material_unit: str
+    capacity: float
+    feed_rate: float
+    initial_stock: float
+    replenish_per_tick: float
+    supply_mode: str
+    target_ordinals: list[int]
+
+
+class OutputSink(BaseModel):
+    output_id: str
+    output_name: str
+    material_name: str
+    material_unit: str
+    target_output_units: float
+    accepts_defective: bool
+    source_ordinals: list[int]
+
+
+class ShiftBreakWindow(BaseModel):
+    break_id: str
+    start_elapsed_minutes: int
+    end_elapsed_minutes: int
+    label: str
+
+
+class ShiftPlan(BaseModel):
+    shift_id: str
+    start_time: str
+    end_time: str
+    start_elapsed_minutes: int
+    end_elapsed_minutes: int
+    handover_minutes: int
+    breaks: list[ShiftBreakWindow]
+
+
+class ShiftRosterEntry(BaseModel):
+    shift_id: str
+    ordinal: int
+    job_id: str
+    worker_ids: list[str]
+
+
+class WorkerRuntimeProfile(BaseModel):
+    worker_id: str
+    name: str
+    years_of_experience: float
+    baseline_physical_stamina: float
+    cognitive_resilience: float
+    skills: list[str]
+    compatibility_by_job_id: dict[str, float]
+
+
+class JobDemandProfile(BaseModel):
+    job_id: str
+    ordinal: int
+    required_cognitive_focus: float
+    physical_demand_level: str
+    task_complexity: float
+    error_severity: str
+    required_skills: list[str]
+    physical_strain_index: float
 
 class SimulationConfig(BaseModel):
     """
@@ -89,6 +155,13 @@ class SimulationConfig(BaseModel):
     analytical_insight_summary: str
     target_output_units: float
     initial_batch_seq: int
+
+    warehouses: list[WarehouseSource] = Field(default_factory=list)
+    outputs: list[OutputSink] = Field(default_factory=list)
+    shift_plans: list[ShiftPlan] = Field(default_factory=list)
+    shift_roster: list[ShiftRosterEntry] = Field(default_factory=list)
+    worker_profiles: list[WorkerRuntimeProfile] = Field(default_factory=list)
+    job_demands: list[JobDemandProfile] = Field(default_factory=list)
 
 
 # ==========================================================================
@@ -251,6 +324,68 @@ class StationInput(BaseSimModel):
     batch_out: float = Field(gt=0)
     cycle_ticks: int = Field(default=1, ge=1)
 
+class WarehouseSourceInput(BaseSimModel):
+    warehouse_id: str
+    warehouse_name: str = "Gudang"
+    material_name: str = "Bahan Baku"
+    material_unit: str = "pcs"
+    capacity: float = Field(default=C.WAREHOUSE_CAPACITY, gt=0)
+    feed_rate: float = Field(default=C.WAREHOUSE_FEED_RATE, gt=0)
+    initial_stock: float | None = None
+    replenish_per_tick: float = Field(default=0.0, ge=0)
+    supply_mode: Literal["finite", "continuous"] = "finite"
+    target_stage_ids: list[str] = Field(default_factory=list)
+
+
+class OutputSinkInput(BaseSimModel):
+    output_id: str
+    output_name: str = "Finished Goods"
+    material_name: str = "Produk Jadi"
+    material_unit: str = "pcs"
+    target_output_units: float = Field(default=C.TARGET_OUTPUT_UNITS, gt=0)
+    accepts_defective: bool = False
+    source_stage_ids: list[str] = Field(default_factory=list)
+
+
+class ShiftBreakInput(BaseSimModel):
+    break_id: str = "break-01"
+    start_elapsed_minutes: int = Field(ge=0)
+    duration_minutes: int = Field(default=60, ge=0)
+    label: str = "Istirahat"
+
+
+class ShiftPlanInput(BaseSimModel):
+    shift_id: str
+    start_time: str
+    end_time: str
+    duration_hours: float | None = None
+    crosses_midnight: bool | None = None
+    handover_minutes: int = Field(default=15, ge=0, le=120)
+    breaks: list[ShiftBreakInput] = Field(default_factory=list)
+
+    @field_validator("start_time", "end_time")
+    @classmethod
+    def validate_time_format(cls, value: str) -> str:
+        if not _TIME_PATTERN.match(value):
+            raise ValueError(f"Format jam tidak valid: '{value}' (harus HH:MM, mis. 08:00)")
+        return value
+
+
+class ShiftWorkerAssignmentInput(BaseSimModel):
+    shift_id: str
+    stage_id: str
+    job_id: str | None = None
+    worker_ids: list[str] = Field(default_factory=list)
+
+
+class WorkerRuntimeProfileInput(BaseSimModel):
+    worker_id: str
+    name: str = ""
+    years_of_experience: float = Field(default=0.0, ge=0)
+    baseline_physical_stamina: float = Field(default=0.5, ge=0, le=1)
+    cognitive_resilience: float = Field(default=0.5, ge=0, le=1)
+    skills: list[str] = Field(default_factory=list)
+    compatibility_by_job_id: dict[str, float] = Field(default_factory=dict)
 
 class SimulationSettingsInput(BaseSimModel):
     bottleneck_fill_threshold: float = Field(default=C.BOTTLENECK_FILL_THRESHOLD, ge=0, le=1)
@@ -301,6 +436,11 @@ class SimulationDesignRequest(BaseSimModel):
     worker_multipliers: list[WorkerMultiplierInput] = Field(default_factory=list)
     seed_assignments: list[SeedAssignmentInput] = Field(default_factory=list)
     prune_missing: bool = True
+    warehouses: list[WarehouseSourceInput] = Field(default_factory=list)
+    outputs: list[OutputSinkInput] = Field(default_factory=list)
+    shift_plans: list[ShiftPlanInput] = Field(default_factory=list)
+    shift_assignments: list[ShiftWorkerAssignmentInput] = Field(default_factory=list)
+    worker_profiles: list[WorkerRuntimeProfileInput] = Field(default_factory=list)
 
 
 class SimulationDesignResponse(BaseSimModel):

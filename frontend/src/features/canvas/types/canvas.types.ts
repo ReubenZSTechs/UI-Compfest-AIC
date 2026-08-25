@@ -98,11 +98,29 @@ export interface CanvasStationSpec {
   cycleTicks: number;
 }
 
+export interface CanvasShiftBreak {
+  breakId: string;
+  label: string;
+  startOffsetMinutes: number;
+  durationMinutes: number;
+}
+
 export interface CanvasShift {
   shiftId: string;
+  shiftName: string;
   startTime: string;
   endTime: string;
+  handoverMinutes: number;
+  breaks: CanvasShiftBreak[];
 }
+
+export interface ShiftNodeAssignment {
+  shiftId: string;
+  nodeId: string;
+  workerIds: string[];
+}
+
+export type ShiftAssignmentMap = Record<string, Record<string, string[]>>;
 
 export interface CanvasFactoryMeta {
   factoryName: string;
@@ -148,6 +166,7 @@ export interface WorkerUploadState {
 }
 
 export type BuildStageId =
+  | "autofill"
   | "factory"
   | "workers"
   | "design"
@@ -168,6 +187,7 @@ export type CanvasProcessData = {
   requiredSkills: string[];
   targetOutput: number;
   aiStatus: AiNodeStatus;
+  autoFields?: NodeFieldModes;
   jobDesk?: JobDesk | null;
   stage?: CanvasStageSpec;
   asset?: CanvasAssetSpec;
@@ -184,15 +204,26 @@ export type CanvasWorkerData = {
   realtimeMetrics?: RealtimeMetrics | null;
 };
 
-/** Node Output = "Finished Goods Storage" (ujung alur produksi).
- *  Sesuai project.md simulation_summary: target_output_units & total_output_units. */
+/** Node Output = "Finished Goods Storage" (ujung alur produksi). */
 export type CanvasOutputData = {
   kind: "output";
   label: string;
   targetOutput: number;
   totalOutput: number;
+  materialName: string;
+  materialUnit: string;
+  acceptsDefective: boolean;
   aiStatus: AiNodeStatus;
 };
+
+export type WarehouseSupplyMode = "finite" | "continuous";
+
+export interface CanvasWarehouseItem {
+  itemId: string;
+  materialName: string;
+  materialUnit: string;
+  quantityPerFeed: number;
+}
 
 export type CanvasWarehouseData = {
   kind: "warehouse";
@@ -201,6 +232,10 @@ export type CanvasWarehouseData = {
   feedRate: number;
   materialName: string;
   materialUnit: string;
+  supplyMode: WarehouseSupplyMode;
+  initialStock: number;
+  replenishPerTick: number;
+  outputItems: CanvasWarehouseItem[];
   aiStatus: AiNodeStatus;
 };
 
@@ -318,9 +353,60 @@ export interface AnalyzeGraphResponse {
   warnings?: string[];
 }
 
+// ============================================================
+// Autofill Types
+// ============================================================
+
+export type FieldFillMode = "manual" | "auto";
+
+export type AutofillFieldKey =
+  | "requiredSkills"
+  | "operatorTask"
+  | "qcRequirement"
+  | "materialInput"
+  | "materialOutput"
+  | "cycleTimeSeconds"
+  | "lane"
+  | "jobTitle"
+  | "headcount"
+  | "demands";
+
+export type NodeFieldModes = Partial<Record<AutofillFieldKey, FieldFillMode>>;
+
+export type AutofillField =
+  | "operatorTask"
+  | "qcRequirement"
+  | "requiredSkills"
+  | "materialInput"
+  | "materialOutput"
+  | "cycleTimeSeconds"
+  | "headcount"
+  | "lane"
+  | "jobTitle"
+  | "demands";
+
+export interface NodeAutofillSuggestions {
+  operatorTask?: string | null;
+  qcRequirement?: string | null;
+  requiredSkills?: string[] | null;
+  materialInput?: string[] | null;
+  materialOutput?: string[] | null;
+  materialName?: string | null;
+  materialUnit?: string | null;
+  cycleTimeSeconds?: number | null;
+  capacity?: number | null;
+  batchIn?: number | null;
+  batchOut?: number | null;
+  cycleTicks?: number | null;
+  headcount?: number | null;
+  lane?: string | null;
+  jobTitle?: string | null;
+}
+
 export interface NodeAutofillRequest {
   processName: string;
   operatorTask: string;
+  jobTitle: string;
   requiredSkills: string[];
   qcRequirement: string;
   assetCategory: CanvasAssetCategory;
@@ -329,10 +415,15 @@ export interface NodeAutofillRequest {
   noiseLevelDb: number | null;
   physicalStrainIndex: number;
   materialInput: string[];
+  materialOutput: string[];
   headcount: number;
+  upstreamNames: string[];
+  downstreamNames: string[];
+  targetFields: string[];
 }
 
 export interface NodeAutofillResponse {
   demands: CanvasJobDemands;
+  suggestions: NodeAutofillSuggestions;
   reasoning: string;
 }

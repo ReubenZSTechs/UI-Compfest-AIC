@@ -27,6 +27,7 @@ import type {
   CanvasWorkerProfile,
   OperationalLimits,
   RelationType,
+  ShiftAssignmentMap,
   WorkerUploadState,
 } from "@/features/canvas/types/canvas.types";
 import { isValidFlowConnection, toFlowGraph } from "@/features/canvas/utils/flowLogic";
@@ -80,6 +81,9 @@ interface CanvasUIState {
   simulationSettings: CanvasSimulationSettings;
   workerPool: CanvasWorkerProfile[];
   workerAssignments: Record<string, string[]>;
+  shiftAssignments: ShiftAssignmentMap;
+  activeShiftId: string;
+  shiftPlannerOpen: boolean;
   workerUpload: WorkerUploadState;
   mappingOpen: boolean;
   buildProgress: CanvasBuildProgress;
@@ -96,6 +100,14 @@ interface CanvasUIState {
   setNodeWorkers: (nodeId: string, workerIds: string[]) => void;
   clearWorkerAssignments: () => void;
   autoDistributeWorkers: () => void;
+  setActiveShiftId: (shiftId: string) => void;
+  openShiftPlanner: () => void;
+  closeShiftPlanner: () => void;
+  assignWorkerToShift: (shiftId: string, nodeId: string, workerId: string) => void;
+  unassignWorkerFromShift: (shiftId: string, nodeId: string, workerId: string) => void;
+  setShiftNodeWorkers: (shiftId: string, nodeId: string, workerIds: string[]) => void;
+  clearShiftAssignments: (shiftId?: string) => void;
+  autoDistributeShiftWorkers: (shiftId: string) => void;
   openMapping: () => void;
   closeMapping: () => void;
   setBuildProgress: (patch: Partial<CanvasBuildProgress>) => void;
@@ -123,29 +135,40 @@ interface CanvasUIState {
 let nodeCounter = 0;
 const genId = (kind: CanvasNodeKind) => `${kind}-${Date.now().toString(36)}-${++nodeCounter}`;
 
-/** Aturan relasi: process→process (FLOW), worker→process (ASSIGNED_TO), process→output (FLOW). */
+/** Aturan relasi: process→process (FLOW), worker→process (ASSIGNED_TO), process→output (FLOW), warehouse→process (FLOW). */
 export function resolveRelation(
   sourceKind: CanvasNodeKind | undefined,
   targetKind: CanvasNodeKind | undefined
 ): RelationType | null {
   if (!sourceKind || !targetKind) return null;
-  if (sourceKind === "warehouse" && targetKind === "process") return "FLOW";
   if (sourceKind === "process" && targetKind === "process") return "FLOW";
   if (sourceKind === "process" && targetKind === "output") return "FLOW";
+  if (sourceKind === "warehouse" && targetKind === "process") return "FLOW";
   if (sourceKind === "worker" && targetKind === "process") return "ASSIGNED_TO";
   return null;
 }
 
 const DEFAULT_FACTORY_META: CanvasFactoryMeta = {
-  factoryName: "",
+  factoryName: "Pabrik Tanpa Nama",
   processType: "serial",
   layoutDescription: "",
   declaredWorkerCount: 0,
 };
 
-const DEFAULT_SHIFTS: CanvasShift[] = [
-  { shiftId: "shift-01", startTime: "08:00", endTime: "16:00" },
-];
+export function createDefaultShift(overrides: Partial<CanvasShift> = {}): CanvasShift {
+  return {
+    shiftId: "shift-01",
+    shiftName: "Shift Pagi",
+    startTime: "08:00",
+    endTime: "16:00",
+    handoverMinutes: 15,
+    breaks: [
+      { breakId: "break-01", label: "Istirahat Siang", startOffsetMinutes: 240, durationMinutes: 60 },
+    ],
+    ...overrides,
+  };
+}
+const DEFAULT_SHIFTS: CanvasShift[] = [createDefaultShift()];
 
 const DEFAULT_SIMULATION_SETTINGS: CanvasSimulationSettings = {
   bottleneckFillThreshold: 0.85,
@@ -195,9 +218,14 @@ export const useCanvasUIStore = create<CanvasUIState>((set, get) => ({
   simulationSettings: { ...DEFAULT_SIMULATION_SETTINGS },
   workerPool: [],
   workerAssignments: {},
+  shiftAssignments: {},
+  activeShiftId: DEFAULT_SHIFTS[0].shiftId,
+  shiftPlannerOpen: false,
   workerUpload: { ...DEFAULT_WORKER_UPLOAD },
   mappingOpen: false,
-  buildProgress: { stage: "factory", status: "pending", message: null },
+  
+  // CHANGED: Initial buildProgress stage set to "autofill"
+  buildProgress: { stage: "autofill", status: "pending", message: null },
 
   setFactoryId: (factoryId) => set({ factoryId }),
   setFactoryMeta: (patch) =>
@@ -219,6 +247,7 @@ export const useCanvasUIStore = create<CanvasUIState>((set, get) => ({
   setWorkerPool: (workers) => set({ workerPool: workers }),
   setWorkerUpload: (patch) =>
     set((s) => ({ workerUpload: { ...s.workerUpload, ...patch } })),
+  
   assignWorker: (nodeId, workerId) =>
     set((s) => {
       const next: Record<string, string[]> = {};
@@ -252,6 +281,50 @@ export const useCanvasUIStore = create<CanvasUIState>((set, get) => ({
     });
     set({ workerAssignments: next });
   },
+
+  setActiveShiftId: (shiftId) => set({ activeShiftId: shiftId }),
+  openShiftPlanner: () => set({ shiftPlannerOpen: true }),
+  closeShiftPlanner: () => set({ shiftPlannerOpen: false }),
+  assignWorkerToShift: (shiftId, nodeId, workerId) =>
+    set((s) => {
+      const shiftMap = { ...(s.shiftAssignments[shiftId] ?? {}) };
+      for (const key of Object.keys(shiftMap)) {
+        shiftMap[key] = shiftMap[key].filter((id) => id !== workerId);
+      }
+      shiftMap[nodeId] = [...(shiftMap[nodeId] ?? []), workerId];
+      return { shiftAssignments: { ...s.shiftAssignments, [shiftId]: shiftMap } };
+    }),
+  unassignWorkerFromShift: (shiftId, nodeId, workerId) =>
+    set((s) => {
+      const shiftMap = { ...(s.shiftAssignments[shiftId] ?? {}) };
+      shiftMap[nodeId] = (shiftMap[nodeId] ?? []).filter((id) => id !== workerId);
+      return { shiftAssignments: { ...s.shiftAssignments, [shiftId]: shiftMap } };
+    }),
+  setShiftNodeWorkers: (shiftId, nodeId, workerIds) =>
+    set((s) => ({
+      shiftAssignments: {
+        ...s.shiftAssignments,
+        [shiftId]: { ...(s.shiftAssignments[shiftId] ?? {}), [nodeId]: workerIds },
+      },
+    })),
+  clearShiftAssignments: (shiftId) =>
+    set((s) => {
+      if (!shiftId) return { shiftAssignments: {} };
+      return { shiftAssignments: { ...s.shiftAssignments, [shiftId]: {} } };
+    }),
+  autoDistributeShiftWorkers: (shiftId) => {
+    const { nodes, workerPool } = get();
+    const processIds = nodes.filter((n) => n.data.kind === "process").map((n) => n.id);
+    if (processIds.length === 0) return;
+    const shiftMap: Record<string, string[]> = {};
+    for (const id of processIds) shiftMap[id] = [];
+    workerPool.forEach((worker, index) => {
+      const targetId = processIds[index % processIds.length];
+      shiftMap[targetId] = [...shiftMap[targetId], worker.workerId];
+    });
+    set((s) => ({ shiftAssignments: { ...s.shiftAssignments, [shiftId]: shiftMap } }));
+  },
+
   openMapping: () => set({ mappingOpen: true }),
   closeMapping: () => set({ mappingOpen: false }),
   setBuildProgress: (patch) =>
@@ -324,9 +397,7 @@ export const useCanvasUIStore = create<CanvasUIState>((set, get) => ({
       data.joinType = inGroup.find((e) => e.data?.joinType)?.data?.joinType ?? "and";
     }
 
-    // Inferensi handle saat koneksi dibuat tanpa handle eksplisit (mis. via
-    // tool "Hubungkan"): FLOW selalu source-bottom → target-top; ASSIGNED_TO
-    // keluar dari sisi pekerja yang menghadap proses (source-left/source-right).
+    // Inferensi handle saat koneksi dibuat tanpa handle eksplisit
     let sourceHandle = connection.sourceHandle ?? (relation === "FLOW" ? "source-bottom" : null);
     if (!sourceHandle && source && target) {
       sourceHandle = source.position.x < target.position.x ? "source-right" : "source-left";
@@ -350,71 +421,83 @@ export const useCanvasUIStore = create<CanvasUIState>((set, get) => ({
   addNodeAt: (kind, position) => {
     const { snapshot } = get();
     const id = genId(kind);
-    const nodeType =
-      kind === "process"
-        ? "fabric"
-        : kind === "output"
-          ? "output"
-          : kind === "warehouse"
-            ? "warehouse"
-            : "worker";
+
+    let nodeType: "fabric" | "worker" | "output" | "warehouse";
+    if (kind === "process") nodeType = "fabric";
+    else if (kind === "worker") nodeType = "worker";
+    else if (kind === "output") nodeType = "output";
+    else nodeType = "warehouse";
+
+    let data: CanvasNodeData;
+
+    if (kind === "process") {
+      data = {
+        kind: "process",
+        label: "Proses Baru",
+        requiredSkills: [],
+        targetOutput: 0,
+        aiStatus: "idle",
+        autoFields: {}, // CHANGED: Added autoFields explicitly as an empty flag map
+        jobDesk: null,
+      };
+    } else if (kind === "output") {
+      data = {
+        kind: "output",
+        label: "Output Akhir",
+        targetOutput: 0,
+        totalOutput: 0,
+        materialName: "Finished Goods",
+        materialUnit: "pcs",
+        acceptsDefective: false,
+        aiStatus: "idle",
+      };
+    } else if (kind === "warehouse") {
+      data = {
+        kind: "warehouse",
+        label: "Gudang Bahan Baku",
+        capacity: 1000,
+        feedRate: 100,
+        materialName: "Raw Material",
+        materialUnit: "pcs",
+        supplyMode: "finite",
+        initialStock: 1000,
+        replenishPerTick: 0,
+        outputItems: [],
+        aiStatus: "idle",
+      };
+    } else {
+      data = {
+        kind: "worker",
+        label: "Pekerja",
+        fatigueScore: 0,
+        aiStatus: "idle",
+        worker: {
+          workerId: id,
+          name: "",
+          demographics: {
+            age: 0,
+            gender: "",
+            yearsOfExperience: 0,
+            baselinePhysicalStamina: 0,
+            cognitiveResilience: 0,
+          },
+          shiftContext: { hoursWorkedToday: 0, consecutiveShifts: 0 },
+          skills: [],
+        },
+      };
+    }
 
     const base: CanvasFlowNode = {
       id,
       type: nodeType,
       position,
-      data:
-        kind === "process"
-          ? {
-              kind: "process",
-              label: "Proses Baru",
-              requiredSkills: [],
-              targetOutput: 0,
-              aiStatus: "idle",
-              jobDesk: null,
-            }
-          : kind === "output"
-            ? {
-                kind: "output",
-                label: "",
-                targetOutput: 0,
-                totalOutput: 0,
-                aiStatus: "idle",
-              }
-            : kind === "warehouse"
-              ? {
-                  kind: "warehouse",
-                  label: "Gudang Bahan Baku",
-                  capacity: 5000,
-                  feedRate: 100,
-                  materialName: "Bahan Baku",
-                  materialUnit: "pcs",
-                  aiStatus: "idle",
-                }
-              : {
-                  kind: "worker",
-                  label: "",
-                  fatigueScore: 0,
-                  aiStatus: "idle",
-                  worker: {
-                    workerId: id,
-                    name: "",
-                    demographics: {
-                      age: 0,
-                      gender: "",
-                      yearsOfExperience: 0,
-                      baselinePhysicalStamina: 0,
-                      cognitiveResilience: 0,
-                    },
-                    shiftContext: { hoursWorkedToday: 0, consecutiveShifts: 0 },
-                    skills: [],
-                  },
-                },
+      data,
     };
+
     snapshot();
     set((s) => ({ nodes: [...s.nodes, base], selectedNodeId: id, activeTool: "select" }));
   },
-  
+
   removeElement: (id, isEdge = false) => {
     const { edges, snapshot } = get();
     if (isEdge) {
@@ -498,8 +581,10 @@ export const useCanvasUIStore = create<CanvasUIState>((set, get) => ({
       factoryId: null,
       workerPool: [],
       workerAssignments: {},
+      shiftAssignments: {},
       workerUpload: { ...DEFAULT_WORKER_UPLOAD },
-      buildProgress: { stage: "factory", status: "pending", message: null },
+      // CHANGED: resetCanvas buildProgress stage set to "autofill"
+      buildProgress: { stage: "autofill", status: "pending", message: null },
     }),
 
   setAnalysis: (partial) =>

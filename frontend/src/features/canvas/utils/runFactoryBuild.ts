@@ -1,9 +1,12 @@
 import { useCanvasUIStore } from "@/store/canvasUI";
+import type { ApiError } from "@/api/client";
 import {
   createFactory,
   enqueueCompatibilityJob,
+  getFactorySummary,
   saveSimulationDesign,
 } from "../api/canvasApi";
+import { autofillCanvasNodes } from "./autofillNodes";
 import { buildSimulationDesignPayload, validateDesignInput } from "./designPayload";
 import { computeExecutionRounds, toFlowGraph } from "./flowLogic";
 
@@ -14,6 +17,13 @@ export interface FactoryBuildResult {
   message: string;
   factoryId?: string;
   compatibilityJobId?: string;
+}
+
+interface FactoryMetaInput {
+  factoryName: string;
+  processType: "serial" | "parallel" | "hybrid";
+  declaredWorkerCount: number;
+  layoutDescription: string;
 }
 
 async function animateVerification(signal?: AbortSignal): Promise<void> {
@@ -32,63 +42,123 @@ async function animateVerification(signal?: AbortSignal): Promise<void> {
     await delay(140);
   }
 
-  for (const node of store.nodes) {
+  for (const node of useCanvasUIStore.getState().nodes) {
     if (node.data.kind === "output") {
       store.updateNodeData(node.id, { aiStatus: "verified" });
     }
   }
 }
 
+async function resolveFactoryId(
+  storedId: string | null,
+  meta: FactoryMetaInput
+): Promise<{ factoryId: string; recreated: boolean }> {
+  if (storedId) {
+    try {
+      const summary = await getFactorySummary(storedId);
+      return { factoryId: summary.factoryId, recreated: false };
+    } catch (error) {
+      if ((error as ApiError).status !== 404) throw error;
+    }
+  }
+
+  const summary = await createFactory(meta);
+  return { factoryId: summary.factoryId, recreated: true };
+}
+
 export async function runFactoryBuild(signal?: AbortSignal): Promise<FactoryBuildResult> {
   const store = useCanvasUIStore.getState();
-  const {
-    nodes,
-    edges,
-    factoryMeta,
-    shifts,
-    simulationSettings,
-    workerAssignments,
-    projectTitle,
-  } = store;
 
-  const input = {
-    nodes,
-    edges,
-    factoryMeta,
-    shifts,
-    settings: simulationSettings,
-    workerAssignments,
-  };
-
-  const issues = validateDesignInput(input);
-  if (issues.length > 0) {
-    for (const issue of issues) {
-      if (issue.nodeId) store.updateNodeData(issue.nodeId, { aiStatus: "error" });
-    }
-    const message = issues.map((issue) => issue.message).join(" ");
+  if (store.nodes.length === 0) {
+    const message = "Kanvas masih kosong.";
     store.setAnalysis({ status: "error", message, finishedAt: new Date().toISOString() });
     return { status: "error", message };
   }
 
-  store.setAnalysis({ status: "running", message: "Menyiapkan factory..." });
-  for (const node of nodes) {
+  store.setAnalysis({ status: "running", message: "Melengkapi detail node…" });
+  for (const node of store.nodes) {
     store.updateNodeData(node.id, { aiStatus: "analyzing" });
   }
 
-  try {
-    store.setBuildProgress({ stage: "factory", status: "active", message: "Membuat factory_id" });
+  const buildWarnings: string[] = [];
 
-    let factoryId = store.factoryId;
-    if (!factoryId) {
-      const summary = await createFactory({
-        factoryName: factoryMeta.factoryName || projectTitle,
-        processType: factoryMeta.processType,
-        declaredWorkerCount: factoryMeta.declaredWorkerCount,
-        layoutDescription: factoryMeta.layoutDescription,
+  try {
+    store.setBuildProgress({
+      stage: "autofill",
+      status: "active",
+      message: "Menjalankan agent auto-fill",
+    });
+
+    const autofill = await autofillCanvasNodes((done, total) => {
+      store.setBuildProgress({
+        stage: "autofill",
+        status: "active",
+        message: `Auto-fill node ${done}/${total}`,
       });
-      factoryId = summary.factoryId;
-      store.setFactoryId(factoryId);
+    });
+
+    if (autofill.failures.length > 0) {
+      buildWarnings.push(
+        `${autofill.failures.length} node gagal di-autofill: ` +
+          autofill.failures.map((item) => item.label).join(", ")
+      );
     }
+
+    store.setBuildProgress({
+      stage: "autofill",
+      status: "success",
+      message:
+        autofill.filledNodes > 0
+          ? `${autofill.filledNodes} node dilengkapi agent`
+          : "Semua node sudah lengkap",
+    });
+
+    const fresh = useCanvasUIStore.getState();
+    const input = {
+      nodes: fresh.nodes,
+      edges: fresh.edges,
+      factoryMeta: fresh.factoryMeta,
+      shifts: fresh.shifts,
+      settings: fresh.simulationSettings,
+      workerAssignments: fresh.workerAssignments,
+      shiftAssignments: fresh.shiftAssignments,
+      workerPool: fresh.workerPool,
+    };
+
+    const issues = validateDesignInput(input);
+    if (issues.length > 0) {
+      for (const issue of issues) {
+        if (issue.nodeId) store.updateNodeData(issue.nodeId, { aiStatus: "error" });
+      }
+      const message = issues.map((issue) => issue.message).join(" ");
+      store.setAnalysis({ status: "error", message, finishedAt: new Date().toISOString() });
+      store.setBuildProgress({ status: "error", message });
+      return { status: "error", message };
+    }
+
+    store.setAnalysis({ status: "running", message: "Menyiapkan factory..." });
+    store.setBuildProgress({
+      stage: "factory",
+      status: "active",
+      message: "Memverifikasi factory_id",
+    });
+
+    const { factoryId, recreated } = await resolveFactoryId(fresh.factoryId, {
+      factoryName: fresh.factoryMeta.factoryName || fresh.projectTitle,
+      processType: fresh.factoryMeta.processType,
+      declaredWorkerCount: fresh.factoryMeta.declaredWorkerCount,
+      layoutDescription: fresh.factoryMeta.layoutDescription,
+    });
+
+    if (recreated) {
+      store.setFactoryId(factoryId);
+      if (fresh.factoryId && fresh.factoryId !== factoryId) {
+        buildWarnings.push(
+          `factory_id lama '${fresh.factoryId}' tidak valid di backend; factory baru dibuat.`
+        );
+      }
+    }
+
     store.setBuildProgress({ stage: "factory", status: "success", message: factoryId });
 
     store.setAnalysis({ status: "running", message: "Menyimpan rancangan flowchart..." });
@@ -111,9 +181,10 @@ export async function runFactoryBuild(signal?: AbortSignal): Promise<FactoryBuil
 
     await animateVerification(signal);
 
+    const warnings = [...buildWarnings, ...design.warnings];
     const message =
-      design.warnings.length > 0
-        ? `Rancangan tersimpan dengan ${design.warnings.length} peringatan.`
+      warnings.length > 0
+        ? `Rancangan tersimpan dengan ${warnings.length} peringatan: ${warnings.join(" ")}`
         : "Rancangan tersimpan dan matriks kompatibilitas dijadwalkan.";
 
     store.setAnalysis({ status: "done", message, finishedAt: new Date().toISOString() });
@@ -121,7 +192,7 @@ export async function runFactoryBuild(signal?: AbortSignal): Promise<FactoryBuil
 
     return { status: "done", message, factoryId, compatibilityJobId: job.jobId };
   } catch (error) {
-    for (const node of nodes) {
+    for (const node of useCanvasUIStore.getState().nodes) {
       store.updateNodeData(node.id, { aiStatus: "error" });
     }
     const message = error instanceof Error ? error.message : "Pembuatan digital twin gagal.";
