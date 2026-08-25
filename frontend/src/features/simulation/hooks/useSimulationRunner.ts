@@ -392,41 +392,52 @@ export function useSimulationRunner(isMock?: boolean) {
      tickRef.current = tick;
   }, [tick]);
 
+  const setError = useSimulationStore((s) => s.setError);
+
   useEffect(() => {
     if (status !== 'running') return undefined;
 
     let cancelled = false;
 
     const runTick = async () => {
-      let next: SimulationResponse;
+      try {
+        let next: SimulationResponse;
 
-      if (isMock) {
-        // --- MOCK MODE ---
-        next = generateMockTick(tickRef.current);
-      } else {
-        // --- REAL API MODE ---
-        next = await fetchLiveSimulationState(latestDataRef.current ?? undefined);
-      }
-      
-      if (cancelled) return;
-      
-      latestDataRef.current = next;
-      setData(next);
-      incrementTick();
+        if (isMock) {
+          next = generateMockTick(tickRef.current);
+        } else {
+          next = await fetchLiveSimulationState(latestDataRef.current ?? undefined);
+        }
 
-      if (next.live_simulation_state.shift_info?.is_shift_ended) {
+        if (cancelled) return;
+
+        latestDataRef.current = next;
+        setData(next);
+        incrementTick();
+
+        if (next.live_simulation_state.shift_info?.is_shift_ended) {
+          pause();
+        }
+      } catch (error) {
+        if (cancelled) return;
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Simulasi berhenti karena kesalahan tak terduga.'
+        );
         pause();
       }
     };
 
     const intervalMs = BASE_TICK_INTERVAL_MS / speedMultiplier;
 
-    runTick();
-    const intervalId = window.setInterval(runTick, intervalMs);
+    void runTick();
+    const intervalId = window.setInterval(() => void runTick(), intervalMs);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [status, speedMultiplier, setData, incrementTick, pause, isMock]);
+  }, [status, speedMultiplier, setData, setError, incrementTick, pause, isMock]);
 }

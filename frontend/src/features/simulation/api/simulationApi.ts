@@ -171,32 +171,63 @@ interface BatchState {
 // Config Scoping & Fetching
 // ---------------------------------------------------------------------------
 
+const CONFIG_RETRY_COOLDOWN_MS = 15_000;
+
 let configPromise: Promise<SimulationConfig> | null = null;
 let configFactoryId: string | null = null;
+let configError: Error | null = null;
+let configErrorAt = 0;
 
 export function setSimulationFactoryId(factoryId: string | null): void {
-  if (factoryId !== configFactoryId) {
-    configFactoryId = factoryId;
-    configPromise = null;
-  }
+  if (factoryId === configFactoryId) return;
+
+  configFactoryId = factoryId;
+  configPromise = null;
+  configError = null;
+  configErrorAt = 0;
+}
+
+export function clearSimulationConfigError(): void {
+  configError = null;
+  configErrorAt = 0;
 }
 
 async function loadConfig(): Promise<SimulationConfig> {
   if (!configFactoryId) {
     throw new Error("factoryId simulasi belum ditentukan.");
   }
+
+  if (configError && Date.now() - configErrorAt < CONFIG_RETRY_COOLDOWN_MS) {
+    throw configError;
+  }
+
   if (!configPromise) {
     const url = `${API_BASE_URL}/factories/${configFactoryId}/simulation-config`;
+
     configPromise = fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error(`Gagal memuat konfigurasi simulasi (${res.status})`);
-        return res.json() as Promise<SimulationConfig>;
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          const suffix = body ? ` — ${body.slice(0, 200)}` : "";
+          throw new Error(
+            `Gagal memuat konfigurasi simulasi (${res.status})${suffix}`
+          );
+        }
+        return (await res.json()) as SimulationConfig;
       })
-      .catch((err) => {
+      .then((config) => {
+        configError = null;
+        configErrorAt = 0;
+        return config;
+      })
+      .catch((error: Error) => {
         configPromise = null;
-        throw err;
+        configError = error;
+        configErrorAt = Date.now();
+        throw error;
       });
   }
+
   return configPromise;
 }
 

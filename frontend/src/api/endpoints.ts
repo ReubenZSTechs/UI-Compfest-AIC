@@ -42,6 +42,7 @@ export const ENDPOINTS = {
     STEP_5_JOB: (jobId: string) => `/documents/step-5/jobs/${jobId}`,
   },
   RL_OPTIMIZATION: {
+    FACTORY_SCENARIOS: (factoryId: string) => `/rl-optimization/${factoryId}/scenarios`,
     DIGITAL_TWIN: "/rl-optimization/digital-twin",
     OPTIMIZE: "/rl-optimization/optimize",
     JOB: (jobId: string) => `/rl-optimization/optimize/${jobId}`,

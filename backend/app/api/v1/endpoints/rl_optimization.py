@@ -104,6 +104,31 @@ async def trigger_optimization(
     return job
 
 
+from app.optimization import scenario_store
+
+
+@router.get(
+    "/{factory_id}/scenarios",
+    response_model=schemas.RlScenarioBundle,
+    summary="Ambil ketiga skenario hasil training RL untuk satu factory",
+)
+async def get_factory_optimization_scenarios(factory_id: str):
+    """
+    Selalu mengembalikan tiga skenario (scenario_01..03) sekaligus.
+    User tidak memilih skenario di tahap ini.
+    """
+    bundle = scenario_store.load_optimization_result(factory_id)
+    if bundle is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Hasil optimasi RL untuk factory '{factory_id}' belum tersedia. "
+                "Jalankan train_ppo.py terlebih dahulu."
+            ),
+        )
+    return bundle
+
+
 @router.get(
     "/optimize/{job_id}",
     response_model=schemas.OptimizationJobStatus,

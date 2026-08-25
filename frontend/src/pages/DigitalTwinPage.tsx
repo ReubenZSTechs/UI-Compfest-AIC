@@ -33,8 +33,12 @@ export function DigitalTwinPage() {
   const { data, isLoading, isFetched, error } = useDigitalTwin(factoryId);
   useEffect(() => {
     if (!factoryId) return;
+
     setSimulationFactoryId(factoryId);
-    void useSimulationStore.getState().reset();
+    void useSimulationStore
+      .getState()
+      .reset()
+      .catch(() => undefined);
   }, [factoryId]);
 
   // Validasi keberadaan data hasil parsing

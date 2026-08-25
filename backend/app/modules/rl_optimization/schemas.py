@@ -406,3 +406,112 @@ class ApplyScenarioResponse(BaseModel):
     applied_at: datetime
     updated_factory_flow_rightnow: FactoryFlowRightNow
     message: str = "Skenario berhasil diterapkan ke live simulation state."
+
+
+class RlMetricComparison(BaseModel):
+    before: Optional[float] = None
+    after: float
+    delta_pct: Optional[float] = None
+    direction: Optional[str] = None
+    is_improvement: Optional[bool] = None
+
+
+class RlScenarioMetrics(BaseModel):
+    throughput_per_hour: RlMetricComparison
+    human_error_rate_pct: RlMetricComparison
+    total_op_cost_per_hour_rp: RlMetricComparison
+    cost_per_item_rp: RlMetricComparison
+    mean_fatigue: RlMetricComparison
+    max_fatigue: RlMetricComparison
+    bottleneck_count: RlMetricComparison
+
+
+class RlRewardWeights(BaseModel):
+    throughput: float
+    cost: float
+    fatigue: float
+    bottleneck: float
+
+
+class RlScenarioConstraints(BaseModel):
+    hiring_allowed: bool
+    fire_or_mutation_allowed: bool
+    automation_allowed: bool
+    capex_rp: float
+    capex_used_rp: float
+
+
+class RlReallocationMove(BaseModel):
+    move_id: str
+    worker_id: str
+    name: str
+    from_station: Optional[str] = None
+    to_station: Optional[str] = None
+    final_fatigue: float
+    final_stress: float
+
+
+class RlAssetUpgrade(BaseModel):
+    asset_id: str
+    workflow_step: Optional[str] = None
+    is_automated: bool
+    capex_rp: float
+
+
+class RlNewHire(BaseModel):
+    worker_id: str
+    name: str
+    assigned_station: Optional[str] = None
+    capex_rp: float
+
+
+class RlStaffPosition(BaseModel):
+    worker_id: str
+    name: str
+    current_station_rightnow: Optional[str] = None
+    optimal_station: Optional[str] = None
+    action: StaffAction
+    move_id: Optional[str] = None
+    projected_fatigue: float
+    projected_stress: float
+
+
+class RlFactoryFlowOptimal(BaseModel):
+    reallocation_moves: list[RlReallocationMove] = Field(default_factory=list)
+    asset_upgrades: list[RlAssetUpgrade] = Field(default_factory=list)
+    new_hires: list[RlNewHire] = Field(default_factory=list)
+    optimal_staff_positions: list[RlStaffPosition] = Field(default_factory=list)
+    residual_bottleneck: Optional[str] = None
+
+
+class RlScenario(BaseModel):
+    scenario_id: str
+    title: str
+    description: str = ""
+    insight: str = ""
+    recommended: bool = False
+    reward_weights: RlRewardWeights
+    constraints: RlScenarioConstraints
+    metrics: RlScenarioMetrics
+    factory_flow_optimal: RlFactoryFlowOptimal
+    episode_reward: float
+
+
+class RlBaseline(BaseModel):
+    throughput_per_hour: float
+    human_error_rate_pct: float
+    cost_per_item_rp: float
+
+
+class RlBundleMeta(BaseModel):
+    status: str
+    algorithm: str
+    total_timesteps: int
+    factory_id: Optional[str] = None
+    recommended_scenario_id: str
+    baseline: RlBaseline
+
+
+class RlScenarioBundle(BaseModel):
+    meta: RlBundleMeta
+    scenarios: list[RlScenario]

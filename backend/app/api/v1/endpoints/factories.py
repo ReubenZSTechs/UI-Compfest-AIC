@@ -117,18 +117,6 @@ async def get_factory_digital_twin(
     return await service.get_full_twin(factory_id)
 
 
-@router.get(
-    "/{factory_id}/simulation-config",
-    response_model=simulation_schemas.SimulationConfig,
-    summary="Ambil konfigurasi simulasi untuk satu factory (factory_id wajib, path param)",
-)
-async def get_factory_simulation_config(
-    factory_id: str,
-    db: AsyncSession = Depends(get_db),
-) -> simulation_schemas.SimulationConfig:
-    return await simulation_service.get_simulation_config(db=db, factory_id=factory_id)
-
-
 @router.put(
     "/{factory_id}/simulation",
     response_model=simulation_schemas.SimulationDesignResponse,
@@ -142,5 +130,22 @@ async def save_factory_simulation(
 ) -> simulation_schemas.SimulationDesignResponse:
     try:
         return await simulation_service.save_simulation_design(db, factory_id, payload)
+    except SimulationError as error:
+        raise _simulation_error(error) from error
+
+
+@router.get(
+    "/{factory_id}/simulation-config",
+    response_model=simulation_schemas.SimulationConfig,
+    summary="Ambil konfigurasi simulasi untuk satu factory (factory_id wajib, path param)",
+)
+async def get_factory_simulation_config(
+    factory_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> simulation_schemas.SimulationConfig:
+    try:
+        return await simulation_service.get_simulation_config(
+            db=db, factory_id=factory_id
+        )
     except SimulationError as error:
         raise _simulation_error(error) from error

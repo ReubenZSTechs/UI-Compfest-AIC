@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
-  ANALYTICS_SCENARIOS,
   getResolvedScenarios,
   type ScenarioData,
 } from "@/features/optimization/data/analyticsScenariosData";
@@ -9,10 +8,20 @@ import { ThroughputShiftChart } from "@/features/optimization/components/Through
 import { CostBreakdownChart } from "@/features/optimization/components/CostBreakdownChart";
 import { ProductionFlowGraphPreview } from "@/features/optimization/components/ProductionFlowGraphPreview";
 import { WhatIfPlayground } from "@/features/optimization/components/WhatIfPlayground";
+import { RlFlowSimulation } from "@/features/optimization/components/RlFlowSimulation";
+import { useRlScenarios } from "@/features/optimization/hooks/useRlScenarios";
+import { mapRlScenarioToScenarioData, formatStationLabel } from "@/features/optimization/utils/mapRlScenario";
 import { useDraftStore } from "@/store/draftStore";
 import { useToastStore } from "@/store/toast";
 import { useDraftAutoSync } from "@/hooks/useDraftAutoSync";
 import styles from "./ExecutionPage.module.css";
+
+function formatRupiah(value: number): string {
+  if (value <= 0) return "Rp 0";
+  if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(2)} Miliar`;
+  if (value >= 1_000_000) return `Rp ${(value / 1_000_000).toFixed(1)} Juta`;
+  return `Rp ${Math.round(value).toLocaleString("id-ID")}`;
+}
 
 export function ExecutionPage() {
   const { projectId, cardId } = useParams<{ projectId?: string; cardId?: string }>();
@@ -21,24 +30,32 @@ export function ExecutionPage() {
   const navigate = useNavigate();
   const showToast = useToastStore((s) => s.showToast);
 
-  // Auto-sync working draft state
   useDraftAutoSync();
 
   const queryProjectId = searchParams.get("projectId");
+  const queryFactoryId = searchParams.get("factoryId") || searchParams.get("factory_id");
   const effectiveProjectId = projectId || queryProjectId;
 
-  // Read current draft and its generated cards
   const drafts = useDraftStore((s) => s.drafts);
   const draft = drafts.find((d) => d.projectId === effectiveProjectId) || drafts[0];
   const generatedCards = draft?.optimizationData?.generatedCards;
 
-  // Resolve dynamic scenarios based on available draft cards & defaults
-  const resolvedScenarios = useMemo(
+  const factoryId = queryFactoryId || effectiveProjectId || undefined;
+
+  const { scenarios: rlScenarios, meta, isLoading, isError, error } = useRlScenarios(factoryId);
+
+  const fallbackScenarios = useMemo(
     () => getResolvedScenarios(generatedCards),
     [generatedCards]
   );
 
-  // Detect active scenario from URL params or pathname (robust for Skenario C)
+  const usingRlData = rlScenarios.length > 0;
+
+  const resolvedScenarios = useMemo<ScenarioData[]>(() => {
+    if (!usingRlData) return fallbackScenarios;
+    return rlScenarios.map(mapRlScenarioToScenarioData);
+  }, [usingRlData, rlScenarios, fallbackScenarios]);
+
   const activeScenarioId = useMemo(() => {
     if (cardId) {
       const match = resolvedScenarios.find(
@@ -49,72 +66,83 @@ export function ExecutionPage() {
       );
       if (match) return match.id;
     }
+
     const path = location.pathname.toLowerCase();
-    if (path.includes("rec_3") || path.endsWith("/3") || path.includes("skenario-c") || path.includes("skenario_c")) {
-      return "rec_3";
+    if (path.includes("3") || path.includes("skenario-c")) {
+      return resolvedScenarios[2]?.id ?? resolvedScenarios[0]?.id ?? "";
     }
-    if (path.includes("rec_2") || path.endsWith("/2") || path.includes("skenario-b") || path.includes("skenario_b")) {
-      return "rec_2";
+    if (path.includes("2") || path.includes("skenario-b")) {
+      return resolvedScenarios[1]?.id ?? resolvedScenarios[0]?.id ?? "";
     }
-    return "rec_1";
+    return resolvedScenarios[0]?.id ?? "";
   }, [cardId, location.pathname, resolvedScenarios]);
 
   const [activeTab, setActiveTab] = useState<string>(activeScenarioId);
   const [showGraph, setShowGraph] = useState<boolean>(false);
   const [generatedDate] = useState<string>(() => {
     const now = new Date();
-    const d = now.getDate();
-    const m = now.getMonth() + 1;
-    const y = now.getFullYear();
-    const h = String(now.getHours()).padStart(2, "0");
-    const min = String(now.getMinutes()).padStart(2, "0");
-    const sec = String(now.getSeconds()).padStart(2, "0");
-    return `${d}/${m}/${y}, ${h}.${min}.${sec}`;
+    const date = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+    const clock = [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map((part) => String(part).padStart(2, "0"))
+      .join(".");
+    return `${date}, ${clock}`;
   });
 
-  // Sync state if URL changes
   useEffect(() => {
     setActiveTab(activeScenarioId);
   }, [activeScenarioId]);
 
-  // Current active scenario object (safe fallback for Scenario C)
-  const currentScenario: ScenarioData = useMemo(() => {
-    const found = resolvedScenarios.find(
-      (s) => s.id.toLowerCase() === activeTab.toLowerCase()
-    );
-    if (found) return found;
-
-    if (activeTab === "rec_3" || activeTab.includes("3")) {
-      return resolvedScenarios[2] || ANALYTICS_SCENARIOS.rec_3;
-    }
-    if (activeTab === "rec_2" || activeTab.includes("2")) {
-      return resolvedScenarios[1] || ANALYTICS_SCENARIOS.rec_2;
-    }
-    return resolvedScenarios[0] || ANALYTICS_SCENARIOS.rec_1;
+  const activeIndex = useMemo(() => {
+    const index = resolvedScenarios.findIndex((s) => s.id === activeTab);
+    return index >= 0 ? index : 0;
   }, [resolvedScenarios, activeTab]);
+
+  const currentScenario: ScenarioData | undefined = resolvedScenarios[activeIndex];
+  const currentRlScenario = usingRlData ? rlScenarios[activeIndex] : null;
 
   function handleTabClick(tabId: string) {
     setActiveTab(tabId);
     if (projectId) {
       navigate(`/project/${encodeURIComponent(projectId)}/recommendation/${tabId}`);
-    } else {
-      navigate(`/${tabId}`);
     }
   }
 
-  // --- PEMBARUAN 1: FUNGSI KEMBALI KE DASHBOARD ---
   function handleBackToDashboard() {
     showToast("Kembali ke Dashboard Utama", "info");
     navigate("/dashboard");
   }
 
-  // --- PEMBARUAN 2: FUNGSI MENUJU DIGITAL TWIN PAGE ---
   function handleGoToDigitalTwin() {
-    const ds = useDraftStore.getState();
-    const targetId = effectiveProjectId || ds.activeDraftId || ds.drafts[0]?.projectId || "default-factory-id";
+    const store = useDraftStore.getState();
+    const targetId =
+      factoryId || store.activeDraftId || store.drafts[0]?.projectId || "default-factory-id";
 
     showToast("Membuka Digital Twin...", "info");
     navigate(`/digital-twin?factoryId=${encodeURIComponent(targetId)}`);
+  }
+
+  if (isLoading) {
+    return (
+      <div className={styles.pageContainer}>
+        <div className={styles.cardContainer}>
+          <p className={styles.cardDescription}>
+            Memuat hasil optimasi reinforcement learning...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentScenario) {
+    return (
+      <div className={styles.pageContainer}>
+        <div className={styles.cardContainer}>
+          <p className={styles.cardDescription}>
+            Belum ada skenario yang tersedia untuk factory ini.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -162,11 +190,15 @@ export function ExecutionPage() {
             </div>
           </div>
 
-          <div className={styles.modelStatusBadge}>
+                    <div className={styles.modelStatusBadge}>
             <span className={styles.pulseDot} aria-hidden="true" />
-            <span>RL CONVERGED · 10,000 EPISODES</span>
+            <span>
+              {meta
+                ? `${meta.status} · ${meta.total_timesteps.toLocaleString("id-ID")} TIMESTEPS`
+                : "MENGGUNAKAN DATA CONTOH"}
+            </span>
           </div>
-        </div>
+        </div>{/* ← close barLeft here */}
 
         <div className={styles.barRight}>
           {draft && (
@@ -176,8 +208,7 @@ export function ExecutionPage() {
             </div>
           )}
           <span className={styles.timestampBadge}>Generated: {generatedDate}</span>
-          
-          {/* --- PEMBARUAN 1: TOMBOL KEMBALI KE DASHBOARD --- */}
+
           <button
             type="button"
             className={styles.primaryActionButton}
@@ -188,6 +219,15 @@ export function ExecutionPage() {
           </button>
         </div>
       </header>
+
+      {isError && (
+        <div className={styles.cardContainer}>
+          <p className={styles.cardDescription}>
+            Gagal memuat hasil RL{error?.message ? ` — ${error.message}` : ""}.
+            Menampilkan data contoh sementara.
+          </p>
+        </div>
+      )}
 
       {/* 2. DYNAMIC SCENARIO DECK (TAB TITLE MENGIKUTI SCENARIO YANG TERSEDIA) */}
       <section className={styles.scenarioDeckWrapper}>
@@ -219,7 +259,10 @@ export function ExecutionPage() {
                       {sc.title}
                     </h2>
                   </div>
-                  {isActive && <span className={styles.activePill}>ACTIVE</span>}
+                    {rlScenarios[idx]?.recommended && (
+                      <span className={styles.activePill}>REKOMENDASI</span>
+                    )}
+                    {isActive && <span className={styles.activePill}>ACTIVE</span>}
                 </div>
 
                 <p className={styles.cardDescription}>{sc.subtitle}</p>
@@ -247,7 +290,9 @@ export function ExecutionPage() {
                     {sc.constraints.automation ? "✓" : "✕"} Automasi
                   </span>
                   <span className={styles.budgetChip}>
-                    {sc.constraints.budgetLabel}
+                    {rlScenarios[idx]
+                      ? `${formatRupiah(rlScenarios[idx].constraints.capex_used_rp)} / ${sc.constraints.budgetLabel}`
+                      : sc.constraints.budgetLabel}
                   </span>
                 </div>
               </button>
@@ -422,6 +467,127 @@ export function ExecutionPage() {
               </div>
             </div>
           </div>
+
+                    {currentRlScenario && (
+            <div className={styles.cardContainer}>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardHeaderTitle}>
+                  <span className={styles.sectionIcon}>🧠</span>
+                  <span>HUMAN FACTORS &amp; REWARD WEIGHTS</span>
+                </div>
+                <span className={styles.cardMetaCount}>
+                  Episode reward {currentRlScenario.episode_reward}
+                </span>
+              </div>
+
+              <div className={styles.kpiTilesRow}>
+                <div className={styles.kpiTile}>
+                  <div className={styles.kpiTop}>
+                    <span className={styles.kpiName}>MEAN FATIGUE</span>
+                  </div>
+                  <div className={styles.kpiNumbers}>
+                    <span className={styles.valTextHighlight}>
+                      {(currentRlScenario.metrics.mean_fatigue.after * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className={styles.kpiProgressBar}>
+                    <div
+                      className={styles.kpiProgressFill}
+                      style={{
+                        width: `${currentRlScenario.metrics.mean_fatigue.after * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.kpiTile}>
+                  <div className={styles.kpiTop}>
+                    <span className={styles.kpiName}>MAX FATIGUE</span>
+                  </div>
+                  <div className={styles.kpiNumbers}>
+                    <span className={styles.valTextHighlight}>
+                      {(currentRlScenario.metrics.max_fatigue.after * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className={styles.kpiProgressBar}>
+                    <div
+                      className={`${styles.kpiProgressFill} ${styles.progressAmber}`}
+                      style={{
+                        width: `${currentRlScenario.metrics.max_fatigue.after * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.kpiTile}>
+                  <div className={styles.kpiTop}>
+                    <span className={styles.kpiName}>COST / ITEM</span>
+                    <span
+                      className={
+                        currentRlScenario.metrics.cost_per_item_rp.is_improvement
+                          ? styles.deltaBadgePositive
+                          : styles.deltaBadgeNegative
+                      }
+                    >
+                      {currentRlScenario.metrics.cost_per_item_rp.delta_pct?.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className={styles.kpiNumbers}>
+                    <div className={styles.valBlock}>
+                      <span className={styles.valTag}>SEBELUM</span>
+                      <span className={styles.valTextMuted}>
+                        {formatRupiah(currentRlScenario.metrics.cost_per_item_rp.before ?? 0)}
+                      </span>
+                    </div>
+                    <div className={styles.valSeparator}>→</div>
+                    <div className={styles.valBlock}>
+                      <span className={styles.valTag}>SESUDAH</span>
+                      <span className={styles.valTextHighlight}>
+                        {formatRupiah(currentRlScenario.metrics.cost_per_item_rp.after)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.cardConstraintsRow}>
+                {Object.entries(currentRlScenario.reward_weights).map(([key, value]) => (
+                  <span key={key} className={styles.constraintTag}>
+                    w·{key} {value.toFixed(2)}
+                  </span>
+                ))}
+                <span className={styles.budgetChip}>
+                  {currentRlScenario.metrics.bottleneck_count.after} bottleneck
+                </span>
+                {currentRlScenario.factory_flow_optimal.residual_bottleneck && (
+                  <span className={styles.budgetChip}>
+                    Residual:{" "}
+                    {formatStationLabel(
+                      currentRlScenario.factory_flow_optimal.residual_bottleneck
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {currentRlScenario && (
+            <div className={styles.cardContainer}>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardHeaderTitle}>
+                  <span className={styles.sectionIcon}>🔄</span>
+                  <span>SIMULASI REALOKASI — RL POLICY</span>
+                </div>
+                <span className={styles.cardMetaCount}>
+                  {currentRlScenario.factory_flow_optimal.reallocation_moves.length} rotasi ·{" "}
+                  {currentRlScenario.factory_flow_optimal.asset_upgrades.length} otomasi ·{" "}
+                  {currentRlScenario.factory_flow_optimal.new_hires.length} rekrut
+                </span>
+              </div>
+
+              <RlFlowSimulation scenario={currentRlScenario} />
+            </div>
+          )}
 
           {/* B. CHARTS ROW */}
           <div className={styles.chartsGrid}>

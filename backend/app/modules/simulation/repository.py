@@ -223,3 +223,53 @@ class SimulationRepository:
     async def load_job_desks(self, factory_id: str) -> list[JobDesk]:
         stmt = select(JobDesk).where(JobDesk.factory_id == factory_id)
         return list((await self.db.execute(stmt)).scalars().all())
+
+    async def load_process_stages(self, factory_id: str) -> list[ProcessStage]:
+        stmt = select(ProcessStage).where(ProcessStage.factory_id == factory_id)
+        return list((await self.db.execute(stmt)).scalars().all())
+
+    async def load_assets(self, factory_id: str) -> list[Asset]:
+        stmt = select(Asset).where(Asset.factory_id == factory_id)
+        return list((await self.db.execute(stmt)).scalars().all())
+
+    async def load_workers(self, factory_id: str) -> list[Worker]:
+        stmt = select(Worker).where(Worker.factory_id == factory_id)
+        return list((await self.db.execute(stmt)).scalars().all())
+
+    async def load_shifts(self, factory_id: str) -> list[Shift]:
+        stmt = (
+            select(Shift)
+            .where(Shift.factory_id == factory_id)
+            .order_by(Shift.start_time)
+        )
+        return list((await self.db.execute(stmt)).scalars().all())
+
+    async def load_compatibility_scores(
+        self, factory_id: str
+    ) -> dict[str, dict[str, float]]:
+        stmt = select(CompatibilityEvaluation).where(
+            CompatibilityEvaluation.factory_id == factory_id
+        )
+        rows = (await self.db.execute(stmt)).scalars().all()
+
+        scores: dict[str, dict[str, float]] = {}
+        for row in rows:
+            evaluations = row.evaluations or {}
+            raw = evaluations.get("overall_compatibility_score")
+            if raw is None:
+                continue
+            scores.setdefault(row.worker_id, {})[row.job_id] = float(raw)
+
+        return scores
+
+    async def load_warehouses(self, factory_id: str) -> list[Any]:
+        """Belum ada tabel persist untuk warehouse; service memakai default."""
+        return []
+
+    async def load_outputs(self, factory_id: str) -> list[Any]:
+        """Belum ada tabel persist untuk output sink; service memakai default."""
+        return []
+
+    async def load_shift_assignments(self, factory_id: str) -> list[Any]:
+        """Belum ada tabel persist untuk roster; service jatuh ke job_desks."""
+        return []
