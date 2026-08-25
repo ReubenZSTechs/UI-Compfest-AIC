@@ -878,19 +878,104 @@ def _build_station_topology(
     }
 
 
+
+from types import SimpleNamespace
+
+
+def _derive_ephemeral_stations(
+    factory: Factory | None,
+    stages: list[Any],
+    assets_by_id: dict[str, Any],
+) -> list[SimpleNamespace]:
+    """
+    Bangun 'station' sementara (tidak dipersist ke DB) langsung dari
+    ProcessStage + Asset, dipakai ketika factory belum pernah melalui
+    PUT /simulation (mis. baru selesai document-parser). Mencegah
+    get_simulation_config() jatuh ke _static_fallback_config() yang
+    datanya (wrk-01..wrk-12) sama sekali tidak nyambung dengan worker/
+    job/asset milik factory ini.
+    """
+    sequence = (factory.workflow_sequence or []) if factory is not None else []
+    stage_by_id = {stage.stage_id: stage for stage in stages}
+
+    ordered_ids = [stage_id for stage_id in sequence if stage_id in stage_by_id]
+    ordered_ids += [
+        stage.stage_id for stage in stages if stage.stage_id not in ordered_ids
+    ]
+
+    stations: list[SimpleNamespace] = []
+    for ordinal, stage_id in enumerate(ordered_ids, start=1):
+        stage = stage_by_id[stage_id]
+        asset = assets_by_id.get(stage.asset_id)
+
+        capacity = 100.0
+        if asset is not None:
+            total = (asset.total_capacity or {}).get("value") if asset.total_capacity else None
+            if total:
+                capacity = float(total)
+            elif asset.units_available:
+                capacity = float(asset.units_available) * 60.0
+        if stage.throughput_per_hour:
+            capacity = float(stage.throughput_per_hour)
+
+        stations.append(
+            SimpleNamespace(
+                ordinal=ordinal,
+                stage_id=stage_id,
+                step_name=stage.stage_name,
+                material_name=(stage.material_output[0] if stage.material_output else "Material"),
+                material_unit="pcs",
+                step_cost_base=int((asset.operational_cost_per_hour or 0) if asset else 0),
+                capacity=max(capacity, 1.0),
+                batch_in=1.0,
+                batch_out=1.0,
+                cycle_ticks=1,
+            )
+        )
+
+    return stations
+
+
+def _derive_ephemeral_assignments(job_desks: list[Any]) -> list[SimpleNamespace]:
+    """Fallback seed_assignments dari JobDesk.assigned_worker_ids, dipakai
+    saat tabel simulation_seed_assignments masih kosong."""
+    seen: set[str] = set()
+    rows: list[SimpleNamespace] = []
+
+    for job in job_desks:
+        for worker_id in job.assigned_worker_ids or []:
+            if worker_id in seen:
+                continue
+            seen.add(worker_id)
+            rows.append(
+                SimpleNamespace(
+                    worker_id=worker_id,
+                    assigned_job_id=job.job_id,
+                    assigned_asset_id=job.assigned_asset_id,
+                    realtime_metrics_cache=None,
+                )
+            )
+
+    return rows
+
+
 async def _build_config_from_db(
     repository: SimulationRepository, factory_id: str
 ) -> SimulationConfig | None:
     stations = await repository.load_stations(factory_id)
+    factory = await repository.load_factory(factory_id)
+    job_desks = await repository.load_job_desks(factory_id)
+    stages = await repository.load_process_stages(factory_id)
+    assets_by_id = {asset.asset_id: asset for asset in await repository.load_assets(factory_id)}
+
+    if not stations:
+        stations = _derive_ephemeral_stations(factory, stages, assets_by_id)
     if not stations:
         return None
 
-    factory = await repository.load_factory(factory_id)
-    job_desks = await repository.load_job_desks(factory_id)
     topology = _build_station_topology(factory, stations, job_desks)
 
-    stages_by_id = {stage.stage_id: stage for stage in await repository.load_process_stages(factory_id)}
-    assets_by_id = {asset.asset_id: asset for asset in await repository.load_assets(factory_id)}
+    stages_by_id = {stage.stage_id: stage for stage in stages}
     workers = await repository.load_workers(factory_id)
     compatibility = await repository.load_compatibility_scores(factory_id)
     shift_rows = await repository.load_shifts(factory_id)
@@ -905,6 +990,8 @@ async def _build_config_from_db(
     settings = await repository.load_settings(factory_id)
     multipliers = await repository.load_worker_multipliers(factory_id)
     assignments = await repository.load_seed_assignments(factory_id)
+    if not assignments:
+        assignments = _derive_ephemeral_assignments(job_desks)
 
     seed_assignments: list[SeedAssignment] = []
     for row in assignments:
@@ -969,9 +1056,7 @@ async def _build_config_from_db(
         outputs=_build_output_sinks(
             output_rows, ordinal_by_stage, topology["terminal_ordinals"], resolved
         ),
-        shift_plans=_build_shift_plans(
-            [], shift_rows, resolved.shift_start_minutes
-        ),
+        shift_plans=_build_shift_plans([], shift_rows, resolved.shift_start_minutes),
         shift_roster=_build_shift_roster(assignment_rows, job_desks, ordinal_by_stage),
         worker_profiles=[
             WorkerRuntimeProfile(
@@ -991,9 +1076,7 @@ async def _build_config_from_db(
             )
             for worker in workers
         ],
-        job_demands=_build_job_demands(
-            job_desks, stages_by_id, assets_by_id, ordinal_by_stage
-        ),
+        job_demands=_build_job_demands(job_desks, stages_by_id, assets_by_id, ordinal_by_stage),
     )
 
 

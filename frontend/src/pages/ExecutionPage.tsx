@@ -37,10 +37,15 @@ export function ExecutionPage() {
   const effectiveProjectId = projectId || queryProjectId;
 
   const drafts = useDraftStore((s) => s.drafts);
-  const draft = drafts.find((d) => d.projectId === effectiveProjectId) || drafts[0];
+  const matchedDraft = drafts.find((d) => d.projectId === effectiveProjectId);
+  const draft = matchedDraft || drafts[0]; // display-only fallback (title, cards)
   const generatedCards = draft?.optimizationData?.generatedCards;
 
-  const factoryId = queryFactoryId || effectiveProjectId || undefined;
+  const factoryId =
+    queryFactoryId ||
+    matchedDraft?.factoryId ||
+    effectiveProjectId ||
+    undefined;
 
   const { scenarios: rlScenarios, meta, isLoading, isError, error } = useRlScenarios(factoryId);
 
@@ -113,12 +118,12 @@ export function ExecutionPage() {
   }
 
   function handleGoToDigitalTwin() {
-    const store = useDraftStore.getState();
-    const targetId =
-      factoryId || store.activeDraftId || store.drafts[0]?.projectId || "default-factory-id";
-
+    if (!factoryId) {
+      showToast("Factory ID belum tersedia.", "error");
+      return;
+    }
     showToast("Membuka Digital Twin...", "info");
-    navigate(`/digital-twin?factoryId=${encodeURIComponent(targetId)}`);
+    navigate(`/digital-twin?factoryId=${encodeURIComponent(factoryId)}`);
   }
 
   if (isLoading) {
