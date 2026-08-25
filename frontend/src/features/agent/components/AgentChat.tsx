@@ -10,7 +10,10 @@ import { useNavigate } from "react-router-dom";
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { useAgentChatStore } from "@/store/agentChat";
 import { computeExecutionRounds, toFlowGraph } from "@/features/canvas/utils/flowLogic";
-import { runCanvasAnalysis } from "@/features/canvas/utils/runCanvasAnalysis";
+
+// [DINONAKTIFKAN SEMENTARA] - Mencegah error TS2307: Cannot find module
+// import { runCanvasAnalysis } from "@/features/canvas/utils/runCanvasAnalysis";
+
 import styles from "./AgentChat.module.css";
 
 async function buildReply(input: string, navigate: ReturnType<typeof useNavigate>): Promise<string> {
@@ -22,10 +25,14 @@ async function buildReply(input: string, navigate: ReturnType<typeof useNavigate
     if (nodes.length === 0) {
       return "Kanvas masih kosong. Buka halaman Live lalu tambahkan node proses, atau pilih template di Intro.";
     }
-    const result = await runCanvasAnalysis();
-    return result.status === "done"
-      ? `Analisis AI selesai ✓ ${result.message}`
-      : `Analisis AI gagal: ${result.message}`;
+    
+    // [DINONAKTIFKAN SEMENTARA] - Bypass pemanggilan fungsi yang hilang
+    // const result = await runCanvasAnalysis();
+    // return result.status === "done"
+    //   ? `Analisis AI selesai ✓ ${result.message}`
+    //   : `Analisis AI gagal: ${result.message}`;
+    
+    return "Fitur Analisis AI untuk sementara dinonaktifkan.";
   }
 
   if (/ringkas|summary|status|berapa/.test(lower)) {
@@ -54,7 +61,7 @@ async function buildReply(input: string, navigate: ReturnType<typeof useNavigate
     return [
       "Berikut yang bisa saya lakukan:",
       "• 'Ringkas alur produksi' — ringkas node, koneksi, & urutan eksekusi",
-      "• 'Mulai analisis AI' — jalankan analisis dan tandai node di Live",
+      "• 'Mulai analisis AI' — jalankan analisis dan tandai node di Live (Sedang nonaktif)",
       "• 'Buka Live' — pindah ke halaman Live untuk mengubah kanvas",
       "Kamu juga bisa bolak-balik lewat tombol Live / Agent di atas.",
     ].join("\n");

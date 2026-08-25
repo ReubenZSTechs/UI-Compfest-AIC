@@ -1,7 +1,6 @@
 // frontend/src/features/document-parser/components/ParsedDataInspector.tsx
 import { useState } from 'react';
 import type {
-  ParseJobResult,
   FactoryAsset,
   JobDesk,
   WorkerRecord,
@@ -9,12 +8,41 @@ import type {
 } from '../types/documentParser.types';
 import styles from './ParsedDataInspector.module.css';
 
+export interface InspectorData {
+  factoryId?: string;
+  jobId?: string;
+  simulationId?: string;
+  workersCount?: number; 
+  jobDesksCount?: number; 
+  workersParsed?: number; 
+  jobDesksParsed?: number; 
+  warnings?: string[];
+  factoryStructure?: {
+    factory_info?: any;
+    job_desks?: JobDesk[];
+    job_descriptions?: JobDesk[];
+    assets?: FactoryAsset[];
+  };
+  workerProfile?: {
+    workers?: WorkerRecord[];
+  };
+  compatibilityMatrix?: any;
+  [key: string]: any; 
+}
+
 interface ParsedDataInspectorProps {
-  result: ParseJobResult;
+  result: InspectorData; 
   onProceed: () => void;
 }
 
 type TabType = 'overview' | 'factory' | 'workers' | 'compatibility' | 'raw';
+
+// Menambahkan interface untuk tipe grup paralel agar TypeScript mengenali propertinya
+interface ParallelGroup {
+  group_id?: string;
+  steps?: string[];
+  reasoning?: string;
+}
 
 export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -28,9 +56,15 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
     factoryStructure?.job_descriptions ??
     [];
   const assets: FactoryAsset[] = factoryStructure?.assets ?? [];
-  const parallelGroups = factoryInfo?.parallel_groups ?? [];
+  
+  // SOLUSI: Berikan tipe eksplisit ParallelGroup[] agar map() mengetahui tipe 'grp' dan 'i'
+  const parallelGroups: ParallelGroup[] = factoryInfo?.parallel_groups ?? [];
+  
   const workers: WorkerRecord[] = result.workerProfile?.workers ?? [];
   const matrixData = result.compatibilityMatrix;
+  
+  // Safe fallback untuk warnings karena FactorySummary mungkin tidak memilikinya
+  const warnings = result.warnings ?? [];
 
   // Nama pabrik dari backend
   const factoryDisplayName =
@@ -39,9 +73,15 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
     result.factoryId ||
     'Digital Twin Plant';
 
-  // Jumlah job desk & pekerja efektif (fallback jika backend mengembalikan nilai 0)
-  const effectiveJobDesksCount = Math.max(result.jobDesksParsed || 0, jobDesks.length);
-  const effectiveWorkersCount = Math.max(result.workersParsed || 0, workers.length);
+  // Menggunakan data count dari struktur yang baru ATAU yang lama (fallback)
+  const effectiveJobDesksCount = Math.max(
+    result.jobDesksCount ?? result.jobDesksParsed ?? 0, 
+    jobDesks.length
+  );
+  const effectiveWorkersCount = Math.max(
+    result.workersCount ?? result.workersParsed ?? 0, 
+    workers.length
+  );
 
   return (
     <section className={styles.inspectorContainer}>
@@ -80,7 +120,7 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
           <span className={styles.metricSub}>
             {matrixData?.meta?.evaluated_pairs !== undefined
               ? `${matrixData.meta.evaluated_pairs} Pasangan Dievaluasi`
-              : `${result.warnings.length} Peringatan`}
+              : `${warnings.length} Peringatan`}
           </span>
         </div>
       </div>
@@ -133,7 +173,7 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
               <h3>Informasi Umum Job & Pabrik</h3>
               <ul className={styles.infoList}>
                 <li>
-                  <strong>Simulation ID:</strong> <code>{result.simulationId || result.jobId}</code>
+                  <strong>Simulation ID:</strong> <code>{result.simulationId || result.jobId || 'N/A'}</code>
                 </li>
                 <li>
                   <strong>Factory ID:</strong> <code>{result.factoryId ?? 'N/A'}</code>
@@ -163,11 +203,11 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
               </div>
             )}
 
-            {result.warnings.length > 0 && (
+            {warnings.length > 0 && (
               <div className={styles.warningBox}>
-                <h4>Catatan & Peringatan Parser ({result.warnings.length})</h4>
+                <h4>Catatan & Peringatan Parser ({warnings.length})</h4>
                 <ul>
-                  {result.warnings.map((warn, i) => (
+                  {warnings.map((warn, i) => (
                     <li key={`${warn}-${i}`}>{warn}</li>
                   ))}
                 </ul>
@@ -179,7 +219,6 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
         {/* TAB 2: PABRIK, ASET & JOB DESK */}
         {activeTab === 'factory' && (
           <div className={styles.factoryPanel}>
-            {/* Sub-bagian 1: Informasi Tata Letak & Grup Paralel */}
             <div className={styles.sectionBlock}>
               <h3>Tata Letak Pabrik & Alur Paralel</h3>
               <p>{factoryInfo?.layout_description || 'Tidak ada deskripsi tata letak.'}</p>
@@ -188,6 +227,7 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
                 <div className={styles.sectionBlock}>
                   <h4>Grup Proses Paralel ({parallelGroups.length})</h4>
                   <ul className={styles.infoList}>
+                    {/* Sekarang 'grp' memiliki tipe ParallelGroup dan 'i' adalah number */}
                     {parallelGroups.map((grp, i) => (
                       <li key={grp.group_id || i}>
                         <strong>{grp.group_id}:</strong> Tahap <code>{grp.steps?.join(', ')}</code>
@@ -200,7 +240,6 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
               )}
             </div>
 
-            {/* Sub-bagian 2: Daftar Aset / Mesin */}
             <div className={styles.sectionBlock}>
               <h3>Daftar Aset & Mesin Produksi ({assets.length})</h3>
               {assets.length === 0 ? (
@@ -254,7 +293,6 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
               )}
             </div>
 
-            {/* Sub-bagian 3: Daftar Job Description */}
             <div className={styles.sectionBlock}>
               <h3>Daftar Job Description & Tuntutan Kerja ({jobDesks.length})</h3>
               {jobDesks.length === 0 ? (
@@ -396,20 +434,21 @@ export function ParsedDataInspector({ result, onProceed }: ParsedDataInspectorPr
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(matrixData.compatibility_matrix).map(([wrkId, item]: [string, CompatibilityWorkerRecord]) => {
-                        const bestJobId = item.best_job_id;
-                        const bestJobEval = bestJobId ? item.jobs?.[bestJobId]?.evaluations : undefined;
+                      {Object.entries(matrixData.compatibility_matrix).map(([wrkId, item]: [string, any]) => {
+                        const compItem = item as CompatibilityWorkerRecord;
+                        const bestJobId = compItem.best_job_id;
+                        const bestJobEval = bestJobId ? compItem.jobs?.[bestJobId]?.evaluations : undefined;
                         return (
                           <tr key={wrkId}>
                             <td>
-                              <strong>{item.worker_name || wrkId}</strong>
+                              <strong>{compItem.worker_name || wrkId}</strong>
                               <br />
                               <small className={styles.mutedText}>{wrkId}</small>
                             </td>
                             <td>
                               <code>{bestJobId || '-'}</code>
                               <br />
-                              <small>{bestJobId ? item.jobs?.[bestJobId]?.job_title || '-' : '-'}</small>
+                              <small>{bestJobId ? compItem.jobs?.[bestJobId]?.job_title || '-' : '-'}</small>
                             </td>
                             <td>
                               <strong>

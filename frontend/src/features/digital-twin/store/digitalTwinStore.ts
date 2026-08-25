@@ -10,10 +10,8 @@ interface DigitalTwinState {
   isLoading: boolean;
   isFetched: boolean; // Flag penanda bahwa minimal satu kali fetch telah selesai
   error: Error | null;
-  simulationId?: string;
-  fetchTwin: (simulationId?: string) => Promise<void>;
-  /** Mengisi store langsung dengan data mock (dipakai saat mode `?mock=true`), tanpa memanggil API. */
-  setMockData: (data: DigitalTwin) => void;
+  factoryId?: string;
+  fetchTwin: (factoryId: string) => Promise<void>;
 
   // Filter bar (global)
   searchQuery: string;
@@ -44,26 +42,25 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set) => ({
   isLoading: false,
   isFetched: false,
   error: null,
-  simulationId: undefined,
+  factoryId: undefined,
 
-  fetchTwin: async (simulationId?: string) => {
-    set({ isLoading: true, isFetched: false, error: null, simulationId });
+  fetchTwin: async (factoryId: string) => {
+    if (!factoryId) {
+      set({ data: null, isLoading: false, isFetched: true, error: new Error("factoryId wajib diisi.") });
+      return;
+    }
+    set({ isLoading: true, isFetched: false, error: null, factoryId });
     try {
-      const response = await digitalTwinApi.getFullTwin(simulationId);
-      // Memastikan data bernilai null jika API mengembalikan null/undefined
+      const response = await digitalTwinApi.getFullTwin(factoryId);
       set({ data: response ?? null, isLoading: false, isFetched: true });
     } catch (err) {
       set({
-        data: null, // Reset data ke null jika request gagal
+        data: null,
         error: err instanceof Error ? err : new Error("Gagal memuat digital twin"),
         isLoading: false,
         isFetched: true,
       });
     }
-  },
-
-  setMockData: (data: DigitalTwin) => {
-    set({ data, isLoading: false, isFetched: true, error: null });
   },
 
   searchQuery: "",

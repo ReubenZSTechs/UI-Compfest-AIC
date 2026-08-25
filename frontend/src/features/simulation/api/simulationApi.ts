@@ -1,7 +1,7 @@
 // Real API — fetch config sekali dari backend, lalu jalankan tick loop lokal.
 // Tick logic di file ini SENGAJA identik dengan `simulationApi.mock.ts` kamu;
 // bedanya cuma satu: semua tabel/kapasitas/worker seed sekarang datang dari
-// GET /api/v1/simulation/config, bukan hardcoded di file ini.
+// GET /api/v1/factories/:factoryId/simulation-config, bukan hardcoded di file ini.
 
 import type {
   ActiveTransfer,
@@ -24,7 +24,7 @@ const jitter = (value: number, amount: number, min: number, max: number) =>
 const round2 = (value: number) => Number(value.toFixed(2));
 
 // ---------------------------------------------------------------------------
-// Config types — bentuk response dari GET /api/v1/simulation/config
+// Config types — bentuk response dari backend
 // ---------------------------------------------------------------------------
 
 interface MaterialTemplate {
@@ -64,13 +64,27 @@ interface SimulationConfig {
   initial_batch_seq: number;
 }
 
-const CONFIG_ENDPOINT = `${API_BASE_URL}/simulation/config`;
+// ---------------------------------------------------------------------------
+// Config Scoping & Fetching
+// ---------------------------------------------------------------------------
 
 let configPromise: Promise<SimulationConfig> | null = null;
+let configFactoryId: string | null = null;
+
+export function setSimulationFactoryId(factoryId: string | null): void {
+  if (factoryId !== configFactoryId) {
+    configFactoryId = factoryId;
+    configPromise = null;
+  }
+}
 
 async function loadConfig(): Promise<SimulationConfig> {
+  if (!configFactoryId) {
+    throw new Error("factoryId simulasi belum ditentukan.");
+  }
   if (!configPromise) {
-    configPromise = fetch(CONFIG_ENDPOINT)
+    const url = `${API_BASE_URL}/factories/${configFactoryId}/simulation-config`;
+    configPromise = fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error(`Gagal memuat konfigurasi simulasi (${res.status})`);
         return res.json() as Promise<SimulationConfig>;
@@ -93,7 +107,7 @@ export async function getSimulationConfig(): Promise<SimulationConfig> {
 }
 
 // ---------------------------------------------------------------------------
-// Engine state (module-scoped persistence) — sama seperti versi mock
+// Engine state (module-scoped persistence)
 // ---------------------------------------------------------------------------
 
 interface BatchState {
@@ -111,12 +125,6 @@ const materialByOrdinal: Record<number, MaterialInProcess> = {};
 const batchStateByOrdinal: Record<number, BatchState> = {};
 const totalOutputByOrdinal: Record<number, number> = {};
 
-// `warehouse` di atas cuma placeholder {0,0} sebelum config berhasil
-// di-fetch (config datang async dari backend, beda dengan versi mock yang
-// dulu punya WAREHOUSE_CAPACITY sebagai konstanta sinkron). Tanpa ini,
-// warehouse akan tampil "0 / 0 kg" terus sampai user klik Reset, karena
-// resetMockSimulationState() cuma dipanggil dari tombol Reset, bukan
-// otomatis saat initial load.
 let engineInitialized = false;
 
 function ensureEngineInitialized(config: SimulationConfig) {

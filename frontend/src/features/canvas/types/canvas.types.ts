@@ -17,6 +17,150 @@ export type FlowJoinType = "and" | "or";
 
 // NOTE: dipakai sebagai tipe data Node React Flow, sehingga harus berupa
 // type alias (bukan interface) agar memenuhi constraint Record<string, unknown>.
+export type AutomationLevel = "manual" | "semi_automated" | "automated";
+export type HazardLevel = "low" | "medium" | "high";
+export type UnitClass = "mass" | "volume" | "count" | "power" | "noise";
+export type ErrorSeverityLevel = "low" | "moderate" | "high" | "critical";
+
+export type CanvasAssetCategory =
+  | "machine"
+  | "measuring_equipment"
+  | "conveyor_automation"
+  | "environmental_chamber"
+  | "manual_station";
+
+export interface CanvasQuantity {
+  value: number | null;
+  unit: string | null;
+  unitClass: UnitClass | null;
+  basis: string | null;
+}
+
+export interface CanvasEnvironmentalFactors {
+  powerConsumptionWatt: number | null;
+  noiseLevelDb: number | null;
+  vibrationHazardLevel: HazardLevel;
+  physicalStrainIndex: number;
+}
+
+export interface CanvasAssetSpec {
+  assetId: string;
+  assetName: string;
+  category: CanvasAssetCategory;
+  unitsAvailable: number;
+  capacityPerUnit: CanvasQuantity;
+  totalCapacity: CanvasQuantity;
+  automationLevel: AutomationLevel;
+  isAutomated: boolean;
+  operationalCostPerHour: number;
+  currency: string;
+  environmentalFactors: CanvasEnvironmentalFactors;
+}
+
+export interface CanvasStageSpec {
+  stageId: string;
+  lane: string;
+  operatorTask: string;
+  flowType: "batch" | "continuous";
+  cycleTimeSeconds: number;
+  throughput: CanvasQuantity;
+  throughputPerHour: number | null;
+  automationLevel: AutomationLevel;
+  qcRequirement: string;
+  materialInput: string[];
+  materialOutput: string[];
+  materialPerBatch: CanvasQuantity[];
+}
+
+export interface CanvasJobDemands {
+  requiredCognitiveFocus: number;
+  physicalDemandLevel: HazardLevel;
+  taskComplexity: number;
+  errorSeverity: ErrorSeverityLevel;
+}
+
+export interface CanvasJobSpec {
+  jobId: string;
+  jobTitle: string;
+  shiftId: string;
+  headcount: number;
+  demands: CanvasJobDemands;
+  qcRequirement: string;
+}
+
+export interface CanvasStationSpec {
+  materialName: string;
+  materialUnit: string;
+  stepCostBase: number;
+  capacity: number;
+  batchIn: number;
+  batchOut: number;
+  cycleTicks: number;
+}
+
+export interface CanvasShift {
+  shiftId: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface CanvasFactoryMeta {
+  factoryName: string;
+  processType: "serial" | "parallel" | "hybrid";
+  layoutDescription: string;
+  declaredWorkerCount: number;
+}
+
+export interface CanvasSimulationSettings {
+  bottleneckFillThreshold: number;
+  idleQtyThreshold: number;
+  station1SafetyMargin: number;
+  warehouseCapacity: number;
+  warehouseFeedRate: number;
+  shiftStartMinutes: number;
+  breakStartElapsed: number;
+  breakEndElapsed: number;
+  shiftEndElapsed: number;
+  targetOutputUnits: number;
+  initialBatchSeq: number;
+  analyticalInsightSummary: string;
+}
+
+export interface CanvasWorkerProfile {
+  workerId: string;
+  name: string;
+  skills: string[];
+  certifications: string[];
+  capabilities: string[];
+  demographics: Record<string, unknown>;
+  shiftContext: Record<string, unknown>;
+  sourceFile?: string;
+}
+
+export type WorkerUploadStatus = "idle" | "uploading" | "success" | "error";
+
+export interface WorkerUploadState {
+  status: WorkerUploadStatus;
+  fileName: string | null;
+  message: string | null;
+  acceptedCount: number;
+  rejectedCount: number;
+}
+
+export type BuildStageId =
+  | "factory"
+  | "workers"
+  | "design"
+  | "compatibility"
+  | "done";
+
+export type BuildStageStatus = "pending" | "active" | "success" | "error";
+
+export interface CanvasBuildProgress {
+  stage: BuildStageId;
+  status: BuildStageStatus;
+  message: string | null;
+}
 
 export type CanvasProcessData = {
   kind: "process";
@@ -25,6 +169,10 @@ export type CanvasProcessData = {
   targetOutput: number;
   aiStatus: AiNodeStatus;
   jobDesk?: JobDesk | null;
+  stage?: CanvasStageSpec;
+  asset?: CanvasAssetSpec;
+  job?: CanvasJobSpec;
+  station?: CanvasStationSpec;
 };
 
 export type CanvasWorkerData = {

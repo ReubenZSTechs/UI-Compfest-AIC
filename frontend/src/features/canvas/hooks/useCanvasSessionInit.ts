@@ -5,15 +5,11 @@
 // Menjamin SATU projectId mengisi seluruh halaman:
 //   - Tab switch sesi yang sama        => hanya menandai currentStep.
 //   - ?projectId=... draft tersimpan   => loadDraft (hydrate canvas + chat + cards).
-//   - Tanpa ?projectId & tanpa aktif   => muat draft terakhir, migrasi legacy,
-//     atau buat draft template kosong.
+//   - Tanpa ?projectId & tanpa aktif   => muat draft terakhir, atau 
+//     buat draft template kosong.
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDraftStore } from "@/store/draftStore";
-import {
-  legacyCanvasProjectToDraft,
-  loadLegacyCanvasProject,
-} from "../api/canvasApi";
 import type { ProjectStep } from "@/features/project/types/project.types";
 
 export function useCanvasSessionInit(step: ProjectStep = "canvas") {
@@ -50,26 +46,11 @@ export function useCanvasSessionInit(step: ProjectStep = "canvas") {
       return;
     }
 
-    // 4) Migrasi proyek legacy (backend latest / localStorage v1), lalu
-    //    fallback ke template kosong bila tidak ada.
-    let cancelled = false;
-    void (async () => {
-      const legacy = await loadLegacyCanvasProject();
-      if (cancelled) return;
-      const draft = legacy ? legacyCanvasProjectToDraft(legacy) : null;
-      if (draft) {
-        useDraftStore.getState().applyLegacyDraft(draft);
-        useDraftStore.getState().loadDraft(draft.projectId);
-        useDraftStore.getState().setCurrentStep(step);
-        return;
-      }
-      useDraftStore.getState().createDraft("blank");
-      useDraftStore.getState().setCurrentStep(step);
-    })();
+    // 4) Fallback ke template kosong bila tidak ada riwayat sama sekali.
+    // (Fungsi migrasi legacy dihapus menyesuaikan canvasApi.ts terbaru)
+    draftStore.createDraft("blank");
+    draftStore.setCurrentStep(step);
 
-    return () => {
-      cancelled = true;
-    };
   }, [searchParams, step]);
 }
 

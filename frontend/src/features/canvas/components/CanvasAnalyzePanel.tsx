@@ -1,12 +1,12 @@
-// frontend/src/features/canvas/components/CanvasAnalyzePanel.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/app/router/routes";
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { useToastStore } from "@/store/toast";
 import { useDraftStore } from "@/store/draftStore";
-import { runCanvasAnalysis } from "../utils/runCanvasAnalysis";
+import { runFactoryBuild } from "../utils/runFactoryBuild";
 import { SaveProjectModal } from "./SaveProjectModal";
+import { WorkerZipButton } from "./WorkerZipButton";
 import styles from "./CanvasAnalyzePanel.module.css";
 
 export function CanvasAnalyzePanel() {
@@ -14,6 +14,7 @@ export function CanvasAnalyzePanel() {
   const nodes = useCanvasUIStore((s) => s.nodes);
   const analysis = useCanvasUIStore((s) => s.analysis);
   const projectTitle = useCanvasUIStore((s) => s.projectTitle);
+  const workerPool = useCanvasUIStore((s) => s.workerPool);
   const setProjectTitle = useCanvasUIStore((s) => s.setProjectTitle);
   const showToast = useToastStore((s) => s.showToast);
 
@@ -21,41 +22,46 @@ export function CanvasAnalyzePanel() {
   const [showSaveModal, setShowSaveModal] = useState(false);
 
   const isRunning = analysis.status === "running";
-  const isEmpty = nodes.length === 0;
+  const hasProcessNode = nodes.some((node) => node.data.kind === "process");
+  const hasWorkers = workerPool.length > 0;
 
-  async function runAnalysis() {
-    if (isEmpty || isRunning) return;
-    // Jalankan proses analisis lalu arahkan ke DocumentParserPage (/parser)
-    const result = await runCanvasAnalysis();
-    const projectId = useDraftStore.getState().activeDraftId;
-    
-    if (result.status === "done") {
-      // --- PEMBARUAN: Tambahkan parameter &mock=success atau ?mock=success ---
-      const url = projectId 
-        ? `${ROUTES.PARSER}?projectId=${encodeURIComponent(projectId)}&mock=success` 
-        : `${ROUTES.PARSER}?mock=success`;
-      // ---------------------------------------------------------------------
-      
-      navigate(url);
-    } else {
-      showToast(result.message || "Analisis gagal, coba lagi.", "error");
+  async function handleGenerate() {
+    if (!hasProcessNode || isRunning) return;
+
+    if (!hasWorkers) {
+      showToast("Unggah arsip worker (.zip) sebelum membangun digital twin.", "error");
+      return;
     }
+
+    const result = await runFactoryBuild();
+
+    if (result.status === "done" && result.factoryId) {
+      const params = new URLSearchParams({ factoryId: result.factoryId });
+      if (result.compatibilityJobId) params.set("jobId", result.compatibilityJobId);
+
+      const projectId = useDraftStore.getState().activeDraftId;
+      if (projectId) params.set("projectId", projectId);
+
+      useDraftStore.getState().setFactoryId(result.factoryId);
+      navigate(`${ROUTES.PARSER}?${params.toString()}`);
+      return;
+    }
+
+    showToast(result.message, "error");
   }
 
-  // Langkah 1: buka modal judul projek sebelum penyimpanan dilanjutkan.
   function handleSave() {
     if (saveState === "saving") return;
     setShowSaveModal(true);
   }
 
-  // Langkah 2: judul di-set, finalisasi draft terpadu (sudah auto-sync).
   async function handleConfirmSave(title: string) {
     if (saveState === "saving") return;
     setSaveState("saving");
     try {
       setProjectTitle(title);
       useDraftStore.getState().setTitle(title);
-      useDraftStore.getState().saveActiveDraft();
+      await useDraftStore.getState().saveActiveDraft();
       setSaveState("saved");
       setShowSaveModal(false);
       showToast(`Draft "${title}" tersimpan di Dashboard`);
@@ -72,10 +78,12 @@ export function CanvasAnalyzePanel() {
           type="button"
           className={styles.saveButton}
           onClick={handleSave}
-          disabled={isEmpty || saveState === "saving"}
+          disabled={nodes.length === 0 || saveState === "saving"}
         >
           {saveState === "saving" ? "Menyimpan…" : saveState === "saved" ? "Tersimpan ✓" : "Simpan"}
         </button>
+
+        <WorkerZipButton />
 
         {analysis.status !== "idle" && (
           <span
@@ -85,15 +93,15 @@ export function CanvasAnalyzePanel() {
             {analysis.status === "running" && "⏳"}
             {analysis.status === "done" && "✓"}
             {analysis.status === "error" && "✕"}{" "}
-            {analysis.status === "running" ? "Menganalisis..." : analysis.message ?? analysis.status}
+            {analysis.status === "running" ? "Memproses..." : analysis.message ?? analysis.status}
           </span>
         )}
 
         <button
           type="button"
           className={styles.analyzeButton}
-          onClick={runAnalysis}
-          disabled={isEmpty || isRunning}
+          onClick={() => void handleGenerate()}
+          disabled={!hasProcessNode || isRunning}
         >
           {isRunning ? "Memproses…" : "Generate Digital Twin"}
         </button>

@@ -1,14 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { setSimulationFactoryId } from "../features/simulation/api/simulationApi";
 
 export function SimulationPage() {
+  const [searchParams] = useSearchParams();
+  const factoryId = searchParams.get("factoryId");
+
   const [isRunning, setIsRunning] = useState(false);
   const [simSpeed, setSimSpeed] = useState("1x");
+
+  // Set factoryId ke module-scope API sebelum simulasi bisa dijalankan
+  useEffect(() => {
+    if (factoryId) {
+      setSimulationFactoryId(factoryId);
+    } else {
+      console.warn("Peringatan: factoryId tidak ditemukan di URL query parameters.");
+    }
+  }, [factoryId]);
 
   const simulationParams = [
     { label: "Target Production", value: "1,200 units/day" },
     { label: "Estimated Bottleneck", value: "Assembly Station 3" },
     { label: "Energy Consumption", value: "420 kWh" },
   ];
+
+  const handleToggleSimulation = () => {
+    if (!factoryId) {
+      alert("Tidak dapat memulai simulasi: factoryId tidak valid.");
+      return;
+    }
+    setIsRunning(!isRunning);
+  };
 
   return (
     <div className="p-6 space-y-6 text-slate-100">
@@ -26,7 +48,8 @@ export function SimulationPage() {
           <select
             value={simSpeed}
             onChange={(e) => setSimSpeed(e.target.value)}
-            className="bg-slate-800 border border-slate-700 text-sm text-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+            disabled={!factoryId || isRunning} // Opsional: disable ganti speed saat jalan/error
+            className="bg-slate-800 border border-slate-700 text-sm text-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500 disabled:opacity-50"
           >
             <option value="0.5x font-mono">0.5x Speed</option>
             <option value="1x">1.0x Speed</option>
@@ -36,8 +59,9 @@ export function SimulationPage() {
 
           <button
             type="button"
-            onClick={() => setIsRunning(!isRunning)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            onClick={handleToggleSimulation}
+            disabled={!factoryId}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
               isRunning
                 ? "bg-amber-600 hover:bg-amber-500 text-white"
                 : "bg-blue-600 hover:bg-blue-500 text-white"
@@ -87,7 +111,9 @@ export function SimulationPage() {
         </div>
         <h3 className="text-lg font-semibold text-white">3D / Node Canvas Visualizer</h3>
         <p className="text-slate-400 text-sm max-w-md mt-1">
-          {isRunning
+          {!factoryId 
+            ? "Menunggu factoryId dari URL..."
+            : isRunning
             ? "Simulasi alur produksi sedang berjalan secara virtual..."
             : "Tekan 'Start Simulation' untuk menjalankan kalkulasi alur kerja dan prediksi kemacetan."}
         </p>

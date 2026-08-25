@@ -1,50 +1,46 @@
 import { useMemo } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/app/router/routes';
-import { ParseStatusBanner } from '@/features/document-parser/components/ParseStatusBanner';
+import { ParseStatusBanner, type JobBuildStatus } from '@/features/document-parser/components/ParseStatusBanner';
 import { ParsedDataInspector } from '@/features/document-parser/components/ParsedDataInspector';
-import { useDocumentJsonParser } from '@/features/document-parser/hooks/useDocumentJsonParser';
-import type { DocumentParserPageLocationState } from '@/features/document-parser/types/documentParser.types';
+import { useFactoryBuildStatus } from '@/features/document-parser/hooks/useFactoryBuildStatus';
 import styles from './DocumentParserPage.module.css';
 
 /**
- * DocumentParserPage kini murni sebuah "processor": tidak ada lagi daftar
- * factory maupun langkah pemilihan/penambahan factory untuk melihat Digital
- * Twin. Halaman ini selalu langsung berada dalam mode running/processing,
- * mengolah `documentPayload` (hasil upload + ekstraksi di DashboardPage)
- * yang dibawa lewat route state.
+ * DocumentParserPage kini menjadi "real job-progress view".
+ * Halaman ini memonitor status factory dan compatibility job dari API,
+ * menggunakan parameter URL (factoryId dan jobId), dan melakukan polling progres.
  */
 export function DocumentParserPage() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  const documentPayload =
-    (location.state as DocumentParserPageLocationState | undefined)?.documentPayload ?? null;
+  // Mengambil ID dari URL
+  const factoryId = searchParams.get('factoryId');
+  const compatibilityJobId = searchParams.get('jobId');
 
-  const { steps, jobStatus, result, errorMessage, retry, hasPayload } =
-    useDocumentJsonParser(documentPayload);
+  // Menggunakan hook real-time baru
+  const { steps, jobStatus, summary, errorMessage, retry, hasContext } =
+    useFactoryBuildStatus(factoryId, compatibilityJobId);
 
+  // Menampilkan ringkasan berdasarkan FactorySummary dari API
   const resultSummary = useMemo(
     () =>
-      result
-        ? `${result.workersParsed} pekerja & ${result.jobDesksParsed} job desk berhasil diparsing.`
+      summary
+        ? `${summary.workersCount} pekerja & ${summary.jobDesksCount} job desk tersimpan.`
         : undefined,
-    [result]
+    [summary]
   );
 
-  // --- PEMBARUAN: Penambahan parameter &mock=true atau ?mock=true ---
+  // Navigasi ke Digital Twin menggunakan factoryId murni (tanpa mock=true)
   const handleProceedToDigitalTwin = () => {
-    const targetId = result?.factoryId || result?.simulationId || result?.jobId;
-    if (targetId) {
-      navigate(`${ROUTES.DIGITAL_TWIN}?factory_id=${targetId}&mock=true`);
-    } else {
-      navigate(`${ROUTES.DIGITAL_TWIN}?mock=true`);
+    if (factoryId) {
+      navigate(`${ROUTES.DIGITAL_TWIN}?factoryId=${encodeURIComponent(factoryId)}`);
+      return;
     }
+    navigate(ROUTES.DASHBOARD);
   };
-  // ------------------------------------------------------------------
 
-  // Upload & ekstraksi dokumen dilakukan di DashboardPage; hasilnya (JSON)
-  // dikirim ke sini lewat navigate(ROUTES.PARSER, { state: { documentPayload } }).
   const handleBackToDashboard = () => {
     navigate(ROUTES.DASHBOARD);
   };
@@ -57,7 +53,7 @@ export function DocumentParserPage() {
             <span className={styles.eyebrow}>Document Ingestion</span>
             <h1 className={styles.title}>Memproses Factory Baru</h1>
             <p className={styles.subtitle}>
-              Data hasil ekstraksi sedang diproses melalui pipeline tahap 1 - 5.
+              Data sedang diproses dan divalidasi oleh sistem.
             </p>
           </div>
           {jobStatus !== 'running' && (
@@ -68,23 +64,23 @@ export function DocumentParserPage() {
         </div>
       </header>
 
-      {!hasPayload ? (
+      {!hasContext ? (
         <ParseStatusBanner
           steps={steps}
           jobStatus="error"
-          errorMessage="Tidak ada data hasil ekstraksi yang diterima. Silakan unggah ulang dokumen dari Dashboard."
+          errorMessage="Parameter Factory ID tidak ditemukan di URL. Silakan mulai proses kembali dari Dashboard."
         />
       ) : (
         <ParseStatusBanner
           steps={steps}
-          jobStatus={jobStatus}
+          jobStatus={jobStatus as JobBuildStatus}
           resultSummary={resultSummary}
           errorMessage={errorMessage}
         />
       )}
 
       <section className={styles.actionRow}>
-        {!hasPayload && (
+        {!hasContext && (
           <button type="button" className={styles.parseButton} onClick={handleBackToDashboard}>
             Kembali ke Dashboard
           </button>
@@ -113,8 +109,9 @@ export function DocumentParserPage() {
         )}
       </section>
 
-      {jobStatus === 'success' && result && (
-        <ParsedDataInspector result={result} onProceed={handleProceedToDigitalTwin} />
+      {/* Melempar 'summary' sebagai result ke Inspector */}
+      {jobStatus === 'success' && summary && (
+        <ParsedDataInspector result={summary} onProceed={handleProceedToDigitalTwin} />
       )}
     </div>
   );

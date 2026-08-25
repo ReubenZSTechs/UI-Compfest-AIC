@@ -2,9 +2,9 @@
 import { useSimulationStore } from "../store/simulationStore";
 import styles from "./SimulationSummaryPanel.module.css";
 
-function formatIdr(value: number) {
-  return `Rp${Math.round(value || 0).toLocaleString("id-ID")}`;
-}
+// function formatIdr(value: number) {
+//   return `Rp${Math.round(value || 0).toLocaleString("id-ID")}`;
+// }
 
 export function SimulationSummaryPanel({ isMock }: { isMock?: boolean }) {
   const data = useSimulationStore((s) => s.data);

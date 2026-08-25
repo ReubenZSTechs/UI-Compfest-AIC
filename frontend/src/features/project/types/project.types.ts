@@ -10,6 +10,10 @@ import type {
   CanvasFlowNode,
   CanvasTemplateId,
   OperationalLimits,
+  CanvasFactoryMeta,
+  CanvasShift,
+  CanvasSimulationSettings,
+  CanvasWorkerProfile
 } from "@/features/canvas/types/canvas.types";
 
 /** Tahap aktif alur kerja — dipakai untuk resume saat draft dibuka lagi. */
@@ -32,6 +36,7 @@ export interface OptimizationData {
 export interface ProjectDraft {
   projectId: string;
   templateId: CanvasTemplateId;
+  factoryId: string | null;
   title: string;
   currentStep: ProjectStep;
   lastUpdated: string;
@@ -39,10 +44,13 @@ export interface ProjectDraft {
   canvasData: {
     nodes: CanvasFlowNode[];
     edges: CanvasFlowEdge[];
+    factoryMeta: CanvasFactoryMeta;
+    shifts: CanvasShift[];
+    simulationSettings: CanvasSimulationSettings;
+    workerPool: CanvasWorkerProfile[];
+    workerAssignments: Record<string, string[]>;
   };
-  liveData: {
-    chatHistory: AgentChatMessage[];
-  };
+  liveData: { chatHistory: AgentChatMessage[] };
   agentData: {
     chatHistory: AgentChatMessage[];
     operationalSettings: OperationalLimits;

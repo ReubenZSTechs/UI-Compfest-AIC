@@ -12,6 +12,7 @@ import { Toolbar } from "@/components/feedback/Toolbar";
 import { AccountMenu } from "@/components/feedback/AccountMenu";
 import { LiveAgentSwitcher } from "@/features/canvas/components/LiveAgentSwitcher";
 import { OperationalSettingsModal } from "@/features/canvas/components/OperationalSettingsModal";
+import { WorkerMappingModal } from "@/features/canvas/components/WorkerMappingModal"; // <-- Tambahan: Import komponen
 import { useCanvasSessionInit } from "@/features/canvas/hooks/useCanvasSessionInit";
 import { useExitConfirm } from "@/features/canvas/hooks/useExitConfirm";
 import { useDraftAutoSync } from "@/hooks/useDraftAutoSync";
@@ -47,6 +48,7 @@ export function CanvasPage() {
         <SidebarDetail />
 
         <OperationalSettingsModal />
+        <WorkerMappingModal /> {/* <-- Tambahan: Render komponen */}
 
         {guard}
       </div>

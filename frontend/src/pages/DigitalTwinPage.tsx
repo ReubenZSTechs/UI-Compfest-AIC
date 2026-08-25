@@ -28,12 +28,6 @@ export function DigitalTwinPage() {
     searchParams.get("job_id") ||
     undefined;
 
-  // --- PEMBARUAN 1: Deteksi parameter mock=success atau mock=true di URL ---
-  const isMockMode = 
-    searchParams.get("mock") === "success" || 
-    searchParams.get("mock") === "true";
-  // -------------------------------------------------------------------------
-
   const { data, isLoading, isFetched, error } = useDigitalTwin(factoryId);
 
   // Validasi keberadaan data hasil parsing
@@ -201,8 +195,6 @@ export function DigitalTwinPage() {
         <div>
           <span className={styles.eyebrow}>
             Digital Twin {factoryId ? `(ID: ${factoryId})` : ""}
-            {/* Indikator UI untuk Mock Mode */}
-            {isMockMode && <span style={{ color: "var(--twin-accent-warning)", marginLeft: "8px" }}>[MOCK MODE]</span>}
           </span>
           <h1 className={styles.factoryName}>
             {data.factoryInfo?.factoryName ?? "Digital Twin Pabrik"}
@@ -239,17 +231,14 @@ export function DigitalTwinPage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Live Simulation</h2>
-          {/* --- PEMBARUAN 2: Melempar prop isMockMode ke SimulationControls --- */}
-          <SimulationControls isMock={isMockMode} />
+          <SimulationControls />
         </div>
         <div className={simulationSectionStyles.simulationGrid}>
-          {/* --- PEMBARUAN 3: Melempar prop isMockMode ke Flowchart dan Summary Panel --- */}
           <SimulationFlowchart 
             workerNames={workerNames} 
             jobTitles={jobTitles} 
-            isMock={isMockMode} 
           />
-          <SimulationSummaryPanel isMock={isMockMode} />
+          <SimulationSummaryPanel />
         </div>
       </section>
 
@@ -346,4 +335,4 @@ export function DigitalTwinPage() {
       </section>
     </div>
   );
-}
+} 
