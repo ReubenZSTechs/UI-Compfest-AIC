@@ -9,23 +9,18 @@ import { CanvasBoard } from "@/features/canvas/components/CanvasBoard";
 import { CanvasHeader } from "@/features/canvas/components/CanvasHeader";
 import { SidebarDetail } from "@/features/canvas/components/SidebarDetail";
 import { Toolbar } from "@/components/feedback/Toolbar";
-import { AccountMenu } from "@/components/feedback/AccountMenu";
 import { LiveAgentSwitcher } from "@/features/canvas/components/LiveAgentSwitcher";
 import { OperationalSettingsModal } from "@/features/canvas/components/OperationalSettingsModal";
-import { WorkerMappingModal } from "@/features/canvas/components/WorkerMappingModal"; // <-- Tambahan: Import komponen
+import { WorkerMappingModal } from "@/features/canvas/components/WorkerMappingModal";
 import { useCanvasSessionInit } from "@/features/canvas/hooks/useCanvasSessionInit";
 import { useExitConfirm } from "@/features/canvas/hooks/useExitConfirm";
 import { useDraftAutoSync } from "@/hooks/useDraftAutoSync";
 import styles from "./Canvaspage.module.css";
 
 export function CanvasPage() {
-  // Inisialisasi/muat draft terpadu (idempotent terhadap tab switch).
   useCanvasSessionInit("canvas");
-
-  // Setiap perubahan working state otomatis disinkronkan ke ProjectDraft aktif.
   useDraftAutoSync();
 
-  // Konfirmasi save/keluar saat tombol kembali ditekan.
   const { handleBackClick, guard } = useExitConfirm();
 
   return (
@@ -34,8 +29,6 @@ export function CanvasPage() {
         <CanvasBoard />
 
         <CanvasHeader onBackClick={handleBackClick} />
-
-        <AccountMenu />
 
         <div className={styles.switcherLayer}>
           <LiveAgentSwitcher />
@@ -48,7 +41,7 @@ export function CanvasPage() {
         <SidebarDetail />
 
         <OperationalSettingsModal />
-        <WorkerMappingModal /> {/* <-- Tambahan: Render komponen */}
+        <WorkerMappingModal />
 
         {guard}
       </div>

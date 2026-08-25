@@ -1,6 +1,6 @@
 // frontend/src/pages/IntroPage.tsx
-// Halaman 1: Introduction — pengenalan aplikasi, panduan singkat,
-// pilihan template canvas, dan CTA "Mulai Desain Canvas".
+// Introduction & Template Selector: choose a workflow layout template
+// and launch the interactive canvas.
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ROUTES } from "@/app/router/routes";
@@ -14,26 +14,41 @@ import styles from "./IntroPage.module.css";
 
 const TEMPLATE_IDS: CanvasTemplateId[] = ["blank", "serial", "parallel"];
 
+const TEMPLATE_INFO: Record<CanvasTemplateId, { title: string; desc: string }> = {
+  blank: {
+    title: "Blank Canvas",
+    desc: "Start from scratch with a clean, unpopulated layout board.",
+  },
+  serial: {
+    title: "Serial Flow",
+    desc: "Linear sequence of sequential workstations with assigned operators.",
+  },
+  parallel: {
+    title: "Parallel Flow",
+    desc: "Branching workflow with simultaneous concurrent operations.",
+  },
+};
+
 const GUIDE_STEPS = [
   {
-    title: "1 · Gambar Alur Kerja",
+    title: "1 · Map Out Stations",
     description:
-      "Klik toolbar 'Tambah Proses' lalu klik kanvas untuk menaruh stasiun kerja. Susun secara seri atau paralel.",
+      "Click 'Add Process' and place workstations on your canvas. Arrange sequentially or branch into parallel lines.",
   },
   {
-    title: "2 · Tambahkan Pekerja",
+    title: "2 · Assign Staff & Machines",
     description:
-      "Tambah node pekerja, lalu tarik garis ASSIGNED_TO dari pekerja menuju proses yang dikerjakan.",
+      "Add worker and equipment nodes, then connect ASSIGNED_TO lines to their respective workstations.",
   },
   {
-    title: "3 · Hubungkan Relasi",
+    title: "3 · Connect Material Flow",
     description:
-      "Hubungkan proses ke proses dengan garis FLOW untuk menunjukkan alur produksi.",
+      "Link processes together with directional FLOW arrows to represent product movement.",
   },
   {
-    title: "4 · Analisis AI",
+    title: "4 · Run AI Optimization",
     description:
-      "Saat layout sudah yakin, tekan 'Mulai Analisis AI'. Canvas mengirim JSON bersih & menampilkan status verifikasi.",
+      "Click 'Start AI Analysis'. Autonomous RL agents test thousands of scenarios and generate ranked improvement cards.",
   },
 ];
 
@@ -61,39 +76,38 @@ export function IntroPage() {
   return (
     <div className={styles.page}>
       {/* Hero */}
-<section className={styles.hero}>
-        <span className={styles.eyebrow}>Smart Manufacturing · Interactive Canvas Workspace</span>
+      <section className={styles.hero}>
+        <span className={styles.eyebrow}>
+          Smart Manufacturing · Interactive Canvas Workspace
+        </span>
         <h1 className={styles.title}>
-          Desain Alur Pabrikmu, <span className={styles.accent}>Lalu Biarkan AI Bekerja</span>
+          Design your own <span className={styles.accent}>Business Map</span>
         </h1>
-        <p className={styles.subtitle}>
-          Dari form statis ke papan desain bebas (mirip Miro). Susun proses, tugaskan pekerja,
-          tarik garis relasi — tanpa API call. Eksekusi AI hanya terjadi saat kamu menekan
-          <strong> "Mulai Analisis AI"</strong>, dengan payload JSON yang bersih dari data visual.
-        </p>
-        
-        {/* Tombol Aksi */}
+
+        {/* Action Buttons */}
         <div className={styles.heroActions}>
           <button type="button" className={styles.cta} onClick={startCanvas}>
-            Mulai Desain Canvas →
+            Start Canvas Design →
           </button>
-          <Link 
-            to={ROUTES.DASHBOARD ?? "/dashboard"} 
+          <Link
+            to={ROUTES.DASHBOARD ?? "/dashboard"}
             className={styles.dashboardBtn}
           >
-            Lihat Saved Drafts / Dashboard
+            Saved Drafts / Dashboard
           </Link>
         </div>
       </section>
 
       {/* Template picker */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Pilih Template Awal</h2>
+        <h2 className={styles.sectionTitle}>Choose a Starting Template</h2>
         <div className={styles.templateGrid}>
           {TEMPLATE_IDS.map((id) => {
-            const meta = TEMPLATE_META[id];
+            const meta = TEMPLATE_INFO[id] || TEMPLATE_META[id];
             const counts = CANVAS_TEMPLATES[id]();
-            const processCount = counts.nodes.filter((n) => n.data.kind === "process").length;
+            const processCount = counts.nodes.filter(
+              (n) => n.data.kind === "process"
+            ).length;
             const workerCount = counts.nodes.length - processCount;
             const edgeCount = counts.edges.length;
 
@@ -107,11 +121,15 @@ export function IntroPage() {
                 onClick={() => setSelectedTemplate(id)}
                 aria-pressed={selectedTemplate === id}
               >
-                <span className={styles.templateBadge}>{edgeCount} relasi</span>
+                <span className={styles.templateBadge}>
+                  {edgeCount} connections
+                </span>
                 <h3 className={styles.templateTitle}>{meta.title}</h3>
-                <p className={styles.templateDesc}>{meta.description}</p>
+                <p className={styles.templateDesc}>{meta.desc}</p>
                 <div className={styles.templatePreview} aria-hidden="true">
-                  {id === "blank" && <span className={styles.previewBlank}>Kanvas kosong</span>}
+                  {id === "blank" && (
+                    <span className={styles.previewBlank}>Empty Canvas</span>
+                  )}
                   {id === "serial" && (
                     <div className={styles.previewRow}>
                       {Array.from({ length: processCount }).map((_, i) => (
@@ -134,20 +152,24 @@ export function IntroPage() {
                   )}
                 </div>
                 <span className={styles.templateMeta}>
-                  {processCount} proses · {workerCount} pekerja
+                  {processCount} processes · {workerCount} workers
                 </span>
               </button>
             );
           })}
         </div>
-        <button type="button" className={styles.secondaryCta} onClick={startCanvas}>
-          Mulai dengan Template Terpilih →
+        <button
+          type="button"
+          className={styles.secondaryCta}
+          onClick={startCanvas}
+        >
+          Launch Selected Template →
         </button>
       </section>
 
-      {/* Panduan singkat */}
+      {/* Guide Steps */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Cara Kerja dalam 4 Langkah</h2>
+        <h2 className={styles.sectionTitle}>How It Works in 4 Steps</h2>
         <div className={styles.guideGrid}>
           {GUIDE_STEPS.map((step) => (
             <div key={step.title} className={styles.guideCard}>
