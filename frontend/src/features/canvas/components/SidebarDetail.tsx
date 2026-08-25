@@ -4,13 +4,10 @@
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { WorkerCard } from "@/features/digital-twin/components/WorkerCard";
 import { resolveProcessSpecs } from "../utils/processSpecs";
-import { FieldModeToggle } from "./FieldModeToggle";
-import type {
-  AutofillFieldKey,
-  CanvasFlowNode,
-  CanvasProcessData,
-  FieldFillMode,
-} from "../types/canvas.types";
+import { AutoField } from "./AutoField";
+import { FieldAutoToggle } from "./FieldAutoToggle";
+import { useFieldAutofill } from "../hooks/useFieldAutofill";
+import type { CanvasFlowNode } from "../types/canvas.types";
 import styles from "./SidebarDetail.module.css";
 
 const NODE_EYEBROW: Record<string, string> = {
@@ -88,54 +85,30 @@ interface DetailProps {
 
 function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
   const shifts = useCanvasUIStore((s) => s.shifts);
+  const auto = useFieldAutofill(node.id);
+  
   if (node.data.kind !== "process") return null;
   const d = node.data;
-
+  
   const index = useCanvasUIStore
     .getState()
     .nodes.filter((n) => n.data.kind === "process")
     .findIndex((n) => n.id === node.id);
-
+    
   const { stage, asset, job } = resolveProcessSpecs(node, Math.max(0, index));
-
+  
   function patchStage(patch: Partial<typeof stage>) {
     updateNodeData(node.id, { stage: { ...stage, ...patch } });
   }
-
+  
   function patchAsset(patch: Partial<typeof asset>) {
     updateNodeData(node.id, { asset: { ...asset, ...patch } });
   }
-
+  
   function patchJob(patch: Partial<typeof job>) {
     updateNodeData(node.id, { job: { ...job, ...patch } });
   }
-
-  const autoFields = (d as CanvasProcessData).autoFields ?? {};
   
-  function modeOf(key: AutofillFieldKey): FieldFillMode {
-    return autoFields[key] === "auto" ? "auto" : "manual";
-  }
-  
-  function isAuto(key: AutofillFieldKey): boolean {
-    return modeOf(key) === "auto";
-  }
-  
-  function setFieldMode(key: AutofillFieldKey, mode: FieldFillMode) {
-    snapshot();
-    updateNodeData(node.id, { autoFields: { ...autoFields, [key]: mode } });
-  }
-  
-  function fieldToggle(key: AutofillFieldKey) {
-    return (
-      <FieldModeToggle
-        fieldKey={key}
-        nodeId={node.id}
-        mode={modeOf(key)}
-        onChange={(mode) => setFieldMode(key, mode)}
-      />
-    );
-  }
-
   function applySkills(text: string) {
     const skills = text
       .split(",")
@@ -143,7 +116,17 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
       .filter(Boolean);
     updateNodeData(node.id, { requiredSkills: skills });
   }
-
+  
+  function toList(text: string): string[] {
+    return text
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  
+  const demandsLocked = auto.isAuto("demands");
+  const demandsError = auto.errorOf("demands");
+  
   return (
     <div className={styles.form}>
       <label className={styles.field}>
@@ -156,23 +139,29 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
           onChange={(event) => updateNodeData(node.id, { label: event.target.value })}
         />
       </label>
-
-      <label className={styles.field}>
-        <span className={styles.fieldLabel}>
-          Skill yang Dibutuhkan <em>(pisahkan dengan koma)</em>
-          {fieldToggle("requiredSkills")}
-        </span>
-        <input
-          type="text"
-          className={styles.input}
-          value={isAuto("requiredSkills") ? "" : d.requiredSkills.join(", ")}
-          onFocus={snapshot}
-          disabled={isAuto("requiredSkills")}
-          placeholder={isAuto("requiredSkills") ? "Auto" : "Contoh: Sewing, Cutting"}
-          onChange={(event) => applySkills(event.target.value)}
-        />
-      </label>
-
+      
+      <AutoField
+        label={
+          <>
+            Skill yang Dibutuhkan <em>(pisahkan dengan koma)</em>
+          </>
+        }
+        fieldKey="requiredSkills"
+        auto={auto}
+      >
+        {(locked) => (
+          <input
+            type="text"
+            className={styles.input}
+            value={d.requiredSkills.join(", ")}
+            readOnly={locked}
+            onFocus={snapshot}
+            placeholder="Contoh: Sewing, Cutting"
+            onChange={(event) => applySkills(event.target.value)}
+          />
+        )}
+      </AutoField>
+      
       <label className={styles.field}>
         <span className={styles.fieldLabel}>Target Output (unit/jam)</span>
         <input
@@ -186,45 +175,52 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
           }
         />
       </label>
-
+      
       <fieldset className={styles.group}>
         <legend className={styles.groupLegend}>Process Stage</legend>
-
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>
-            Lane
-            {fieldToggle("lane")}
-          </span>
-          <input
-            type="text"
-            className={styles.input}
-            value={isAuto("lane") ? "" : stage.lane}
-            onFocus={snapshot}
-            disabled={isAuto("lane")}
-            placeholder={isAuto("lane") ? "Auto" : ""}
-            onChange={(event) => patchStage({ lane: event.target.value })}
-          />
-        </label>
-
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>
-            Cycle Time (detik)
-            {fieldToggle("cycleTimeSeconds")}
-          </span>
-          <input
-            type="number"
-            min={1}
-            className={styles.input}
-            value={isAuto("cycleTimeSeconds") ? "" : stage.cycleTimeSeconds}
-            onFocus={snapshot}
-            disabled={isAuto("cycleTimeSeconds")}
-            placeholder={isAuto("cycleTimeSeconds") ? "Auto" : ""}
-            onChange={(event) =>
-              patchStage({ cycleTimeSeconds: Number(event.target.value) || 1 })
-            }
-          />
-        </label>
-
+        
+        <AutoField label="Lane" fieldKey="lane" auto={auto}>
+          {(locked) => (
+            <input
+              type="text"
+              className={styles.input}
+              value={stage.lane}
+              readOnly={locked}
+              onFocus={snapshot}
+              onChange={(event) => patchStage({ lane: event.target.value })}
+            />
+          )}
+        </AutoField>
+        
+        <AutoField label="Tugas Operator" fieldKey="operatorTask" auto={auto}>
+          {(locked) => (
+            <input
+              type="text"
+              className={styles.input}
+              value={stage.operatorTask}
+              readOnly={locked}
+              onFocus={snapshot}
+              onChange={(event) => patchStage({ operatorTask: event.target.value })}
+            />
+          )}
+        </AutoField>
+        
+        <AutoField label="Cycle Time (detik)" fieldKey="cycleTimeSeconds" auto={auto}>
+          {(locked) => (
+            <input
+              type="number"
+              min={1}
+              className={styles.input}
+              value={stage.cycleTimeSeconds}
+              readOnly={locked}
+              onFocus={snapshot}
+              onChange={(event) =>
+                patchStage({ cycleTimeSeconds: Number(event.target.value) || 1 })
+              }
+            />
+          )}
+        </AutoField>
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Flow Type</span>
           <select
@@ -238,73 +234,49 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             <option value="continuous">Continuous</option>
           </select>
         </label>
-
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>
-            Material Input (koma)
-            {fieldToggle("materialInput")}
-          </span>
-          <input
-            type="text"
-            className={styles.input}
-            value={isAuto("materialInput") ? "" : stage.materialInput.join(", ")}
-            onFocus={snapshot}
-            disabled={isAuto("materialInput")}
-            placeholder={isAuto("materialInput") ? "Auto" : ""}
-            onChange={(event) =>
-              patchStage({
-                materialInput: event.target.value
-                  .split(",")
-                  .map((item) => item.trim())
-                  .filter(Boolean),
-              })
-            }
-          />
-        </label>
-
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>
-            Material Output (koma)
-            {fieldToggle("materialOutput")}
-          </span>
-          <input
-            type="text"
-            className={styles.input}
-            value={isAuto("materialOutput") ? "" : stage.materialOutput.join(", ")}
-            onFocus={snapshot}
-            disabled={isAuto("materialOutput")}
-            placeholder={isAuto("materialOutput") ? "Auto" : ""}
-            onChange={(event) =>
-              patchStage({
-                materialOutput: event.target.value
-                  .split(",")
-                  .map((item) => item.trim())
-                  .filter(Boolean),
-              })
-            }
-          />
-        </label>
-
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>
-            QC Requirement
-            {fieldToggle("qcRequirement")}
-          </span>
-          <input
-            type="text"
-            className={styles.input}
-            value={isAuto("qcRequirement") ? "" : stage.qcRequirement}
-            onFocus={snapshot}
-            disabled={isAuto("qcRequirement")}
-            placeholder={isAuto("qcRequirement") ? "Auto" : ""}
-            onChange={(event) => patchStage({ qcRequirement: event.target.value })}
-          />
-        </label>
+        
+        <AutoField label="Material Input (koma)" fieldKey="materialInput" auto={auto}>
+          {(locked) => (
+            <input
+              type="text"
+              className={styles.input}
+              value={stage.materialInput.join(", ")}
+              readOnly={locked}
+              onFocus={snapshot}
+              onChange={(event) => patchStage({ materialInput: toList(event.target.value) })}
+            />
+          )}
+        </AutoField>
+        
+        <AutoField label="Material Output (koma)" fieldKey="materialOutput" auto={auto}>
+          {(locked) => (
+            <input
+              type="text"
+              className={styles.input}
+              value={stage.materialOutput.join(", ")}
+              readOnly={locked}
+              onFocus={snapshot}
+              onChange={(event) => patchStage({ materialOutput: toList(event.target.value) })}
+            />
+          )}
+        </AutoField>
+        
+        <AutoField label="QC Requirement" fieldKey="qcRequirement" auto={auto}>
+          {(locked) => (
+            <input
+              type="text"
+              className={styles.input}
+              value={stage.qcRequirement}
+              readOnly={locked}
+              onFocus={snapshot}
+              onChange={(event) => patchStage({ qcRequirement: event.target.value })}
+            />
+          )}
+        </AutoField>
       </fieldset>
-
+      
       <fieldset className={styles.group}>
         <legend className={styles.groupLegend}>Asset</legend>
-
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Nama Asset</span>
           <input
@@ -315,7 +287,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             onChange={(event) => patchAsset({ assetName: event.target.value })}
           />
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Kategori</span>
           <select
@@ -332,7 +304,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             <option value="environmental_chamber">Environmental Chamber</option>
           </select>
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Unit Tersedia</span>
           <input
@@ -346,7 +318,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             }
           />
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Level Otomasi</span>
           <select
@@ -362,7 +334,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             <option value="automated">Automated</option>
           </select>
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Biaya Operasional / Jam</span>
           <input
@@ -376,7 +348,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             }
           />
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Tingkat Kebisingan (dB)</span>
           <input
@@ -395,7 +367,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             }
           />
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Physical Strain Index (0-1)</span>
           <input
@@ -417,26 +389,23 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
           />
         </label>
       </fieldset>
-
+      
       <fieldset className={styles.group}>
         <legend className={styles.groupLegend}>Job Desk</legend>
-
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>
-            Judul Pekerjaan
-            {fieldToggle("jobTitle")}
-          </span>
-          <input
-            type="text"
-            className={styles.input}
-            value={isAuto("jobTitle") ? "" : job.jobTitle}
-            onFocus={snapshot}
-            disabled={isAuto("jobTitle")}
-            placeholder={isAuto("jobTitle") ? "Auto" : ""}
-            onChange={(event) => patchJob({ jobTitle: event.target.value })}
-          />
-        </label>
-
+        
+        <AutoField label="Judul Pekerjaan" fieldKey="jobTitle" auto={auto}>
+          {(locked) => (
+            <input
+              type="text"
+              className={styles.input}
+              value={job.jobTitle}
+              readOnly={locked}
+              onFocus={snapshot}
+              onChange={(event) => patchJob({ jobTitle: event.target.value })}
+            />
+          )}
+        </AutoField>
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Shift</span>
           <select
@@ -451,37 +420,45 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             ))}
           </select>
         </label>
-
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>
-            Headcount
-            {fieldToggle("headcount")}
-          </span>
-          <input
-            type="number"
-            min={1}
-            className={styles.input}
-            value={isAuto("headcount") ? "" : job.headcount}
-            onFocus={snapshot}
-            disabled={isAuto("headcount")}
-            placeholder={isAuto("headcount") ? "Auto" : ""}
-            onChange={(event) => patchJob({ headcount: Number(event.target.value) || 1 })}
-          />
-        </label>
+        
+        <AutoField label="Headcount" fieldKey="headcount" auto={auto}>
+          {(locked) => (
+            <input
+              type="number"
+              min={1}
+              className={styles.input}
+              value={job.headcount}
+              readOnly={locked}
+              onFocus={snapshot}
+              onChange={(event) => patchJob({ headcount: Number(event.target.value) || 1 })}
+            />
+          )}
+        </AutoField>
       </fieldset>
-
+      
       <fieldset className={styles.group}>
         <legend className={styles.groupLegend}>
           Beban Kerja (Demands)
-          {fieldToggle("demands")}
+          <FieldAutoToggle
+            nodeId={node.id}
+            fieldKey="demands"
+            checked={demandsLocked}
+            status={auto.statusOf("demands")}
+            onChange={(next) => auto.toggleField("demands", next)}
+          />
         </legend>
+        
+        {auto.statusOf("demands") === "loading" && (
+          <span className={styles.autoNote}>Agent sedang mengisi…</span>
+        )}
+        {demandsError && <span className={styles.autoError}>{demandsError}</span>}
         
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Beban Fisik</span>
           <select
             className={styles.input}
             value={job.demands.physicalDemandLevel}
-            disabled={isAuto("demands")}
+            disabled={demandsLocked}
             onChange={(event) =>
               patchJob({
                 demands: {
@@ -496,7 +473,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             <option value="high">High</option>
           </select>
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Kompleksitas Tugas (0-1)</span>
           <input
@@ -505,10 +482,9 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             max={1}
             step={0.05}
             className={styles.input}
-            value={isAuto("demands") ? "" : job.demands.taskComplexity}
+            value={job.demands.taskComplexity}
+            readOnly={demandsLocked}
             onFocus={snapshot}
-            disabled={isAuto("demands")}
-            placeholder={isAuto("demands") ? "Auto" : ""}
             onChange={(event) =>
               patchJob({
                 demands: { ...job.demands, taskComplexity: Number(event.target.value) || 0 },
@@ -516,7 +492,7 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             }
           />
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Fokus Kognitif (0-1)</span>
           <input
@@ -525,10 +501,9 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             max={1}
             step={0.05}
             className={styles.input}
-            value={isAuto("demands") ? "" : job.demands.requiredCognitiveFocus}
+            value={job.demands.requiredCognitiveFocus}
+            readOnly={demandsLocked}
             onFocus={snapshot}
-            disabled={isAuto("demands")}
-            placeholder={isAuto("demands") ? "Auto" : ""}
             onChange={(event) =>
               patchJob({
                 demands: {
@@ -539,13 +514,13 @@ function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
             }
           />
         </label>
-
+        
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Severity Kesalahan</span>
           <select
             className={styles.input}
             value={job.demands.errorSeverity}
-            disabled={isAuto("demands")}
+            disabled={demandsLocked}
             onChange={(event) =>
               patchJob({
                 demands: {

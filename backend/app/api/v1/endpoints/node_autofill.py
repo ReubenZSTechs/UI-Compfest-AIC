@@ -33,6 +33,7 @@ AutofillField = Literal[
     "headcount",
     "lane",
     "job_title",
+    "demands",
 ]
 
 

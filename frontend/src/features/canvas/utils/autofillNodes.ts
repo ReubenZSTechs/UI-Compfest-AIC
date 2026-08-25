@@ -12,7 +12,7 @@ import type {
 
 const MAX_CONCURRENCY = 4;
 
-const TARGET_FIELD_BY_KEY: Record<AutofillFieldKey, string> = {
+export const TARGET_FIELD_BY_KEY: Record<AutofillFieldKey, string> = {
   requiredSkills: "required_skills",
   operatorTask: "operator_task",
   qcRequirement: "qc_requirement",
@@ -38,6 +38,30 @@ export interface AutofillNodesResult {
 }
 
 type Specs = ReturnType<typeof resolveProcessSpecs>;
+
+interface ProcessContext {
+  node: CanvasFlowNode;
+  specs: Specs;
+  nodes: CanvasFlowNode[];
+  edges: CanvasFlowEdge[];
+}
+
+function resolveContext(nodeId: string): ProcessContext | null {
+  const { nodes, edges } = useCanvasUIStore.getState();
+  const processNodes = nodes.filter((node) => node.data.kind === "process");
+  const index = processNodes.findIndex((node) => node.id === nodeId);
+
+  if (index < 0) return null;
+
+  const node = processNodes[index];
+  return { node, specs: resolveProcessSpecs(node, index), nodes, edges };
+}
+
+function isStillAuto(nodeId: string, key: AutofillFieldKey): boolean {
+  const node = useCanvasUIStore.getState().nodes.find((item) => item.id === nodeId);
+  if (!node || node.data.kind !== "process") return false;
+  return ((node.data as CanvasProcessData).autoFields ?? {})[key] === "auto";
+}
 
 function isEmptyText(value: string | undefined | null): boolean {
   return !value || value.trim().length === 0;
@@ -127,19 +151,19 @@ function buildRequest(
     headcount: specs.job.headcount || 1,
     upstreamNames: neighbourLabels(node.id, "up", nodes, edges),
     downstreamNames: neighbourLabels(node.id, "down", nodes, edges),
-    targetFields: pending
-      .filter((key) => key !== "demands")
-      .map((key) => TARGET_FIELD_BY_KEY[key]),
+    targetFields: pending.map((key) => TARGET_FIELD_BY_KEY[key]),
   };
 }
 
 function applyResponse(
   nodeId: string,
-  specs: Specs,
   pending: AutofillFieldKey[],
   response: NodeAutofillResponse
 ): void {
-  const store = useCanvasUIStore.getState();
+  const context = resolveContext(nodeId);
+  if (!context) return;
+
+  const { specs } = context;
   const wanted = new Set(pending);
   const suggested = response.suggestions;
 
@@ -192,7 +216,28 @@ function applyResponse(
     dataPatch.station = specs.station;
   }
 
-  store.updateNodeData(nodeId, dataPatch);
+  useCanvasUIStore.getState().updateNodeData(nodeId, dataPatch);
+}
+
+export async function autofillSingleField(
+  nodeId: string,
+  key: AutofillFieldKey
+): Promise<NodeAutofillResponse> {
+  const context = resolveContext(nodeId);
+  if (!context) throw new Error("Node proses tidak ditemukan.");
+
+  const { node, specs, nodes, edges } = context;
+  const pending: AutofillFieldKey[] = [key];
+
+  const response = await autofillNodeDemands(
+    buildRequest(node, specs, pending, nodes, edges)
+  );
+
+  if (isStillAuto(nodeId, key)) {
+    applyResponse(nodeId, pending, response);
+  }
+
+  return response;
 }
 
 async function runPool<T>(items: T[], worker: (item: T) => Promise<void>): Promise<void> {
@@ -240,7 +285,7 @@ export async function autofillCanvasNodes(
       const response = await autofillNodeDemands(
         buildRequest(node, specs, pending, nodes, edges)
       );
-      applyResponse(node.id, specs, pending, response);
+      applyResponse(node.id, pending, response);
       filledNodes += 1;
     } catch (error) {
       failures.push({

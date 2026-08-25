@@ -8,21 +8,6 @@
   color: var(--twin-text-primary);
   font-family: var(--twin-font-sans);
   overflow: hidden;
-
-  /* Light mode workspace (konsisten dengan Live / Agent). */
-  --twin-bg: #f3f5f8;
-  --twin-surface: #ffffff;
-  --twin-surface-raised: #edf0f4;
-  --twin-border: #d7dce3;
-  --twin-border-hover: #b7c0cb;
-  --twin-text-primary: #1b2129;
-  --twin-text-muted: #5c6572;
-  --twin-text-faint: #8b94a3;
-  --twin-accent-automated: #2d8a83;
-  --twin-accent-manual: #a37e18;
-  --twin-accent-danger: #c2402b;
-  --twin-accent-warning: #bf7d16;
-  --twin-accent-safe: #3d8c52;
 }
 
 /* Header minimal: back arrow | judul proyek | ikon profil */
@@ -45,7 +30,7 @@
   height: 38px;
   border: 1px solid var(--twin-border);
   border-radius: 50%;
-  background: var(--twin-surface);
+  background: var(--twin-surface-raised);
   color: var(--twin-text-muted);
   text-decoration: none;
   flex-shrink: 0;
@@ -76,7 +61,7 @@
   height: 38px;
   border: 1px solid var(--twin-border);
   border-radius: 50%;
-  background: var(--twin-surface);
+  background: var(--twin-surface-raised);
   color: var(--twin-text-muted);
   cursor: pointer;
   flex-shrink: 0;
@@ -141,26 +126,30 @@
   align-items: stretch;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 1.2rem;
+  gap: 1.5rem;
 }
 
 .card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.55rem;
-  width: 300px;
-  padding: 1.3rem;
-  border: 1px solid var(--twin-border);
+  gap: 0.65rem;
+  width: 310px;
+  padding: 1.5rem;
+  
+  /* PENTING: Membuat kartu sangat kontras dengan background gelap */
+  background: var(--twin-surface-raised); 
+  border: 2px solid var(--twin-border-hover); /* Stroke/garis tepi lebih tebal dan kontras */
   border-radius: 16px;
-  background: var(--twin-surface);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); /* Bayangan dalam mode gelap */
+  
   color: var(--twin-text-primary);
   text-align: left;
   cursor: pointer;
   font-family: var(--twin-font-sans);
   opacity: 0;
   animation: cardIn 0.5s ease forwards;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
 @keyframes cardIn {
@@ -175,8 +164,9 @@
 }
 
 .card:hover {
+  background: var(--twin-surface-hover);
   border-color: var(--twin-accent-automated);
-  box-shadow: 0 14px 32px rgba(16, 24, 40, 0.12);
+  box-shadow: 0 16px 35px rgba(59, 130, 246, 0.2); /* Efek glow biru tipis saat di-hover */
   transform: translateY(-4px);
 }
 
@@ -186,35 +176,37 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--twin-accent-automated);
-  background: rgba(45, 138, 131, 0.1);
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 9999px;
-  padding: 0.25rem 0.6rem;
+  padding: 0.25rem 0.65rem;
 }
 
 .cardTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
+  color: var(--twin-text-primary);
 }
 
 .cardBudget {
   margin: 0;
   font-family: var(--twin-font-mono);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: var(--twin-accent-automated);
 }
 
 .cardDesc {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   line-height: 1.6;
   color: var(--twin-text-muted);
 }
 
 .cardAction {
-  margin-top: 0.45rem;
-  font-size: 0.78rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--twin-accent-automated);
 }

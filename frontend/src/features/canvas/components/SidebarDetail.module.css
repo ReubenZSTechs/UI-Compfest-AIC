@@ -132,6 +132,11 @@
   border-color: var(--twin-accent-automated);
 }
 
+.input[readonly] {
+  background: var(--twin-bg-sunken, rgba(148, 163, 184, 0.12));
+  cursor: default;
+}
+
 .previewBlock {
   display: flex;
   flex-direction: column;
@@ -181,6 +186,8 @@
 }
 
 .groupLegend {
+  display: inline-flex;
+  align-items: center;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -189,32 +196,13 @@
   padding: 0 6px;
 }
 
-.groupHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.4rem;
-}
-
-.autoButton {
-  padding: 0.28rem 0.6rem;
-  border-radius: 7px;
-  border: 1px solid var(--twin-accent-automated);
-  background: transparent;
-  color: var(--twin-accent-automated);
+.autoNote {
   font-size: 0.7rem;
-  font-weight: 600;
-  font-family: var(--twin-font-sans);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  font-style: italic;
+  color: var(--twin-text-faint, #94a3b8);
 }
 
-.autoButton:hover:not(:disabled) {
-  background: var(--twin-accent-automated);
-  color: #ffffff;
-}
-
-.autoButton:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.autoError {
+  font-size: 0.7rem;
+  color: #b91c1c;
 }
