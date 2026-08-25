@@ -37,9 +37,12 @@ from backend.app.services.cv_pdf_parser_service import (
     build_worker_agent_input,
 )
 from backend.app.services.cross_reference_job_worker_service import (
-    CompatibilityEvaluationError,
-    generate_compatibility_matrix,
     read_jobs,
+)
+from backend.app.services.gnn_compatibility_service import (
+    GNNCompatibilityError,
+    generate_compatibility_matrix,
+    resolve_model_path,
 )
 from backend.app.services.check_factory_completeness import (
     GapSeverity,
@@ -1892,7 +1895,7 @@ def tab_worker_extraction():
 
 
 def tab_compatibility():
-    st.subheader("Tahap 5 — Matriks kompatibilitas pekerja x job desk")
+    st.subheader("Tahap 5 — Matriks kompatibilitas pekerja x job desk (GNN)")
 
     twin = st.session_state["factory_structure"]
     workers = st.session_state["worker_profile"]
@@ -1934,18 +1937,24 @@ def tab_compatibility():
     columns[2].metric("Job layak", len(eligible))
     columns[3].metric("Pasangan", len(worker_list) * len(eligible))
 
-    max_workers = columns[2].slider("Shard paralel", min_value=1, max_value=16, value=4)
-    max_attempts = st.slider("Percobaan per pasangan", min_value=1, max_value=5, value=3)
-    strict = st.checkbox("Hentikan seluruh proses bila ada pasangan gagal", value=False)
+    # Tahap ini dulu dijalankan Agent C (compatibility_eval_agent.yaml), satu
+    # panggilan LLM per pasangan. Sekarang seluruh matriks dihasilkan satu
+    # forward pass model GNN, jadi tidak ada lagi shard paralel maupun retry
+    # per pasangan - bentuk keluarannya tetap sama persis.
+    checkpoint = st.text_input(
+        "Checkpoint GNN",
+        value=str(resolve_model_path()),
+        help="Path ke best_compatibility_predictor.pt hasil training/scripts/GNN_train.py.",
+    )
 
-    if st.button("Bangun matriks kompatibilitas"):
-        try:
-            agent = get_agent_registry().get(AgentRole.WORKER_COMPATIBILITY)
+    checkpoint_path = Path(checkpoint).expanduser()
 
-        except Exception as error:
-            st.error(f"Agent tidak tersedia: {error}")
-            return
+    if checkpoint_path.exists():
+        st.caption(f"Checkpoint siap ({checkpoint_path.stat().st_size / 1024:.0f} KB).")
+    else:
+        st.warning(f"Checkpoint tidak ditemukan di {checkpoint_path}.")
 
+    if st.button("Bangun matriks kompatibilitas (GNN)"):
         bar = st.progress(0.0, text="Menyiapkan pasangan...")
 
         def report(done: int, total: int) -> None:
@@ -1957,17 +1966,13 @@ def tab_compatibility():
             matrix = generate_compatibility_matrix(
                 factory=twin,
                 workers=worker_list,
-                agent=agent,
-                max_workers=max_workers,
-                max_attempts=max_attempts,
-                strict=strict,
+                model_path=checkpoint or None,
                 progress=report,
             )
 
-        except CompatibilityEvaluationError as error:
+        except GNNCompatibilityError as error:
             bar.empty()
-            st.error(str(error))
-            st.dataframe(pd.DataFrame(error.failures), use_container_width=True)
+            st.error(f"Model GNN gagal dipakai: {error}")
             return
 
         except Exception as error:
@@ -1989,11 +1994,14 @@ def tab_compatibility():
     meta = matrix.get("meta", {})
     columns = st.columns(3)
     columns[0].metric("Pasangan berhasil", meta.get("evaluated_pairs", 0))
-    columns[1].metric("Percobaan ulang", meta.get("retries", 0))
+    columns[1].metric("Sumber nilai", meta.get("source", "gnn"))
     columns[2].metric("Pasangan gagal", len(meta.get("failed_pairs", [])))
 
+    if meta.get("model_path"):
+        st.caption(f"Model: {meta['model_path']}")
+
     if meta.get("failed_pairs"):
-        st.warning("Sebagian pasangan tidak berhasil dievaluasi agent dan dikeluarkan dari matriks.")
+        st.warning("Sebagian pasangan ditolak validator dan dikeluarkan dari matriks.")
         st.dataframe(pd.DataFrame(meta["failed_pairs"]), use_container_width=True)
 
     flat_rows = []
