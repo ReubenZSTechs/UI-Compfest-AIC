@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["demands", "reasoning"],
+  "properties": {
+    "demands": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_cognitive_focus",
+        "physical_demand_level",
+        "task_complexity",
+        "error_severity"
+      ],
+      "properties": {
+        "required_cognitive_focus": { "type": "number", "minimum": 0, "maximum": 1 },
+        "physical_demand_level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "task_complexity": { "type": "number", "minimum": 0, "maximum": 1 },     
+        "error_severity": {
+          "type": "string",
+          "enum": ["low", "moderate", "high", "critical"]
+        }
+      }
+    },
+    "reasoning": { "type": "string", "minLength": 1 }
+  }
+}

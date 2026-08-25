@@ -13,6 +13,8 @@ import type { AssetCategory } from "@/features/digital-twin/types/digitalTwin.ty
 import { SimulationControls } from "@/features/simulation/components/SimulationControls";
 import { SimulationFlowchart } from "@/features/simulation/components/SimulationFlowchart";
 import { SimulationSummaryPanel } from "@/features/simulation/components/SimulationSummaryPanel";
+import { setSimulationFactoryId } from "@/features/simulation/api/simulationApi";
+import { useSimulationStore } from "@/features/simulation/store/simulationStore";
 import simulationSectionStyles from "@/features/simulation/components/SimulationSection.module.css";
 import "@/features/simulation/styles/tokens.css";
 import styles from "./DigitalTwinPage.module.css";
@@ -29,6 +31,11 @@ export function DigitalTwinPage() {
     undefined;
 
   const { data, isLoading, isFetched, error } = useDigitalTwin(factoryId);
+  useEffect(() => {
+    if (!factoryId) return;
+    setSimulationFactoryId(factoryId);
+    void useSimulationStore.getState().reset();
+  }, [factoryId]);
 
   // Validasi keberadaan data hasil parsing
   const hasParsedData = useMemo(() => {

@@ -2,6 +2,9 @@
 // Tick logic di file ini SENGAJA identik dengan `simulationApi.mock.ts` kamu;
 // bedanya cuma satu: semua tabel/kapasitas/worker seed sekarang datang dari
 // GET /api/v1/factories/:factoryId/simulation-config, bukan hardcoded di file ini.
+//
+// Update: engine sekarang graph-driven (routing antar step lewat station_edges /
+// entry_ordinals / terminal_ordinals dari config), bukan lagi rantai linear 1..10.
 
 import type {
   ActiveTransfer,
@@ -47,6 +50,11 @@ interface SimulationConfig {
   batch_in_by_ordinal: Record<number, number>;
   batch_out_by_ordinal: Record<number, number>;
   cycle_ticks_by_ordinal: Record<number, number>;
+  step_ids_by_ordinal: Record<number, string>;
+  station_edges: Record<number, number[]>;
+  entry_ordinals: number[];
+  terminal_ordinals: number[];
+  ordinal_by_job_id: Record<string, number>;
   bottleneck_fill_threshold: number;
   idle_qty_threshold: number;
   station_1_safety_margin: number;
@@ -124,6 +132,7 @@ let currentTickMinutes = 0;
 const materialByOrdinal: Record<number, MaterialInProcess> = {};
 const batchStateByOrdinal: Record<number, BatchState> = {};
 const totalOutputByOrdinal: Record<number, number> = {};
+const routingCursor: Record<number, number> = {};
 
 let engineInitialized = false;
 
@@ -170,6 +179,7 @@ export function resetMockSimulationState(config: SimulationConfig) {
   Object.keys(materialByOrdinal).forEach((k) => delete materialByOrdinal[Number(k)]);
   Object.keys(batchStateByOrdinal).forEach((k) => delete batchStateByOrdinal[Number(k)]);
   Object.keys(totalOutputByOrdinal).forEach((k) => delete totalOutputByOrdinal[Number(k)]);
+  Object.keys(routingCursor).forEach((k) => delete routingCursor[Number(k)]);
 }
 
 function riskFromLevels(fatigue: number, stress: number): BurnoutRisk {
@@ -178,16 +188,62 @@ function riskFromLevels(fatigue: number, stress: number): BurnoutRisk {
   return 'low';
 }
 
-function stepIdFor(ordinal: number): string {
-  return ordinal === 7 ? 'step_07_baking' : `step_${String(ordinal).padStart(2, '0')}`;
+// ---------------------------------------------------------------------------
+// Graph helpers
+// ---------------------------------------------------------------------------
+
+function stationOrdinals(config: SimulationConfig): number[] {
+  return Object.keys(config.step_names)
+    .map(Number)
+    .filter((ordinal) => Number.isFinite(ordinal))
+    .sort((a, b) => a - b);
 }
 
-function getOrdinalFromAssignment(assignment: CurrentAssignment): number {
-  const match = assignment.assigned_job_id.match(/job-(\d+)/);
-  if (match) return parseInt(match[1], 10);
-  const assetMatch = assignment.assigned_asset_id.match(/ast-(\d+)/);
-  if (assetMatch) return parseInt(assetMatch[1], 10);
-  return 1;
+function stepIdFor(ordinal: number, config: SimulationConfig): string {
+  return config.step_ids_by_ordinal[ordinal] ?? `step_${String(ordinal).padStart(2, '0')}`;
+}
+
+function successorsOf(ordinal: number, config: SimulationConfig): number[] {
+  return config.station_edges[ordinal] ?? [];
+}
+
+function isTerminal(ordinal: number, config: SimulationConfig): boolean {
+  if (config.terminal_ordinals.includes(ordinal)) return true;
+  return successorsOf(ordinal, config).length === 0;
+}
+
+function pickDestination(
+  ordinal: number,
+  quantity: number,
+  config: SimulationConfig
+): number | null {
+  const targets = successorsOf(ordinal, config);
+  if (targets.length === 0) return null;
+
+  const start = routingCursor[ordinal] ?? 0;
+  for (let offset = 0; offset < targets.length; offset += 1) {
+    const candidate = targets[(start + offset) % targets.length];
+    const dest = materialByOrdinal[candidate];
+    if (!dest) continue;
+    const spare = config.capacity_by_ordinal[candidate] - dest.quantity;
+    if (quantity <= spare + 1e-9) {
+      routingCursor[ordinal] = (start + offset + 1) % targets.length;
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function getOrdinalFromAssignment(
+  assignment: CurrentAssignment,
+  config: SimulationConfig
+): number {
+  const mapped = config.ordinal_by_job_id[assignment.assigned_job_id];
+  if (mapped !== undefined) return mapped;
+
+  const jobMatch = assignment.assigned_job_id.match(/(\d+)/);
+  if (jobMatch) return parseInt(jobMatch[1], 10);
+  return config.entry_ordinals[0] ?? 1;
 }
 
 function effectiveSpeedFactor(metrics: RealtimeMetrics): number {
@@ -196,15 +252,19 @@ function effectiveSpeedFactor(metrics: RealtimeMetrics): number {
   return clamp(metrics.throughput_multiplier - fatiguePenalty - stressPenalty, 0.2, 1.6);
 }
 
-function calculateSpeedByOrdinal(assignments: CurrentAssignment[]): Record<number, number> {
+function calculateSpeedByOrdinal(
+  assignments: CurrentAssignment[],
+  config: SimulationConfig
+): Record<number, number> {
   const speedSums: Record<number, number> = {};
   assignments.forEach((a) => {
-    const ordinal = getOrdinalFromAssignment(a);
+    const ordinal = getOrdinalFromAssignment(a, config);
     const speed = effectiveSpeedFactor(a.calculated_realtime_metrics);
     speedSums[ordinal] = (speedSums[ordinal] || 0) + speed;
   });
+
   const speedByOrdinal: Record<number, number> = {};
-  for (let ordinal = 1; ordinal <= 10; ordinal += 1) {
+  for (const ordinal of stationOrdinals(config)) {
     speedByOrdinal[ordinal] = speedSums[ordinal] ?? 1.0;
   }
   return speedByOrdinal;
@@ -245,10 +305,16 @@ function calculateShiftInfo(elapsedMinutes: number, config: SimulationConfig): S
   };
 }
 
-function statusFor(waitingQty: number, inProcessQty: number, capacity: number, ordinal: number, config: SimulationConfig): 'idle' | 'bottleneck' | 'normal' {
+function statusFor(
+  waitingQty: number,
+  inProcessQty: number,
+  capacity: number,
+  ordinal: number,
+  config: SimulationConfig
+): 'idle' | 'bottleneck' | 'normal' {
   const totalWip = waitingQty + inProcessQty;
   if (totalWip <= config.idle_qty_threshold) return 'idle';
-  if (ordinal === 1) return 'normal';
+  if (config.entry_ordinals.includes(ordinal)) return 'normal';
   if (totalWip / capacity >= config.bottleneck_fill_threshold) return 'bottleneck';
   return 'normal';
 }
@@ -286,10 +352,11 @@ function nextAssignment(a: CurrentAssignment, isBreak: boolean, isStationIdle: b
   };
 }
 
-function buildStepBreakdown(speedByOrdinal: Record<number, number>, config: SimulationConfig): StepBreakdown[] {
-  return Array.from({ length: 10 }, (_, i) => {
-    const ordinal = i + 1;
-    const stepId = stepIdFor(ordinal);
+function buildStepBreakdown(
+  speedByOrdinal: Record<number, number>,
+  config: SimulationConfig
+): StepBreakdown[] {
+  return stationOrdinals(config).map((ordinal) => {
     const material = materialByOrdinal[ordinal];
     const batchState = batchStateByOrdinal[ordinal];
 
@@ -301,11 +368,15 @@ function buildStepBreakdown(speedByOrdinal: Record<number, number>, config: Simu
     const status = statusFor(waitingQty, inProcessQty, material.capacity, ordinal, config);
 
     const nominalRatePerHour = Number(
-      ((config.batch_out_by_ordinal[ordinal] / config.cycle_ticks_by_ordinal[ordinal]) * speed * 12).toFixed(1)
+      (
+        (config.batch_out_by_ordinal[ordinal] / config.cycle_ticks_by_ordinal[ordinal]) *
+        speed *
+        12
+      ).toFixed(1)
     );
 
     return {
-      step_id: stepId,
+      step_id: stepIdFor(ordinal, config),
       step_name: config.step_names[ordinal],
       status,
       output_generated: nominalRatePerHour,
@@ -319,6 +390,7 @@ function buildStepBreakdown(speedByOrdinal: Record<number, number>, config: Simu
       },
       speed_multiplier: Number(speed.toFixed(2)),
       wip_fill_pct: Number(((totalWip / material.capacity) * 100).toFixed(1)),
+      next_step_ids: successorsOf(ordinal, config).map((target) => stepIdFor(target, config)),
     };
   });
 }
@@ -341,10 +413,10 @@ function buildSeedAssignments(config: SimulationConfig): CurrentAssignment[] {
 export async function getSeedSimulationState(): Promise<SimulationResponse> {
   const config = await loadConfig();
   ensureEngineInitialized(config);
-  for (let ordinal = 1; ordinal <= 10; ordinal += 1) ensureInitialized(ordinal, config);
+  for (const ordinal of stationOrdinals(config)) ensureInitialized(ordinal, config);
 
   const assignments = buildSeedAssignments(config);
-  const speedByOrdinal = calculateSpeedByOrdinal(assignments);
+  const speedByOrdinal = calculateSpeedByOrdinal(assignments, config);
   const step_breakdown = buildStepBreakdown(speedByOrdinal, config);
   const system_bottlenecks = step_breakdown.filter((s) => s.status === 'bottleneck').map((s) => s.step_id);
   const total_operational_cost_idr = step_breakdown.reduce((sum, s) => sum + s.operational_cost_idr, 0);
@@ -376,47 +448,47 @@ export async function fetchLiveSimulationState(previous?: SimulationResponse): P
   await new Promise((resolve) => setTimeout(resolve, 300 + Math.random() * 200));
 
   const source = previous ?? (await getSeedSimulationState());
-  for (let ordinal = 1; ordinal <= 10; ordinal += 1) ensureInitialized(ordinal, config);
+  for (const ordinal of stationOrdinals(config)) ensureInitialized(ordinal, config);
 
   if (previous) currentTickMinutes += 1;
   const shiftInfo = calculateShiftInfo(currentTickMinutes, config);
 
-  const speedByOrdinal = calculateSpeedByOrdinal(source.live_simulation_state.current_assignments);
+  const speedByOrdinal = calculateSpeedByOrdinal(source.live_simulation_state.current_assignments, config);
   const activeTransfers: ActiveTransfer[] = [];
 
   if (!shiftInfo.is_break_time && !shiftInfo.is_shift_ended) {
+    const ordinals = stationOrdinals(config);
+
     // 1) SHIP PHASE
-    for (let ordinal = 1; ordinal <= 10; ordinal += 1) {
+    for (const ordinal of ordinals) {
       const batchState = batchStateByOrdinal[ordinal];
       const pending = batchState.readyToShip;
       if (!pending) continue;
 
-      if (ordinal === 10) {
+      if (isTerminal(ordinal, config)) {
         finishedGoodsTotal = round2(finishedGoodsTotal + pending.qty);
         batchState.readyToShip = null;
         continue;
       }
 
-      const destOrdinal = ordinal + 1;
-      const dest = materialByOrdinal[destOrdinal];
-      const destSpare = config.capacity_by_ordinal[destOrdinal] - dest.quantity;
+      const destOrdinal = pickDestination(ordinal, pending.qty, config);
+      if (destOrdinal === null) continue;
 
-      if (pending.qty <= destSpare + 1e-9) {
-        dest.quantity = round2(dest.quantity + pending.qty);
-        dest.batch_code = pending.batchCode;
-        activeTransfers.push({
-          from_step_id: stepIdFor(ordinal),
-          to_step_id: stepIdFor(destOrdinal),
-          batch_code: pending.batchCode,
-          quantity: pending.qty,
-          unit: config.materials_by_ordinal[destOrdinal].unit,
-        });
-        batchState.readyToShip = null;
-      }
+      const dest = materialByOrdinal[destOrdinal];
+      dest.quantity = round2(dest.quantity + pending.qty);
+      dest.batch_code = pending.batchCode;
+      activeTransfers.push({
+        from_step_id: stepIdFor(ordinal, config),
+        to_step_id: stepIdFor(destOrdinal, config),
+        batch_code: pending.batchCode,
+        quantity: pending.qty,
+        unit: config.materials_by_ordinal[destOrdinal].unit,
+      });
+      batchState.readyToShip = null;
     }
 
     // 2) CYCLE-COMPLETION PHASE
-    for (let ordinal = 1; ordinal <= 10; ordinal += 1) {
+    for (const ordinal of ordinals) {
       const batchState = batchStateByOrdinal[ordinal];
       if (batchState.ticksRemaining <= 0) continue;
 
@@ -437,7 +509,7 @@ export async function fetchLiveSimulationState(previous?: SimulationResponse): P
     }
 
     // 3) START PHASE
-    for (let ordinal = 1; ordinal <= 10; ordinal += 1) {
+    for (const ordinal of ordinals) {
       const batchState = batchStateByOrdinal[ordinal];
       if (batchState.ticksRemaining > 0 || batchState.readyToShip) continue;
 
@@ -451,27 +523,39 @@ export async function fetchLiveSimulationState(previous?: SimulationResponse): P
       batchState.inProgressQty = batchIn;
     }
 
-    // 4) WAREHOUSE -> STATION 1 feed
-    const station1 = materialByOrdinal[1];
-    const station1SafeCeiling = (config.bottleneck_fill_threshold - config.station_1_safety_margin) * config.capacity_by_ordinal[1];
-    const station1SafeSpare = Math.max(0, station1SafeCeiling - station1.quantity);
-    const warehouseFeed = Math.max(0, Math.min(config.warehouse_feed_rate, warehouse.current_stock, station1SafeSpare));
+    // 4) WAREHOUSE -> ENTRY STATIONS feed
+    const entries = config.entry_ordinals.length > 0 ? config.entry_ordinals : [ordinals[0]];
+    const feedPerEntry = config.warehouse_feed_rate / entries.length;
 
-    if (warehouseFeed > 0.05) {
-      warehouse = { capacity: warehouse.capacity, current_stock: round2(warehouse.current_stock - warehouseFeed) };
-      station1.quantity = round2(station1.quantity + warehouseFeed);
+    for (const entryOrdinal of entries) {
+      const station = materialByOrdinal[entryOrdinal];
+      if (!station) continue;
+
+      const safeCeiling =
+        (config.bottleneck_fill_threshold - config.station_1_safety_margin) *
+        config.capacity_by_ordinal[entryOrdinal];
+      const safeSpare = Math.max(0, safeCeiling - station.quantity);
+      const feed = Math.max(0, Math.min(feedPerEntry, warehouse.current_stock, safeSpare));
+
+      if (feed <= 0.05) continue;
+
+      warehouse = {
+        capacity: warehouse.capacity,
+        current_stock: round2(warehouse.current_stock - feed),
+      };
+      station.quantity = round2(station.quantity + feed);
       activeTransfers.push({
         from_step_id: config.warehouse_step_id ?? FALLBACK_WAREHOUSE_STEP_ID,
-        to_step_id: stepIdFor(1),
-        batch_code: station1.batch_code,
-        quantity: round2(warehouseFeed),
-        unit: config.materials_by_ordinal[1].unit,
+        to_step_id: stepIdFor(entryOrdinal, config),
+        batch_code: station.batch_code,
+        quantity: round2(feed),
+        unit: config.materials_by_ordinal[entryOrdinal].unit,
       });
     }
   }
 
   const isStationIdleMap: Record<number, boolean> = {};
-  for (let ordinal = 1; ordinal <= 10; ordinal += 1) {
+  for (const ordinal of stationOrdinals(config)) {
     const batchState = batchStateByOrdinal[ordinal];
     const material = materialByOrdinal[ordinal];
     const batchIn = config.batch_in_by_ordinal[ordinal];
@@ -479,12 +563,12 @@ export async function fetchLiveSimulationState(previous?: SimulationResponse): P
   }
 
   const current_assignments = source.live_simulation_state.current_assignments.map((a) => {
-    const ordinal = getOrdinalFromAssignment(a);
+    const ordinal = getOrdinalFromAssignment(a, config);
     const isStationIdle = isStationIdleMap[ordinal] ?? false;
     return nextAssignment(a, shiftInfo.is_break_time, isStationIdle);
   });
 
-  const updatedSpeedByOrdinal = calculateSpeedByOrdinal(current_assignments);
+  const updatedSpeedByOrdinal = calculateSpeedByOrdinal(current_assignments, config);
   const step_breakdown = buildStepBreakdown(updatedSpeedByOrdinal, config);
   const system_bottlenecks = step_breakdown.filter((s) => s.status === 'bottleneck').map((s) => s.step_id);
   const total_operational_cost_idr = step_breakdown.reduce((sum, s) => sum + s.operational_cost_idr, 0);

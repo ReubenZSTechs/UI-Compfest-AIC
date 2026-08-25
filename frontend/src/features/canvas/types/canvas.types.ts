@@ -3,7 +3,7 @@ import type { Worker, JobDesk, RealtimeMetrics } from "@/features/digital-twin/t
 import type { Node, Edge } from "@xyflow/react";
 import type { AgentChatMessage } from "@/store/agentChat";
 
-export type CanvasNodeKind = "process" | "worker" | "output";
+export type CanvasNodeKind = "process" | "worker" | "output" | "warehouse";
 
 export type AiNodeStatus = "idle" | "analyzing" | "verified" | "error";
 
@@ -194,9 +194,23 @@ export type CanvasOutputData = {
   aiStatus: AiNodeStatus;
 };
 
-export type CanvasNodeData = CanvasProcessData | CanvasWorkerData | CanvasOutputData;
+export type CanvasWarehouseData = {
+  kind: "warehouse";
+  label: string;
+  capacity: number;
+  feedRate: number;
+  materialName: string;
+  materialUnit: string;
+  aiStatus: AiNodeStatus;
+};
 
-export type CanvasFlowNode = Node<CanvasNodeData, "fabric" | "worker" | "output">;
+export type CanvasNodeData =   
+  | CanvasProcessData
+  | CanvasWorkerData
+  | CanvasOutputData
+  | CanvasWarehouseData;
+
+export type CanvasFlowNode = Node<CanvasNodeData, "fabric" | "worker" | "output" | "warehouse">;
 
 export type CanvasFlowEdgeData = {
   relation: RelationType;
@@ -225,6 +239,7 @@ export type ActiveTool =
   | "add-process"
   | "add-worker"
   | "add-output"
+  | "add-warehouse"
   | "connect"
   | "erase"
   | "undo"
@@ -301,4 +316,23 @@ export interface AnalyzeGraphResponse {
   message?: string;
   verified_node_ids?: string[];
   warnings?: string[];
+}
+
+export interface NodeAutofillRequest {
+  processName: string;
+  operatorTask: string;
+  requiredSkills: string[];
+  qcRequirement: string;
+  assetCategory: CanvasAssetCategory;
+  automationLevel: AutomationLevel;
+  cycleTimeSeconds: number;
+  noiseLevelDb: number | null;
+  physicalStrainIndex: number;
+  materialInput: string[];
+  headcount: number;
+}
+
+export interface NodeAutofillResponse {
+  demands: CanvasJobDemands;
+  reasoning: string;
 }

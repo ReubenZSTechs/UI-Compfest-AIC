@@ -216,3 +216,10 @@ class SimulationRepository:
             .limit(1)
         )
         return (await self.db.execute(stmt)).scalars().first()
+
+    async def load_factory(self, factory_id: str) -> Factory | None:
+        return await self.db.get(Factory, factory_id)
+
+    async def load_job_desks(self, factory_id: str) -> list[JobDesk]:
+        stmt = select(JobDesk).where(JobDesk.factory_id == factory_id)
+        return list((await self.db.execute(stmt)).scalars().all())

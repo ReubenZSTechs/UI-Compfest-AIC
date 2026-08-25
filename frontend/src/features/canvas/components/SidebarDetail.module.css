@@ -188,3 +188,33 @@
   color: #64748b;
   padding: 0 6px;
 }
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.autoButton {
+  padding: 0.28rem 0.6rem;
+  border-radius: 7px;
+  border: 1px solid var(--twin-accent-automated);
+  background: transparent;
+  color: var(--twin-accent-automated);
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: var(--twin-font-sans);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.autoButton:hover:not(:disabled) {
+  background: var(--twin-accent-automated);
+  color: #ffffff;
+}
+
+.autoButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

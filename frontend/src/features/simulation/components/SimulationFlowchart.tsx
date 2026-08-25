@@ -70,9 +70,10 @@ export function SimulationFlowchart({ workerNames = {}, jobTitles = {}, isMock }
         });
 
         const nextStep = steps[index + 1];
-        const transfer = nextStep
-          ? activeTransfers.find((t) => t.from_step_id === step.step_id && t.to_step_id === nextStep.step_id)
-          : undefined;
+        const successors = step.next_step_ids ?? (nextStep ? [nextStep.step_id] : []);
+        const transfer = activeTransfers.find(
+          (t) => t.from_step_id === step.step_id && successors.includes(t.to_step_id)
+        );
 
         return (
           <div key={step.step_id} className={styles.stepGroup}>

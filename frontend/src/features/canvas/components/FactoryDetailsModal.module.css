@@ -1,0 +1,113 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--twin-surface-raised);
+  border: 1px solid var(--twin-border);
+  border-radius: 14px;
+  padding: 1.4rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--twin-text-primary);
+}
+
+.subtitle {
+  margin: 0 0 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--twin-text-muted);
+}
+
+.fieldLabel {
+  display: block;
+  margin: 0.9rem 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--twin-text-muted);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.8rem;
+  border-radius: 9px;
+  border: 1px solid var(--twin-border);
+  background: var(--twin-surface);
+  color: var(--twin-text-primary);
+  font-size: 0.9rem;
+  font-family: var(--twin-font-sans);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--twin-accent-automated);
+}
+
+.error {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: #ef4444;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.3rem;
+}
+
+.cancelButton {
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--twin-border);
+  background: transparent;
+  color: var(--twin-text-muted);
+  font-size: 0.8rem;
+  font-family: var(--twin-font-sans);
+  cursor: pointer;
+}
+
+.confirmButton {
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--twin-accent-automated);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--twin-font-sans);
+  cursor: pointer;
+}
+
+.confirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

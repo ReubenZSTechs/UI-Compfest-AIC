@@ -51,6 +51,9 @@ export const ENDPOINTS = {
     APPLY_SCENARIO: (jobId: string, scenarioId: string) =>
       `/rl-optimization/optimize/${jobId}/scenarios/${scenarioId}/apply`,
   },
+  AGENTS: {
+    NODE_AUTOFILL: "/agents/node-autofill",
+  },
 } as const;
 
 export type Endpoints = typeof ENDPOINTS;

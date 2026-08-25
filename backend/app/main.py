@@ -47,7 +47,8 @@ async def lifespan(app: FastAPI):
     agent_settings = get_agent_settings()
     agent_registry = get_agent_registry()
     app.state.agent_registry = agent_registry
-
+    agent_registry.assert_enum_roles_registered()
+    
     logger.info(f"Agent registry available roles: {agent_registry.list_roles()}")
 
     if settings.is_production or agent_settings.AGENT_EAGER_LOAD:

@@ -95,6 +95,22 @@ const TOOLS: Array<{
     ),
   },
   {
+    tool: "add-warehouse",
+    label: "Tambah Gudang",
+    hint: "Klik kanvas untuk menambah node gudang (sumber awal alur)",
+    icon: (
+      <svg {...ICON_PROPS} fill="none" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l9-5 9 5v10H3z" />
+        <path strokeLinecap="round" d="M8 20v-6h8v6" />
+      </svg>
+    ),
+    iconActive: (
+      <svg {...ICON_PROPS}>
+        <path fill="currentColor" d="M12 4l10 5.5V21h-6v-6H8v6H2V9.5z" />
+      </svg>
+    ),
+  },
+  {
     tool: "erase",
     label: "Hapus",
     hint: "Klik node/garis untuk menghapus",
