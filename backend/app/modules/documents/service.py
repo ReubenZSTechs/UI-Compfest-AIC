@@ -67,6 +67,10 @@ from app.services.generate_worker_profiles_service import (
     WorkerProfileGenerationError,
     generate_worker_profiles,
 )
+from app.services.node_autofill_service import (
+    NodeAutofillError,
+    autofill_factory_job_demands,
+)
 
 from .exceptions import DocumentParserPipelineError
 
@@ -542,6 +546,33 @@ SHIFT_CONTEXT_DEFAULTS: dict[str, Any] = {
     "consecutive_shifts": 0,
 }
 
+WORKER_LIST_FIELDS = ("skills", "certifications", "capabilities")
+
+
+def _coerce_string_list(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+
+    if isinstance(raw, str):
+        items = [piece.strip() for piece in raw.replace(";", ",").split(",")]
+    elif isinstance(raw, (list, tuple, set)):
+        items = [str(piece).strip() for piece in raw]
+    else:
+        return []
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+
+    for item in items:
+        if not item:
+            continue
+        marker = item.casefold()
+        if marker in seen:
+            continue
+        seen.add(marker)
+        ordered.append(item)
+
+    return ordered
 
 def _normalize_worker_records(worker_profile: Any) -> tuple[dict[str, Any], list[str]]:
     """
@@ -613,6 +644,15 @@ def _normalize_worker_records(worker_profile: Any) -> tuple[dict[str, Any], list
             **SHIFT_CONTEXT_DEFAULTS,
             **{k: v for k, v in shift_context.items() if v is not None},
         }
+        
+        for list_key in WORKER_LIST_FIELDS:
+            record[list_key] = _coerce_string_list(record.get(list_key))
+        if not record["skills"]:
+            warnings.append(
+                f"Pekerja '{worker_id}' tidak memiliki daftar skill; "
+                f"kecocokan kompatibilitas akan memakai profil demografi saja."
+            )
+
         normalized.append(record)
 
     if not normalized:
@@ -761,6 +801,67 @@ async def step_4_extract_worker_profiles(
         _log_error("step_4_extract_worker_profiles", err)
         raise
 
+# --------------------------------------------------------------------------
+# Tahap 4b: Auto-fill Beban Kerja Node (sebelum matriks kompatibilitas)
+# --------------------------------------------------------------------------
+
+
+async def step_4b_autofill_node_demands(
+    factory_structure: dict[str, Any],
+    max_workers: int = 4,
+    max_attempts: int = 2,
+    force: bool = False,
+    strict: bool = False,
+) -> dict[str, Any]:
+    """Melengkapi demands tiap job desk memakai agent ergonomi sebelum Tahap 5."""
+    _log_json(
+        "step_4b_autofill_node_demands",
+        "START",
+        payload={
+            "job_count": len(factory_structure.get("job_descriptions", [])),
+            "force": force,
+            "strict": strict,
+        },
+    )
+
+    registry = get_agent_registry()
+    agent = registry.get(AgentRole.NODE_AUTOFILL)
+
+    try:
+        result = await run_in_threadpool(
+            autofill_factory_job_demands,
+            factory_structure=factory_structure,
+            agent=agent,
+            max_workers=max_workers,
+            max_attempts=max_attempts,
+            force=force,
+            strict=strict,
+        )
+    except NodeAutofillError as error:
+        raise DocumentParserPipelineError(
+            "node_autofill", f"Agent auto-fill node gagal: {error}"
+        ) from error
+
+    warnings = [
+        f"Node '{failure['job_id']}' gagal di-autofill: {failure['error']}"
+        for failure in result["failures"]
+    ]
+
+    _log_json(
+        "step_4b_autofill_node_demands",
+        "SUCCESS",
+        output={
+            "filled_count": result["filled_count"],
+            "failed_count": len(result["failures"]),
+        },
+    )
+
+    return {
+        "filled_count": result["filled_count"],
+        "skipped_count": result["skipped_count"],
+        "reasonings": result["reasonings"],
+        "warnings": warnings,
+    }
 
 # --------------------------------------------------------------------------
 # Tahap 5: Matriks Kompatibilitas
@@ -1000,6 +1101,17 @@ async def process_combined_documents_pipeline(
         worker_profile = worker_result["worker_profile"]
         _log_json("process_combined_documents_pipeline.stage_4", "SUCCESS")
 
+        # Step 4b: Auto-fill beban kerja node sebelum matriks kompatibilitas
+        _log_json("process_combined_documents_pipeline.stage_4b", "START")
+        autofill_result = await step_4b_autofill_node_demands(
+            factory_structure=fac_structure_dict,
+            max_workers=max_workers,
+            max_attempts=max_attempts,
+            strict=strict,
+        )
+        combined_warnings.extend(autofill_result["warnings"])
+        _log_json("process_combined_documents_pipeline.stage_4b", "SUCCESS")
+
         # Step 5: Matriks Kompatibilitas
         _log_json("process_combined_documents_pipeline.stage_5", "START")
         compatibility_result = await step_5_generate_compatibility_matrix(
@@ -1057,6 +1169,7 @@ async def process_combined_documents_pipeline(
             "candidates_found": worker_result.get("candidates_found", 0),
             "rejected_blocks_count": worker_result.get("rejected_blocks_count", 0),
             "archive_reports": worker_result.get("archive_reports", []),
+            "node_autofill": autofill_result,
             "compatibility_matrix": _to_dict(compatibility_matrix) if not isinstance(compatibility_matrix, list) else compatibility_matrix,
             "digital_twin": dt_model,
         }

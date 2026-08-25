@@ -76,6 +76,43 @@ def validate_worker_entry(raw: Any, expected_worker_id: str) -> dict[str, Any]:
 
     return entry
 
+LIST_BACKFILL_KEYS = ("skills", "certifications")
+
+
+def _as_clean_list(raw: Any) -> list[str]:
+    if not isinstance(raw, list):
+        return []
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+
+    for item in raw:
+        text = str(item).strip()
+        if not text:
+            continue
+        marker = text.casefold()
+        if marker in seen:
+            continue
+        seen.add(marker)
+        ordered.append(text)
+
+    return ordered
+
+
+def backfill_list_fields(entry: dict[str, Any], candidate: Any) -> dict[str, Any]:
+    derived = getattr(candidate, "derived", {}) or {}
+
+    for key in LIST_BACKFILL_KEYS:
+        from_agent = _as_clean_list(entry.get(key))
+        if from_agent:
+            entry[key] = from_agent
+            continue
+        entry[key] = _as_clean_list(derived.get(key))
+
+    if not entry.get("source_document"):
+        entry["source_document"] = getattr(candidate, "source_name", None)
+
+    return entry
 
 def generate_one_profile(agent: Any, candidate: Any, candidate_payload: Callable[[Any], str],
                          max_attempts: int = 3, backoff_seconds: float = 1.5) -> dict[str, Any]:
@@ -90,6 +127,7 @@ def generate_one_profile(agent: Any, candidate: Any, candidate_payload: Callable
         try:
             result = agent.generate_structured(user_prompt=payload)
             entry = validate_worker_entry(result, candidate.worker_id)
+            entry = backfill_list_fields(entry, candidate)
             return {"entry": entry, "attempts": attempt, "usage": clone_usage(agent.last_usage)}
 
         except Exception as error:

@@ -43,7 +43,14 @@ from .schemas import (
     SimulationDesignResponse,
     SimulationOverview,
     SimulationSettingsInput,
-    StationInput,
+    StationInput, 
+    WorkerRuntimeProfile,
+    ShiftBreakWindow,
+    ShiftPlan,
+    WarehouseSource,
+    OutputSink,
+    ShiftRosterEntry,
+    JobDemandProfile
 )
 
 _BURNOUT_LEVELS = {"low", "medium", "high"}
@@ -581,6 +588,227 @@ async def save_simulation_design(
 # Pembacaan konfigurasi & overview
 # --------------------------------------------------------------------------
 
+def _minutes_of(clock: str) -> int:
+    hours, minutes = (int(part) for part in clock.split(":"))
+    return hours * 60 + minutes
+
+
+def _build_shift_plans(
+    shift_plans: list[Any], shifts: list[Any], base_minutes: int
+) -> list[ShiftPlan]:
+    source = shift_plans or shifts
+    plans: list[ShiftPlan] = []
+
+    for item in source:
+        start = _minutes_of(item.start_time)
+        end = _minutes_of(item.end_time)
+        if end <= start:
+            end += 24 * 60
+
+        start_elapsed = start - base_minutes
+        end_elapsed = end - base_minutes
+
+        windows = [
+            ShiftBreakWindow(
+                break_id=window.break_id,
+                start_elapsed_minutes=start_elapsed + window.start_elapsed_minutes,
+                end_elapsed_minutes=(
+                    start_elapsed + window.start_elapsed_minutes + window.duration_minutes
+                ),
+                label=window.label,
+            )
+            for window in (getattr(item, "breaks", None) or [])
+        ]
+
+        plans.append(
+            ShiftPlan(
+                shift_id=item.shift_id,
+                start_time=item.start_time,
+                end_time=item.end_time,
+                start_elapsed_minutes=start_elapsed,
+                end_elapsed_minutes=end_elapsed,
+                handover_minutes=getattr(item, "handover_minutes", 15),
+                breaks=windows,
+            )
+        )
+
+    plans.sort(key=lambda plan: plan.start_elapsed_minutes)
+    return plans
+
+
+def _build_warehouse_sources(
+    warehouses: list[Any],
+    ordinal_by_stage: dict[str, int],
+    entry_ordinals: list[int],
+    settings: Any,
+) -> list[WarehouseSource]:
+    if not warehouses:
+        return [
+            WarehouseSource(
+                warehouse_id=settings.warehouse_step_id,
+                warehouse_name="Gudang Bahan Baku",
+                material_name="Bahan Baku",
+                material_unit="pcs",
+                capacity=settings.warehouse_capacity,
+                feed_rate=settings.warehouse_feed_rate,
+                initial_stock=settings.warehouse_capacity,
+                replenish_per_tick=0.0,
+                supply_mode="finite",
+                target_ordinals=sorted(entry_ordinals),
+            )
+        ]
+
+    sources: list[WarehouseSource] = []
+
+    for item in warehouses:
+        targets = [
+            ordinal_by_stage[stage_id]
+            for stage_id in item.target_stage_ids
+            if stage_id in ordinal_by_stage
+        ]
+        sources.append(
+            WarehouseSource(
+                warehouse_id=item.warehouse_id,
+                warehouse_name=item.warehouse_name,
+                material_name=item.material_name,
+                material_unit=item.material_unit,
+                capacity=item.capacity,
+                feed_rate=item.feed_rate,
+                initial_stock=(
+                    item.capacity if item.initial_stock is None else item.initial_stock
+                ),
+                replenish_per_tick=item.replenish_per_tick,
+                supply_mode=item.supply_mode,
+                target_ordinals=sorted(set(targets or entry_ordinals)),
+            )
+        )
+
+    return sources
+
+
+def _build_output_sinks(
+    outputs: list[Any],
+    ordinal_by_stage: dict[str, int],
+    terminal_ordinals: list[int],
+    settings: Any,
+) -> list[OutputSink]:
+    if not outputs:
+        return [
+            OutputSink(
+                output_id="output-01",
+                output_name="Finished Goods Storage",
+                material_name="Produk Jadi",
+                material_unit="pcs",
+                target_output_units=settings.target_output_units,
+                accepts_defective=False,
+                source_ordinals=sorted(terminal_ordinals),
+            )
+        ]
+
+    sinks: list[OutputSink] = []
+
+    for item in outputs:
+        sources = [
+            ordinal_by_stage[stage_id]
+            for stage_id in item.source_stage_ids
+            if stage_id in ordinal_by_stage
+        ]
+        sinks.append(
+            OutputSink(
+                output_id=item.output_id,
+                output_name=item.output_name,
+                material_name=item.material_name,
+                material_unit=item.material_unit,
+                target_output_units=item.target_output_units,
+                accepts_defective=item.accepts_defective,
+                source_ordinals=sorted(set(sources or terminal_ordinals)),
+            )
+        )
+
+    return sinks
+
+
+def _build_shift_roster(
+    assignments: list[Any],
+    job_desks: list[Any],
+    ordinal_by_stage: dict[str, int],
+) -> list[ShiftRosterEntry]:
+    job_by_stage: dict[str, str] = {job.stage_id: job.job_id for job in job_desks}
+    roster: list[ShiftRosterEntry] = []
+
+    for item in assignments:
+        ordinal = ordinal_by_stage.get(item.stage_id)
+        if ordinal is None:
+            continue
+
+        job_id = item.job_id or job_by_stage.get(item.stage_id)
+        if not job_id:
+            continue
+
+        roster.append(
+            ShiftRosterEntry(
+                shift_id=item.shift_id,
+                ordinal=ordinal,
+                job_id=job_id,
+                worker_ids=list(item.worker_ids),
+            )
+        )
+
+    if roster:
+        return roster
+
+    return [
+        ShiftRosterEntry(
+            shift_id=job.shift_id,
+            ordinal=ordinal_by_stage[job.stage_id],
+            job_id=job.job_id,
+            worker_ids=list(job.assigned_worker_ids or []),
+        )
+        for job in job_desks
+        if job.stage_id in ordinal_by_stage
+    ]
+
+
+def _build_job_demands(
+    job_desks: list[Any],
+    stages_by_id: dict[str, Any],
+    assets_by_id: dict[str, Any],
+    ordinal_by_stage: dict[str, int],
+) -> list[JobDemandProfile]:
+    profiles: list[JobDemandProfile] = []
+
+    for job in job_desks:
+        ordinal = ordinal_by_stage.get(job.stage_id)
+        if ordinal is None:
+            continue
+
+        demands = job.demands or {}
+        asset = assets_by_id.get(job.assigned_asset_id)
+        environment = (asset.environmental_factors or {}) if asset is not None else {}
+        stage = stages_by_id.get(job.stage_id)
+
+        profiles.append(
+            JobDemandProfile(
+                job_id=job.job_id,
+                ordinal=ordinal,
+                required_cognitive_focus=float(demands.get("required_cognitive_focus") or 0.5),
+                physical_demand_level=str(demands.get("physical_demand_level") or "medium"),
+                task_complexity=float(demands.get("task_complexity") or 0.5),
+                error_severity=str(demands.get("error_severity") or "moderate"),
+                required_skills=list(getattr(stage, "material_input", None) or [])[:0]
+                or _required_skills_of(stage),
+                physical_strain_index=float(environment.get("physical_strain_index") or 0.0),
+            )
+        )
+
+    return profiles
+
+
+def _required_skills_of(stage: Any) -> list[str]:
+    if stage is None:
+        return []
+    task = str(getattr(stage, "operator_task", "") or "").strip()
+    return [task] if task else []
 
 def _build_station_topology(
     factory: Factory | None,
@@ -661,6 +889,19 @@ async def _build_config_from_db(
     job_desks = await repository.load_job_desks(factory_id)
     topology = _build_station_topology(factory, stations, job_desks)
 
+    stages_by_id = {stage.stage_id: stage for stage in await repository.load_process_stages(factory_id)}
+    assets_by_id = {asset.asset_id: asset for asset in await repository.load_assets(factory_id)}
+    workers = await repository.load_workers(factory_id)
+    compatibility = await repository.load_compatibility_scores(factory_id)
+    shift_rows = await repository.load_shifts(factory_id)
+    warehouse_rows = await repository.load_warehouses(factory_id)
+    output_rows = await repository.load_outputs(factory_id)
+    assignment_rows = await repository.load_shift_assignments(factory_id)
+
+    ordinal_by_stage = {
+        station.stage_id: station.ordinal for station in stations if station.stage_id
+    }
+
     settings = await repository.load_settings(factory_id)
     multipliers = await repository.load_worker_multipliers(factory_id)
     assignments = await repository.load_seed_assignments(factory_id)
@@ -722,6 +963,37 @@ async def _build_config_from_db(
         analytical_insight_summary=resolved.analytical_insight_summary,
         target_output_units=resolved.target_output_units,
         initial_batch_seq=resolved.initial_batch_seq,
+        warehouses=_build_warehouse_sources(
+            warehouse_rows, ordinal_by_stage, topology["entry_ordinals"], resolved
+        ),
+        outputs=_build_output_sinks(
+            output_rows, ordinal_by_stage, topology["terminal_ordinals"], resolved
+        ),
+        shift_plans=_build_shift_plans(
+            [], shift_rows, resolved.shift_start_minutes
+        ),
+        shift_roster=_build_shift_roster(assignment_rows, job_desks, ordinal_by_stage),
+        worker_profiles=[
+            WorkerRuntimeProfile(
+                worker_id=worker.worker_id,
+                name=worker.name,
+                years_of_experience=float(
+                    (worker.demographics or {}).get("years_of_experience") or 0.0
+                ),
+                baseline_physical_stamina=float(
+                    (worker.demographics or {}).get("baseline_physical_stamina") or 0.5
+                ),
+                cognitive_resilience=float(
+                    (worker.demographics or {}).get("cognitive_resilience") or 0.5
+                ),
+                skills=list(worker.skills or []),
+                compatibility_by_job_id=compatibility.get(worker.worker_id, {}),
+            )
+            for worker in workers
+        ],
+        job_demands=_build_job_demands(
+            job_desks, stages_by_id, assets_by_id, ordinal_by_stage
+        ),
     )
 
 

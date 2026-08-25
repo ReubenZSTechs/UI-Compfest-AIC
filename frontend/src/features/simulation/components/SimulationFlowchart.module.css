@@ -1,36 +1,34 @@
-/* features/simulation/components/SimulationFlowchart.module.css */
-
-.flowchart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-block: 1rem;
+/* SimulationFlowchart.module.css — replace .flowchart / .stepGroup */
+.viewport {
+  min-height: 520px;
 }
 
-.stepGroup {
+.graph {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
 }
 
-.emptyState {
+.column {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  border: 1px dashed var(--sim-border-strong);
-  padding: 4rem 1.5rem;
-  text-align: center;
+  gap: 20px;
+  min-width: 260px;
 }
 
-.emptyStateText {
-  font-family: var(--sim-font-sans);
-  font-size: 0.875rem;
-  color: var(--sim-text-secondary);
+.cell {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
 }
 
-.emptyStateAccent {
-  color: var(--sim-teal);
+.outEdges {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
 }

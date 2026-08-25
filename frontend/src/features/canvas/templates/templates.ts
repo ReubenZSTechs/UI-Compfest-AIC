@@ -71,6 +71,9 @@ function outputNode(label: string, targetOutput: number, x: number, y: number): 
       label,
       targetOutput,
       totalOutput: 0,
+      materialName: "Produk Jadi",
+      materialUnit: "pcs",
+      acceptsDefective: false,
       aiStatus: "idle",
     },
   };

@@ -3,7 +3,12 @@
 import { useEffect, useRef } from 'react';
 import { fetchLiveSimulationState } from '../api/simulationApi';
 import { useSimulationStore } from '../store/simulationStore';
-import type { SimulationResponse, ActiveTransfer } from '../types/simulation.types';
+import type { 
+  SimulationResponse, 
+  ActiveTransfer,
+  StationErrorEvent,
+  WorkerActivityState
+} from '../types/simulation.types';
 
 // Kecepatan normal (1x) = 1 tick per 1000 ms
 const BASE_TICK_INTERVAL_MS = 1000;
@@ -33,9 +38,10 @@ interface MockState {
   whStock: number;
   finalOutput: number;
   totalCost: number;
-  totalErrors: number; // <-- BARU
+  totalErrors: number;
   transfers: ActiveTransfer[];
   steps: MockStepState[];
+  recentErrors: StationErrorEvent[];
 }
 
 let s_mockState: MockState;
@@ -48,6 +54,7 @@ function initializeMockState(): MockState {
     totalCost: 0,
     totalErrors: 0,
     transfers: [],
+    recentErrors: [],
     steps: [
       { id: "step_1", name: "Cutting", q: 0, maxQ: 100, processed: 0, totalProduced: 0, baseSpeed: 3.5, fatigueRate: 0.001, isFixingError: 0, fatigue: 0.0, stress: 0.1, lastInProcess: 0, speedMultiplier: 1.0 },
       { id: "step_2", name: "Sewing", q: 0, maxQ: 60, processed: 0, totalProduced: 0, baseSpeed: 1.8, fatigueRate: 0.0025, isFixingError: 0, fatigue: 0.0, stress: 0.1, lastInProcess: 0, speedMultiplier: 1.0 }, // Jahit lambat, cepat lelah
@@ -107,9 +114,26 @@ function advanceTick(state: MockState, tick: number) {
     // Base error sangat kecil (0.1%), tapi bisa naik hingga ~5% per menit jika pekerja kelelahan dan stres ekstrim.
     const errorProbability = 0.001 + (s.fatigue * 0.02) + (s.stress * 0.02);
     if (Math.random() < errorProbability) {
-      s.isFixingError = Math.floor(Math.random() * 8) + 3; // Butuh 3-10 menit untuk memperbaiki human error
+      const reworkTicks = Math.floor(Math.random() * 8) + 3;
+      s.isFixingError = reworkTicks;
       state.totalErrors++;
-      return; // Terjadi error! Produksi menit ini gagal.
+      
+      const severity: StationErrorEvent['severity'] =
+        s.fatigue > 0.75 || s.stress > 0.75 ? 'critical' :
+        s.fatigue > 0.5 || s.stress > 0.5 ? 'high' :
+        s.fatigue > 0.25 || s.stress > 0.25 ? 'moderate' : 'low';
+        
+      state.recentErrors.unshift({
+        step_id: s.id,
+        worker_id: `W-${s.id.replace('step_', '00')}`,
+        tick_minutes: tick,
+        severity,
+        rework_ticks: reworkTicks,
+        defective_units: Math.max(1, Math.round(s.baseSpeed)),
+        downtime_ticks: 0,
+      });
+      state.recentErrors.splice(12);
+      return;
     }
 
     // D. Kalkulasi Kecepatan Nyata (Terpengaruh lelah & stres)
@@ -193,7 +217,7 @@ const generateMockTick = (targetTick: number): SimulationResponse => {
   const currentOpStatus = isShiftEnded ? "shift_ended" : (isBreakTime ? "break" : "working");
 
   // Hitung jumlah pekerja yang mencapai level kritis
-  const workersAtRisk = state.steps.filter(s => s.fatigue > 0.75).length; // <-- BARU
+  const workersAtRisk = state.steps.filter(s => s.fatigue > 0.75).length; 
 
   let insight = "Alur produksi berjalan normal dan stabil.";
   const errorStep = state.steps.find(s => s.isFixingError > 0);
@@ -224,6 +248,8 @@ const generateMockTick = (targetTick: number): SimulationResponse => {
         operational_status: currentOpStatus,
         is_break_time: isBreakTime,
         is_shift_ended: isShiftEnded,
+        active_shift_id: isShiftEnded ? null : "shift-01",
+        is_handover_window: false,
       },
       step_breakdown: state.steps.map((s, i) => {
         const totalWIP = s.q + s.processed;
@@ -237,6 +263,10 @@ const generateMockTick = (targetTick: number): SimulationResponse => {
           nodeStatus = "idle";
         }
 
+        const stepDefects = state.recentErrors
+          .filter((error) => error.step_id === s.id)
+          .reduce((sum, error) => sum + error.defective_units, 0);
+
         return {
           step_id: s.id,
           step_name: s.name,
@@ -247,6 +277,10 @@ const generateMockTick = (targetTick: number): SimulationResponse => {
           operational_cost_idr: 0, 
           speed_multiplier: s.speedMultiplier,
           wip_fill_pct: Math.min(100, fillPct),
+          worker_ids: [`W-00${i + 1}`],
+          defective_units: stepDefects,
+          downtime_ticks: s.isFixingError,
+          is_starved: s.q === 0 && s.processed === 0 && s.isFixingError === 0,
           current_material: {
             batch_code: `BATCH-00${i + 1}`,
             material_name: materials[i],
@@ -257,10 +291,6 @@ const generateMockTick = (targetTick: number): SimulationResponse => {
           }
         };
       }),
-      warehouse: {
-        capacity: 5000,
-        current_stock: Math.max(0, state.whStock),
-      },
       current_assignments: state.steps.map((s, i) => ({
         worker_id: `W-00${i + 1}`,
         assigned_job_id: jobs[i],
@@ -274,6 +304,57 @@ const generateMockTick = (targetTick: number): SimulationResponse => {
           throughput_multiplier: s.speedMultiplier
         }
       })),
+      worker_runtime: state.steps.map((s, i) => {
+        const state_: WorkerActivityState =
+          isShiftEnded ? "off_shift" :
+          isBreakTime ? "on_break" :
+          s.isFixingError > 0 ? "rework" :
+          s.q === 0 && s.processed === 0 ? "idle" : "active";
+        return {
+          worker_id: `W-00${i + 1}`,
+          worker_name: `Operator ${s.name}`,
+          assigned_job_id: jobs[i],
+          assigned_step_id: s.id,
+          shift_id: "shift-01",
+          state: state_,
+          compatibility_score: Number(s.speedMultiplier.toFixed(3)),
+          speed_factor: Number(s.speedMultiplier.toFixed(3)),
+          metrics: {
+            current_fatigue_level: s.fatigue,
+            current_stress_level: s.stress,
+            effective_throughput_per_hour: (s.baseSpeed * s.speedMultiplier) * 60,
+            effective_error_probability: 0.001 + (s.fatigue * 0.02) + (s.stress * 0.02),
+            burnout_hazard_risk: s.fatigue > 0.75 ? "high" : (s.fatigue > 0.45 ? "medium" : "low"),
+            throughput_multiplier: s.speedMultiplier,
+          },
+        };
+      }),
+      warehouses: [
+        {
+          warehouse_id: "warehouse",
+          warehouse_name: "Gudang Bahan Baku",
+          material_name: "Kain Gulungan",
+          material_unit: "Meter",
+          capacity: 5000,
+          current_stock: Math.max(0, state.whStock),
+          supply_mode: "finite",
+          target_step_ids: ["step_1"],
+        },
+      ],
+      outputs: [
+        {
+          output_id: "output-01",
+          output_name: "Finished Goods Storage",
+          material_name: "Baju Lolos QC",
+          material_unit: "Pcs",
+          target_output_units: 500,
+          total_output_units: state.finalOutput,
+          defective_units: state.recentErrors.reduce((sum, error) => sum + error.defective_units, 0),
+          achievement_percentage: Math.min(100, (state.finalOutput / 500) * 100),
+          source_step_ids: ["step_4"],
+        },
+      ],
+      recent_errors: state.recentErrors,
       active_transfers: state.transfers,
       system_bottlenecks: state.steps.filter(s => (s.q + s.processed) >= s.maxQ * 0.85).map(s => s.id),
       simulation_summary: {
@@ -283,7 +364,6 @@ const generateMockTick = (targetTick: number): SimulationResponse => {
         efficiency_score: Math.max(0, 100 - (state.steps[1].fatigue * 20)),
         total_operational_cost_idr: state.totalCost,
         cost_per_unit_idr: state.finalOutput > 0 ? state.totalCost / state.finalOutput : 0,
-        // --- DATA SUMMARY BARU KITA MASUKKAN DI SINI ---
         total_human_errors: state.totalErrors,
         workers_at_risk: workersAtRisk,
       },
