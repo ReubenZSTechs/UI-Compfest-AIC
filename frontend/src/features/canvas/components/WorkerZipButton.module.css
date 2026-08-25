@@ -1,0 +1,55 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.uploadButton,
+.mapButton {
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.uploadButton {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+.mapButton {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.uploadButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status {
+  font-size: 12px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-success {
+  color: #047857;
+}
+
+.status-error {
+  color: #b91c1c;
+}
+
+.status-uploading {
+  color: #6b7280;
+}

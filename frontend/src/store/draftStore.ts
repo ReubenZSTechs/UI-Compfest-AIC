@@ -6,12 +6,10 @@
 // - Setiap perubahan state kerja (canvas nodes/edges, chat, operational
 //   settings, optimization cards) disinkronkan ke SATU record ProjectDraft
 //   via syncActiveDraft() (dipanggil oleh useDraftAutoSync) lalu dipersist
-//   otomatis ke localStorage (zustand persist) + backup best-effort ke backend.
+//   otomatis ke localStorage (zustand persist).
 // - Migrasi otomatis dari penyimpanan lama (canvas-projects-v2) bila ada.
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { apiClient } from "@/api/client";
-import { ENDPOINTS } from "@/api/endpoints";
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { useAgentChatStore } from "@/store/agentChat";
 import {
@@ -59,6 +57,7 @@ function migrateLegacyV2(): ProjectDraft[] {
       drafts.push({
         projectId: canvasId,
         templateId: (p.templateId as ProjectDraft["templateId"]) ?? "blank",
+        factoryId: null, // Legacy drafts won't have a factoryId initially
         title: typeof p.name === "string" ? p.name : "Proyek Pabrik Tanpa Judul",
         currentStep: "canvas",
         lastUpdated: typeof p.updatedAt === "string" ? p.updatedAt : new Date().toISOString(),
@@ -66,6 +65,12 @@ function migrateLegacyV2(): ProjectDraft[] {
         canvasData: {
           nodes: (snap.nodes as ProjectDraft["canvasData"]["nodes"]) ?? [],
           edges: (snap.edges as ProjectDraft["canvasData"]["edges"]) ?? [],
+          // Providing empty defaults for the new fields on legacy items
+          factoryMeta: (snap.factoryMeta as ProjectDraft["canvasData"]["factoryMeta"]) ?? {},
+          shifts: [],
+          simulationSettings: {} as any,
+          workerPool: [],
+          workerAssignments: {},
         },
         liveData: { chatHistory: [] },
         agentData: {
@@ -105,10 +110,10 @@ interface DraftState {
   setOperationalSettings: (settings: ProjectDraft["agentData"]["operationalSettings"]) => void;
   setOptimizationCards: (cards: OptimizationCard[]) => void;
   selectOptimizationCard: (cardId: string | null) => void;
+  setFactoryId: (factoryId: string | null) => void;
 
   /** Mirror working state (canvasUI + agentChat) ke active draft + persist. */
   syncActiveDraft: () => void;
-  /** sync + kirim backup best-effort ke backend. */
   saveActiveDraft: () => Promise<void>;
 }
 
@@ -148,11 +153,20 @@ export const useDraftStore = create<DraftState>()(
           const draft: ProjectDraft = {
             projectId,
             templateId,
+            factoryId: null,
             title: TEMPLATE_META[templateId].title,
             currentStep: "canvas",
             lastUpdated: now,
             createdAt: now,
-            canvasData: { nodes, edges },
+            canvasData: { 
+              nodes, 
+              edges,
+              factoryMeta: {} as any,
+              shifts: [],
+              simulationSettings: {} as any,
+              workerPool: [],
+              workerAssignments: {},
+            },
             liveData: { chatHistory: [] },
             agentData: { chatHistory: [], operationalSettings: { ...DEFAULT_LIMITS } },
             optimizationData: { generatedCards: [], selectedCardId: null },
@@ -181,6 +195,16 @@ export const useDraftStore = create<DraftState>()(
           canvas.setAnalysis({ status: "idle" });
           canvas.setSession(draft.projectId, draft.templateId);
           canvas.applyOperationalLimits(draft.agentData.operationalSettings);
+          
+          canvas.hydrateCanvasMeta({
+            factoryId: draft.factoryId,
+            factoryMeta: draft.canvasData.factoryMeta,
+            shifts: draft.canvasData.shifts,
+            simulationSettings: draft.canvasData.simulationSettings,
+            workerPool: draft.canvasData.workerPool,
+            workerAssignments: draft.canvasData.workerAssignments,
+          });
+
           useAgentChatStore.getState().hydrate(
             draft.projectId,
             draft.agentData.chatHistory
@@ -240,6 +264,11 @@ export const useDraftStore = create<DraftState>()(
           });
         },
 
+        setFactoryId: (factoryId: string | null) => {
+          useCanvasUIStore.getState().setFactoryId(factoryId);
+          updateActive({ factoryId });
+        },
+
         syncActiveDraft: () => {
           const active = get().getActiveDraft();
           if (!active) return;
@@ -247,7 +276,16 @@ export const useDraftStore = create<DraftState>()(
           const chat = useAgentChatStore.getState();
           updateActive({
             title: canvas.projectTitle,
-            canvasData: { nodes: canvas.nodes, edges: canvas.edges },
+            factoryId: canvas.factoryId,
+            canvasData: {
+              nodes: canvas.nodes,
+              edges: canvas.edges,
+              factoryMeta: canvas.factoryMeta,
+              shifts: canvas.shifts,
+              simulationSettings: canvas.simulationSettings,
+              workerPool: canvas.workerPool,
+              workerAssignments: canvas.workerAssignments,
+            },
             liveData: { chatHistory: chat.messages },
             agentData: {
               chatHistory: chat.messages,
@@ -258,15 +296,6 @@ export const useDraftStore = create<DraftState>()(
 
         saveActiveDraft: async () => {
           get().syncActiveDraft();
-          const active = get().getActiveDraft();
-          if (!active) return;
-          try {
-            await apiClient.post(ENDPOINTS.CANVAS.PROJECTS, active, { timeout: 8000 });
-          } catch (err) {
-            // Data sudah aman di localStorage (zustand persist). Backend backup
-            // hanya best-effort — log warning saja, jangan throw.
-            console.warn("[draftStore] Backend save failed:", err);
-          }
         },
       };
     },

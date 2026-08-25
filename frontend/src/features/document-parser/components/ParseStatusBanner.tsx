@@ -1,15 +1,22 @@
 // frontend/src/features/document-parser/components/ParseStatusBanner.tsx
 import styles from './ParseStatusBanner.module.css';
-import type { ParseJobStatus, ParseStep } from '../types/documentParser.types';
+
+// 1. Update the import to pull BuildStep from wherever you define it. 
+// (If it's in a types file, update this path accordingly. Here we assume it's exported from the hook).
+import type { BuildStep } from '@/features/document-parser/hooks/useFactoryBuildStatus';
+
+// 2. Define the explicit statuses that your new hook uses
+export type JobBuildStatus = 'idle' | 'running' | 'success' | 'error';
 
 interface ParseStatusBannerProps {
-  steps: ParseStep[];
-  jobStatus: ParseJobStatus;
+  steps: BuildStep[];
+  jobStatus: JobBuildStatus;
   resultSummary?: string;
   errorMessage?: string;
 }
 
-const STEP_MARKER: Record<ParseStep['status'], string> = {
+// 3. Update the Record to map against BuildStep's status
+const STEP_MARKER: Record<BuildStep['status'], string> = {
   pending: '',
   active: '',
   success: '✓',
@@ -35,7 +42,7 @@ export function ParseStatusBanner({ steps, jobStatus, resultSummary, errorMessag
       {jobStatus === 'success' && resultSummary && <p className={styles.summary}>{resultSummary}</p>}
       {jobStatus === 'error' && (
         <p className={styles.summary}>
-          {errorMessage ?? 'Parsing gagal. Periksa langkah yang ditandai di atas, lalu coba lagi.'}
+          {errorMessage ?? 'Proses gagal. Periksa langkah yang ditandai di atas, lalu coba lagi.'}
         </p>
       )}
     </div>
