@@ -27,10 +27,17 @@ import { NodeOutput } from "@/components/feedback/NodeOutput";
 import { FlowEdge, AssignedEdge } from "./edges";
 import { CanvasAnalyzePanel } from "./CanvasAnalyzePanel";
 import { ZoomControls } from "./ZoomControls";
-import type { CanvasFlowEdge, CanvasFlowNode } from "../types/canvas.types";
+import type { CanvasFlowEdge, CanvasFlowNode, CanvasNodeKind } from "../types/canvas.types";
 import styles from "./CanvasBoard.module.css";
 
-const nodeTypes = { fabric: NodeFabric, worker: NodeWorker, output: NodeOutput };
+import { NodeWarehouse } from "@/components/feedback/NodeWarehouse";
+
+const nodeTypes = {
+  fabric: NodeFabric,
+  worker: NodeWorker,
+  output: NodeOutput,
+  warehouse: NodeWarehouse,
+};
 const edgeTypes = { flow: FlowEdge, assigned: AssignedEdge };
 
 const defaultEdgeOptions = {
@@ -88,14 +95,17 @@ function BoardCanvas() {
 
   const handlePaneClick = useCallback(
     (event: React.MouseEvent) => {
-      if (
-        activeTool === "add-process" ||
-        activeTool === "add-worker" ||
-        activeTool === "add-output"
-      ) {
-        // Memetakan koordinat layar ke koordinat flow (sudah memperhitungkan zoom & pan).
+      const toolToKind: Partial<Record<string, CanvasNodeKind>> = {
+        "add-process": "process",
+        "add-worker": "worker",
+        "add-output": "output",
+        "add-warehouse": "warehouse",
+      };
+      const kind = toolToKind[activeTool];
+
+      if (kind) {
         const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-        addNodeAt(activeTool === "add-process" ? "process" : activeTool === "add-worker" ? "worker" : "output", position);
+        addNodeAt(kind, position);
         return;
       }
 
@@ -146,7 +156,16 @@ function BoardCanvas() {
 
   // Keyboard shortcuts: Undo (Ctrl+Z), Redo (Ctrl+Y), Hapus (Delete), Batal (Esc)
   useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) return false;
+      if (target.isContentEditable) return true;
+      const tag = target.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    };
+
     const onKeyDown = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+
       if (e.key === "Escape") {
         setSelectedNode(null);
         setConnectSourceId(null);
@@ -167,6 +186,7 @@ function BoardCanvas() {
         }
       }
     };
+
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [selectedNodeId, setSelectedNode, redo, undo, removeElement]);

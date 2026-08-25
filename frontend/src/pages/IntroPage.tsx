@@ -8,7 +8,8 @@ import {
   CANVAS_TEMPLATES,
   TEMPLATE_META,
 } from "@/features/canvas/templates/templates";
-import type { CanvasTemplateId } from "@/features/canvas/types/canvas.types";
+import { FactoryDetailsModal } from "@/features/canvas/components/FactoryDetailsModal";
+import type { CanvasFactoryMeta, CanvasTemplateId } from "@/features/canvas/types/canvas.types";
 import { useDraftStore } from "@/store/draftStore";
 import styles from "./IntroPage.module.css";
 
@@ -40,21 +41,15 @@ const GUIDE_STEPS = [
 export function IntroPage() {
   const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState<CanvasTemplateId>("serial");
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   function startCanvas() {
-    const ds = useDraftStore.getState();
-    const existing = ds.drafts.find(
-      (d) =>
-        d.templateId === selectedTemplate &&
-        d.canvasData.nodes.length <= 4 &&
-        Date.now() - new Date(d.createdAt).getTime() < 60_000
-    );
-    if (existing) {
-      ds.loadDraft(existing.projectId);
-      navigate(`${ROUTES.LIVE}?projectId=${existing.projectId}`);
-      return;
-    }
-    const projectId = ds.createDraft(selectedTemplate);
+    setDetailsOpen(true);
+  }
+
+  function handleConfirmDetails(meta: CanvasFactoryMeta) {
+    const projectId = useDraftStore.getState().createDraft(selectedTemplate, meta);
+    setDetailsOpen(false);
     navigate(`${ROUTES.LIVE}?projectId=${projectId}`);
   }
 
@@ -157,6 +152,12 @@ export function IntroPage() {
           ))}
         </div>
       </section>
+
+      <FactoryDetailsModal
+        open={detailsOpen}
+        onConfirm={handleConfirmDetails}
+        onCancel={() => setDetailsOpen(false)}
+      />
     </div>
   );
 }

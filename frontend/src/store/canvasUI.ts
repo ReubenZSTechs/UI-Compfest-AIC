@@ -129,6 +129,7 @@ export function resolveRelation(
   targetKind: CanvasNodeKind | undefined
 ): RelationType | null {
   if (!sourceKind || !targetKind) return null;
+  if (sourceKind === "warehouse" && targetKind === "process") return "FLOW";
   if (sourceKind === "process" && targetKind === "process") return "FLOW";
   if (sourceKind === "process" && targetKind === "output") return "FLOW";
   if (sourceKind === "worker" && targetKind === "process") return "ASSIGNED_TO";
@@ -136,7 +137,7 @@ export function resolveRelation(
 }
 
 const DEFAULT_FACTORY_META: CanvasFactoryMeta = {
-  factoryName: "Pabrik Tanpa Nama",
+  factoryName: "",
   processType: "serial",
   layoutDescription: "",
   declaredWorkerCount: 0,
@@ -349,9 +350,18 @@ export const useCanvasUIStore = create<CanvasUIState>((set, get) => ({
   addNodeAt: (kind, position) => {
     const { snapshot } = get();
     const id = genId(kind);
+    const nodeType =
+      kind === "process"
+        ? "fabric"
+        : kind === "output"
+          ? "output"
+          : kind === "warehouse"
+            ? "warehouse"
+            : "worker";
+
     const base: CanvasFlowNode = {
       id,
-      type: kind === "process" ? "fabric" : kind === "output" ? "output" : "worker",
+      type: nodeType,
       position,
       data:
         kind === "process"
@@ -371,30 +381,40 @@ export const useCanvasUIStore = create<CanvasUIState>((set, get) => ({
                 totalOutput: 0,
                 aiStatus: "idle",
               }
-            : {
-                kind: "worker",
-                label: "",
-                fatigueScore: 0,
-                aiStatus: "idle",
-                worker: {
-                  workerId: id,
-                  name: "",
-                  demographics: {
-                    age: 0,
-                    gender: "",
-                    yearsOfExperience: 0,
-                    baselinePhysicalStamina: 0,
-                    cognitiveResilience: 0,
+            : kind === "warehouse"
+              ? {
+                  kind: "warehouse",
+                  label: "Gudang Bahan Baku",
+                  capacity: 5000,
+                  feedRate: 100,
+                  materialName: "Bahan Baku",
+                  materialUnit: "pcs",
+                  aiStatus: "idle",
+                }
+              : {
+                  kind: "worker",
+                  label: "",
+                  fatigueScore: 0,
+                  aiStatus: "idle",
+                  worker: {
+                    workerId: id,
+                    name: "",
+                    demographics: {
+                      age: 0,
+                      gender: "",
+                      yearsOfExperience: 0,
+                      baselinePhysicalStamina: 0,
+                      cognitiveResilience: 0,
+                    },
+                    shiftContext: { hoursWorkedToday: 0, consecutiveShifts: 0 },
+                    skills: [],
                   },
-                  shiftContext: { hoursWorkedToday: 0, consecutiveShifts: 0 },
-                  skills: [],
                 },
-              },
     };
     snapshot();
     set((s) => ({ nodes: [...s.nodes, base], selectedNodeId: id, activeTool: "select" }));
   },
-
+  
   removeElement: (id, isEdge = false) => {
     const { edges, snapshot } = get();
     if (isEdge) {

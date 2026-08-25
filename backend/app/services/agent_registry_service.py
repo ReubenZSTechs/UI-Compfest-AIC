@@ -20,7 +20,7 @@ class AgentRole(StrEnum):
     INIT_STATE = "init_state_creator"
     SIMULATION_STATE = "simulation_state_agent"
     OPTIMIZATION_SCENARIO = "optimization_scenario_agent"
-    GNN_COMPATIBILITY_GENERATOR = "gnn_training_data_generator" 
+    GNN_COMPATIBILITY_GENERATOR = "gnn_training_data_generator"
     CHATBOT_DATA_REPAIR = "chatbot_data_repair"
 
     CHATBOT_QUERY_REWRITER = "chatbot_query_rewriter"
@@ -31,6 +31,7 @@ class AgentRole(StrEnum):
     CHATBOT_SUMMARIZER = "chatbot_summarizer"
     FACTORY_CLARIFICATION = "factory_clarification_agent"
     CV_CLARIFICATION = "cv_clarification_agent"
+    NODE_AUTOFILL = "node_autofill_agent"
 
 
 class AgentRegistry:
@@ -169,6 +170,16 @@ class AgentRegistry:
 
             self._instances.pop(role, None)
             logger.info(f"Agent '{role}' di-invalidate, akan dimuat ulang saat dipakai")
+
+    def assert_enum_roles_registered(self) -> None:
+        discovered = set(self._role_paths.keys())
+        missing = sorted(role.value for role in AgentRole if role.value not in discovered)
+        if missing:
+            raise AgentNotFoundError(
+                f"{len(missing)} role terdaftar di AgentRole tapi tidak punya file YAML "
+                f"dengan 'agent.role' yang cocok: {missing}. "
+                f"Role yang ditemukan di {self.settings.config_dir}: {sorted(discovered)}"
+            )
 
 
 @lru_cache

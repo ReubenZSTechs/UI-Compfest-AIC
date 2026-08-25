@@ -13,10 +13,9 @@ import { persist } from "zustand/middleware";
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { useAgentChatStore } from "@/store/agentChat";
 import {
-  CANVAS_TEMPLATES,
-  TEMPLATE_META,
+  CANVAS_TEMPLATES
 } from "@/features/canvas/templates/templates";
-import type { CanvasTemplateId } from "@/features/canvas/types/canvas.types";
+import type { CanvasTemplateId, CanvasFactoryMeta, CanvasSimulationSettings } from "@/features/canvas/types/canvas.types";
 import type {
   OptimizationCard,
   ProjectDraft,
@@ -98,8 +97,8 @@ interface DraftState {
   getActiveDraft: () => ProjectDraft | null;
 
   /** Buat draft baru dari template, aktifkan, dan hydrate working state. */
-  createDraft: (templateId: CanvasTemplateId) => string;
-  /** Muat draft ke global project context (hydrate canvas + chats + cards). */
+  createDraft: (templateId: CanvasTemplateId, meta: CanvasFactoryMeta) => string;
+    /** Muat draft ke global project context (hydrate canvas + chats + cards). */
   loadDraft: (projectId: string) => void;
   deleteDraft: (projectId: string) => void;
   duplicateDraft: (projectId: string) => ProjectDraft | null;
@@ -146,7 +145,7 @@ export const useDraftStore = create<DraftState>()(
           return drafts.find((d) => d.projectId === activeDraftId) ?? null;
         },
 
-        createDraft: (templateId) => {
+        createDraft: (templateId, meta) => {
           const projectId = createProjectId();
           const { nodes, edges } = CANVAS_TEMPLATES[templateId]();
           const now = new Date().toISOString();
@@ -154,16 +153,16 @@ export const useDraftStore = create<DraftState>()(
             projectId,
             templateId,
             factoryId: null,
-            title: TEMPLATE_META[templateId].title,
+            title: meta.factoryName,
             currentStep: "canvas",
             lastUpdated: now,
             createdAt: now,
-            canvasData: { 
-              nodes, 
+            canvasData: {
+              nodes,
               edges,
-              factoryMeta: {} as any,
-              shifts: [],
-              simulationSettings: {} as any,
+              factoryMeta: meta,
+              shifts: [{ shiftId: "shift-01", startTime: "08:00", endTime: "16:00" }],
+              simulationSettings: {} as CanvasSimulationSettings,
               workerPool: [],
               workerAssignments: {},
             },
@@ -172,12 +171,19 @@ export const useDraftStore = create<DraftState>()(
             optimizationData: { generatedCards: [], selectedCardId: null },
           };
 
-          // Hydrate working state (canvas + agent chat).
           const canvas = useCanvasUIStore.getState();
           canvas.loadTemplate(nodes, edges);
           canvas.setProjectTitle(draft.title);
           canvas.setAnalysis({ status: "idle" });
           canvas.setSession(projectId, templateId);
+          canvas.hydrateCanvasMeta({
+            factoryId: null,
+            factoryMeta: meta,
+            shifts: draft.canvasData.shifts,
+            simulationSettings: draft.canvasData.simulationSettings,
+            workerPool: [],
+            workerAssignments: {},
+          });
           useAgentChatStore.getState().startNewSession(projectId);
 
           set((s) => ({ drafts: [draft, ...s.drafts], activeDraftId: projectId }));

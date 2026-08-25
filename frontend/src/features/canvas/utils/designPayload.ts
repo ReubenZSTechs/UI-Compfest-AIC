@@ -28,6 +28,10 @@ function isProcessNode(node: CanvasFlowNode): boolean {
   return node.data.kind === "process";
 }
 
+function findWarehouseNode(nodes: CanvasFlowNode[]): CanvasFlowNode | undefined {
+  return nodes.find((node) => node.data.kind === "warehouse");
+}
+
 function orderProcessNodes(nodes: CanvasFlowNode[], edges: CanvasFlowEdge[]): CanvasFlowNode[] {
   const processNodes = nodes.filter(isProcessNode);
   const rounds = computeExecutionRounds(toFlowGraph(nodes, edges));
@@ -233,6 +237,25 @@ export function buildSimulationDesignPayload(input: DesignPayloadInput) {
       ? outputNode.data.targetOutput
       : settings.targetOutputUnits;
 
+  const warehouseNode = findWarehouseNode(nodes);
+  const warehouseData =
+    warehouseNode && warehouseNode.data.kind === "warehouse" ? warehouseNode.data : null;
+
+  const settingsPayload = {
+    bottleneckFillThreshold: settings.bottleneckFillThreshold,
+    idleQtyThreshold: settings.idleQtyThreshold,
+    station1SafetyMargin: settings.station1SafetyMargin,
+    warehouseCapacity: warehouseData ? warehouseData.capacity : settings.warehouseCapacity,
+    warehouseFeedRate: warehouseData ? warehouseData.feedRate : settings.warehouseFeedRate,
+    shiftStartMinutes: settings.shiftStartMinutes,
+    breakStartElapsed: settings.breakStartElapsed,
+    breakEndElapsed: settings.breakEndElapsed,
+    shiftEndElapsed: settings.shiftEndElapsed,
+    analyticalInsightSummary: settings.analyticalInsightSummary,
+    targetOutputUnits,
+    initialBatchSeq: settings.initialBatchSeq,
+  };
+
   return {
     factoryInfo: {
       processType: deriveProcessType(processEdges),
@@ -248,20 +271,7 @@ export function buildSimulationDesignPayload(input: DesignPayloadInput) {
     shifts: effectiveShifts,
     jobDesks,
     stations,
-    settings: {
-      bottleneckFillThreshold: settings.bottleneckFillThreshold,
-      idleQtyThreshold: settings.idleQtyThreshold,
-      station1SafetyMargin: settings.station1SafetyMargin,
-      warehouseCapacity: settings.warehouseCapacity,
-      warehouseFeedRate: settings.warehouseFeedRate,
-      shiftStartMinutes: settings.shiftStartMinutes,
-      breakStartElapsed: settings.breakStartElapsed,
-      breakEndElapsed: settings.breakEndElapsed,
-      shiftEndElapsed: settings.shiftEndElapsed,
-      analyticalInsightSummary: settings.analyticalInsightSummary,
-      targetOutputUnits,
-      initialBatchSeq: settings.initialBatchSeq,
-    },
+    settings: settingsPayload,
     workerMultipliers: [],
     seedAssignments: [],
     pruneMissing: true,

@@ -79,8 +79,8 @@ interface DetailProps {
 
 function ProcessDetail({ node, updateNodeData, snapshot }: DetailProps) {
   const shifts = useCanvasUIStore((s) => s.shifts);
+  if (node.data.kind !== "process") return null;
   const d = node.data;
-  if (d.kind !== "process") return null;
 
   const index = useCanvasUIStore
     .getState()

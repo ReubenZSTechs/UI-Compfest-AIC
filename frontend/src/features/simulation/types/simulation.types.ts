@@ -58,13 +58,14 @@ export interface StepBreakdown {
   step_id: string;
   step_name: string;
   status: StepStatus;
-  output_generated: number;      // Laju estimasi output per jam (backward compatibility)
-  output_per_hour?: number;      // Laju estimasi output per jam
-  total_output_produced: number; // Akumulasi TOTAL output node selama simulasi berjalan
+  output_generated: number;
+  output_per_hour?: number;
+  total_output_produced: number;
   operational_cost_idr: number;
   current_material: MaterialInProcess;
   speed_multiplier: number;
   wip_fill_pct: number;
+  next_step_ids?: string[];
 }
 
 export interface ActiveTransfer {

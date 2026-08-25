@@ -98,6 +98,14 @@ def _static_fallback_config() -> SimulationConfig:
         batch_in_by_ordinal=C.BATCH_IN_BY_ORDINAL,
         batch_out_by_ordinal=C.BATCH_OUT_BY_ORDINAL,
         cycle_ticks_by_ordinal=C.CYCLE_TICKS_BY_ORDINAL,
+        step_ids_by_ordinal={
+            ordinal: (f"step_07_baking" if ordinal == 7 else f"step_{ordinal:02d}")
+            for ordinal in range(1, 11)
+        },
+        station_edges={ordinal: ([ordinal + 1] if ordinal < 10 else []) for ordinal in range(1, 11)},
+        entry_ordinals=[1],
+        terminal_ordinals=[10],
+        ordinal_by_job_id={f"job-{ordinal:02d}": ordinal for ordinal in range(1, 11)},
         bottleneck_fill_threshold=C.BOTTLENECK_FILL_THRESHOLD,
         idle_qty_threshold=C.IDLE_QTY_THRESHOLD,
         station_1_safety_margin=C.STATION_1_SAFETY_MARGIN,
@@ -574,12 +582,84 @@ async def save_simulation_design(
 # --------------------------------------------------------------------------
 
 
+def _build_station_topology(
+    factory: Factory | None,
+    stations: list[Any],
+    job_desks: list[Any],
+) -> dict[str, Any]:
+    ordinals = [station.ordinal for station in stations]
+    ordinal_by_stage = {
+        station.stage_id: station.ordinal for station in stations if station.stage_id
+    }
+
+    edges: dict[int, list[int]] = {ordinal: [] for ordinal in ordinals}
+    raw_edges = (factory.process_edges or []) if factory is not None else []
+
+    for raw in raw_edges:
+        if not isinstance(raw, dict):
+            continue
+        source = ordinal_by_stage.get(raw.get("from_stage_id"))
+        target = ordinal_by_stage.get(raw.get("to_stage_id"))
+        if source is None or target is None or source == target:
+            continue
+        if target not in edges[source]:
+            edges[source].append(target)
+
+    has_any_edge = any(targets for targets in edges.values())
+    if not has_any_edge and len(ordinals) > 1:
+        ordered = sorted(ordinals)
+        for current, following in zip(ordered, ordered[1:]):
+            edges[current] = [following]
+
+    reachable = {target for targets in edges.values() for target in targets}
+
+    declared_entries = [
+        ordinal_by_stage[stage_id]
+        for stage_id in ((factory.entry_stages or []) if factory is not None else [])
+        if stage_id in ordinal_by_stage
+    ]
+    declared_terminals = [
+        ordinal_by_stage[stage_id]
+        for stage_id in ((factory.terminal_stages or []) if factory is not None else [])
+        if stage_id in ordinal_by_stage
+    ]
+
+    entry_ordinals = declared_entries or [o for o in ordinals if o not in reachable]
+    terminal_ordinals = declared_terminals or [o for o in ordinals if not edges[o]]
+
+    if not entry_ordinals and ordinals:
+        entry_ordinals = [min(ordinals)]
+    if not terminal_ordinals and ordinals:
+        terminal_ordinals = [max(ordinals)]
+
+    ordinal_by_job_id = {
+        job.job_id: ordinal_by_stage[job.stage_id]
+        for job in job_desks
+        if job.stage_id in ordinal_by_stage
+    }
+
+    return {
+        "step_ids_by_ordinal": {
+            station.ordinal: (station.stage_id or f"step_{station.ordinal:02d}")
+            for station in stations
+        },
+        "station_edges": edges,
+        "entry_ordinals": sorted(set(entry_ordinals)),
+        "terminal_ordinals": sorted(set(terminal_ordinals)),
+        "ordinal_by_job_id": ordinal_by_job_id,
+    }
+
+
 async def _build_config_from_db(
     repository: SimulationRepository, factory_id: str
 ) -> SimulationConfig | None:
     stations = await repository.load_stations(factory_id)
     if not stations:
         return None
+
+    factory = await repository.load_factory(factory_id)
+    job_desks = await repository.load_job_desks(factory_id)
+    topology = _build_station_topology(factory, stations, job_desks)
 
     settings = await repository.load_settings(factory_id)
     multipliers = await repository.load_worker_multipliers(factory_id)
@@ -626,6 +706,7 @@ async def _build_config_from_db(
         batch_in_by_ordinal={s.ordinal: s.batch_in for s in stations},
         batch_out_by_ordinal={s.ordinal: s.batch_out for s in stations},
         cycle_ticks_by_ordinal={s.ordinal: s.cycle_ticks for s in stations},
+        **topology,
         bottleneck_fill_threshold=resolved.bottleneck_fill_threshold,
         idle_qty_threshold=resolved.idle_qty_threshold,
         station_1_safety_margin=resolved.station_1_safety_margin,

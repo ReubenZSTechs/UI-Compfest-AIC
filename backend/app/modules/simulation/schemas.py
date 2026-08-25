@@ -64,6 +64,11 @@ class SimulationConfig(BaseModel):
     batch_in_by_ordinal: dict[int, float]
     batch_out_by_ordinal: dict[int, float]
     cycle_ticks_by_ordinal: dict[int, int]
+    step_ids_by_ordinal: dict[int, str] = Field(default_factory=dict)
+    station_edges: dict[int, list[int]] = Field(default_factory=dict)
+    entry_ordinals: list[int] = Field(default_factory=list)
+    terminal_ordinals: list[int] = Field(default_factory=list)
+    ordinal_by_job_id: dict[str, int] = Field(default_factory=dict)
 
     bottleneck_fill_threshold: float
     idle_qty_threshold: float

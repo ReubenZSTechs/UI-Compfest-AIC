@@ -47,6 +47,13 @@ export function buildFactoryGraphPayload(
         target_output: d.targetOutput,
       };
     }
+    if (d.kind === "warehouse") {
+      return {
+        id: node.id,
+        type: "warehouse" as const,
+        label: d.label,
+      };
+    }
     return {
       id: node.id,
       type: "worker" as const,
@@ -84,6 +91,7 @@ export function summarizeGraph(
   processCount: number;
   workerCount: number;
   outputCount: number;
+  warehouseCount: number;
   flowCount: number;
   assignedCount: number;
 } {
@@ -91,6 +99,7 @@ export function summarizeGraph(
     processCount: nodes.filter((n) => n.data.kind === "process").length,
     workerCount: nodes.filter((n) => n.data.kind === "worker").length,
     outputCount: nodes.filter((n) => n.data.kind === "output").length,
+    warehouseCount: nodes.filter((n) => n.data.kind === "warehouse").length,
     flowCount: edges.filter((e) => e.data?.relation === "FLOW").length,
     assignedCount: edges.filter((e) => e.data?.relation === "ASSIGNED_TO").length,
   };

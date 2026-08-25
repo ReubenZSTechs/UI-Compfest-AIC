@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     digital_twin_ingestion,
     document_parser,
     factories,
+    node_autofill,
     rl_optimization,
     simulation,
 )
@@ -39,3 +40,5 @@ api_router.include_router(
 api_router.include_router(
     document_parser.router, prefix="/documents", tags=["document-parser"]
 )
+
+api_router.include_router(node_autofill.router, prefix="/agents", tags=["agents"])

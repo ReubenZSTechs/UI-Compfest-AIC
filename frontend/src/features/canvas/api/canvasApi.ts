@@ -2,6 +2,9 @@ import { apiClient } from "@/api/client";
 import { ENDPOINTS } from "@/api/endpoints";
 import type { CanvasWorkerProfile } from "../types/canvas.types";
 import type { SimulationDesignPayload } from "../utils/designPayload";
+import type { NodeAutofillRequest, NodeAutofillResponse } from "../types/canvas.types";
+
+const AUTOFILL_TIMEOUT_MS = 90 * 1000;
 
 export interface FactorySummary {
   factoryId: string;
@@ -174,5 +177,16 @@ export async function getCompatibilityJob(jobId: string): Promise<CompatibilityJ
 
 export async function cancelCompatibilityJob(jobId: string): Promise<CompatibilityJob> {
   const { data } = await apiClient.delete<CompatibilityJob>(ENDPOINTS.DOCUMENTS.STEP_5_JOB(jobId));
+  return data;
+}
+
+export async function autofillNodeDemands(
+  payload: NodeAutofillRequest
+): Promise<NodeAutofillResponse> {
+  const { data } = await apiClient.post<NodeAutofillResponse>(
+    ENDPOINTS.AGENTS.NODE_AUTOFILL,
+    payload,
+    { timeout: AUTOFILL_TIMEOUT_MS }
+  );
   return data;
 }
