@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>ASCII Machine Animation</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #00ff66;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        pre {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            line-height: 1.15;
+            letter-spacing: 2px;
+            background-color: #1e1e1e;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+
+<pre id="display"></pre>
+
+<script>
+    const display = document.getElementById('display');
+    let offset = 0;
+    const pathWidth = 24;
+
+    const smokes = [
+        ["   ( )   ", "  ( o )  "],
+        ["  ( o )  ", " (  O  ) "],
+        [" (  O  ) ", "   ( )   "]
+    ];
+
+    function drawFrame() {
+        const smoke = smokes[Math.floor(offset / 2) % smokes.length];
+        
+        let lineTop = "";
+        let lineBody = "";
+        
+        for (let i = 0; i < pathWidth; i++) {
+            let pos = (i + offset) % 8;
+            if (pos === 0) {
+                lineTop += " ";
+                lineBody += "|";
+            } else if (pos === 1 || pos === 2) {
+                lineTop += "_";
+                lineBody += " ";
+            } else if (pos === 3) {
+                lineTop += " ";
+                lineBody += "|";
+            } else {
+                lineTop += " ";
+                lineBody += " ";
+            }
+        }
+
+        const art = 
+`                ${smoke[0]}
+                ${smoke[1]}
+              +------------+
+              | [ MACHINE] |
+${lineTop}|            |
+${lineBody}|   [==]     |
+==============================+
+==============================|
+  | |   | |       | |      |  |`;
+
+        display.textContent = art;
+        offset = (offset + 1) % 8;
+    }
+
+    setInterval(drawFrame, 150);
+</script>
+
+</body>
+</html>

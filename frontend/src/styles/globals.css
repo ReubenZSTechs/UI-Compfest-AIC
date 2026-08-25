@@ -1,28 +1,129 @@
 /* frontend/src/styles/globals.css */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ── Google Fonts / Fallbacks ── */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+/* ── Local @font-face (served from /public/fonts/) ── */
+
+/* Nex-Over (geometric futuristic display) */
+@font-face {
+  font-family: 'Nex-Over';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Nex-over.woff2') format('woff2');
+}
+
+/* Plantin MT Pro Italic (display / headings) */
+@font-face {
+  font-family: 'Plantin MT Pro';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/PlantinMTProRgIt.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plantin MT Pro';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/PlantinMTProBoldIt.woff2') format('woff2');
+}
+
+/* Plantin MT Pro (body / descriptions) */
+@font-face {
+  font-family: 'Plantin MT Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/PlantinMTProRg.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Plantin MT Pro';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/PlantinMTProBold.woff2') format('woff2');
+}
+
+/* IBM Plex Sans */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IBM-Plex-Sans-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/IBM-Plex-Sans-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/IBM-Plex-Sans-SemiBold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/IBM-Plex-Sans-Bold.woff2') format('woff2');
+}
+
+/* IBM Plex Mono */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IBM-Plex-Mono-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/IBM-Plex-Mono-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/IBM-Plex-Mono-SemiBold.woff2') format('woff2');
+}
 
 :root {
-  /* Surface */
-  --twin-bg: #12151a;
-  --twin-surface: #1b2028;
-  --twin-surface-raised: #232a34;
-  --twin-border: #2e3540;
-  --twin-border-hover: #3c4552;
+  /* Surface — Dark Cobalt/Slate matched with Landing Page */
+  --twin-bg: #0b0f14;
+  --twin-surface: #121820;
+  --twin-surface-raised: #18202a;
+  --twin-surface-hover: #212c3b;
+  --twin-border: #232d3d;
+  --twin-border-hover: #3b4b63;
 
   /* Text */
-  --twin-text-primary: #e7eaee;
-  --twin-text-muted: #8b94a3;
-  --twin-text-faint: #5c6472;
+  --twin-text-primary: #f1f5f9;
+  --twin-text-muted: #94a3b8;
+  --twin-text-faint: #64748b;
 
-  /* Status / meaning-driven accents */
-  --twin-accent-automated: #4fa8a0;
-  --twin-accent-manual: #c9a227;
-  --twin-accent-danger: #d1553d;
-  --twin-accent-warning: #e0a030;
-  --twin-accent-safe: #5fae72;
+  /* Status / Brand Accents */
+  --twin-accent-automated: #3b82f6;
+  --twin-accent-manual: #fbbf24;
+  --twin-accent-danger: #ef4444;
+  --twin-accent-warning: #f59e0b;
+  --twin-accent-safe: #34d399;
+  --twin-accent-blue: #60a5fa;
 
   /* Type */
-  --twin-font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --twin-font-display: 'Poppins', system-ui, sans-serif;
+  --twin-font-sans: 'Poppins', system-ui, sans-serif;
   --twin-font-mono: 'IBM Plex Mono', 'SF Mono', monospace;
 }
 
@@ -30,6 +131,7 @@ body {
   background: var(--twin-bg);
   color: var(--twin-text-primary);
   font-family: var(--twin-font-sans);
+  font-weight: 400;
 }
 
 @keyframes flow {

@@ -7,7 +7,6 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDraftStore } from "@/store/draftStore";
 import { useToastStore } from "@/store/toast";
-import { TEMPLATE_META } from "@/features/canvas/templates/templates";
 import type { ProjectDraft } from "@/features/project/types/project.types";
 import styles from "./DashboardPage.module.css";
 
@@ -81,13 +80,9 @@ export function DashboardPage() {
         <div>
           <h1 className={styles.title}>Saved Drafts</h1>
           <p className={styles.subtitle}>
-            Satu draft membungkus seluruh alur kerja — canvas Live, chat Agent,
-            kebijakan operasional, dan kartu rekomendasi optimasi.
+            Daftar rancangan alur kerja produksi dan skenario simulasi AI yang tersimpan.
           </p>
         </div>
-        <Link to="/intro" className={styles.cta}>
-          + Buat Draft Baru
-        </Link>
       </div>
 
       <div className={styles.stats}>
@@ -109,9 +104,9 @@ export function DashboardPage() {
         <div className={styles.empty}>
           <p className={styles.emptyTitle}>Belum ada draft tersimpan</p>
           <p className={styles.emptyDesc}>
-            Mulai dari Intro: pilih template, rancang alur di Live, berkoordinasi
+            Mulai dari halaman Intro: pilih template, rancang alur di Live, berkoordinasi
             dengan Agent, lalu generate kartu optimasi — semua tersimpan otomatis
-            dalam satu draft yang bisa dibuka lagi kapan saja.
+            dalam satu draft.
           </p>
           <Link to="/intro" className={styles.emptyCta}>Mulai Desain Canvas →</Link>
         </div>
@@ -121,23 +116,35 @@ export function DashboardPage() {
             const nodeCount = d.canvasData.nodes?.length ?? 0;
             const chatCount = d.agentData.chatHistory?.length ?? 0;
             const cardCount = d.optimizationData.generatedCards?.length ?? 0;
-            const templateTitle = d.templateId ? TEMPLATE_META[d.templateId]?.title : null;
 
             return (
               <article key={d.projectId} className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <h3 className={styles.cardTitle} title={d.title}>{d.title}</h3>
-                  {templateTitle && <span className={styles.templateBadge}>{templateTitle}</span>}
-                </div>
+                <div className={styles.cardMain}>
+                  <div className={styles.cardHeader}>
+                    <h3 className={styles.cardTitle} title={d.title}>{d.title}</h3>
+                    <span className={styles.updatedTime}>{formatUpdated(d.lastUpdated)}</span>
+                  </div>
 
-                <div className={styles.cardMeta}>
-                  <span>Last Updated: <strong>{formatUpdated(d.lastUpdated)}</strong></span>
-                  <span>
-                    {nodeCount} node · {chatCount} pesan · {cardCount} kartu AI
-                  </span>
-                  <span className={styles.stepBadge}>
-                    Terakhir: {STEP_LABEL[d.currentStep] ?? "Design Canvas"}
-                  </span>
+                  <p className={styles.cardStage}>
+                    Tahap: <strong>{STEP_LABEL[d.currentStep] ?? "Design Canvas"}</strong>
+                  </p>
+
+                  <div className={styles.cardMetricsRow}>
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Node</span>
+                      <span className={styles.metricValue}>{nodeCount}</span>
+                    </div>
+                    <div className={styles.metricDivider} />
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Pesan</span>
+                      <span className={styles.metricValue}>{chatCount}</span>
+                    </div>
+                    <div className={styles.metricDivider} />
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Kartu AI</span>
+                      <span className={styles.metricValue}>{cardCount}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className={styles.actions}>
@@ -146,21 +153,23 @@ export function DashboardPage() {
                     className={`${styles.action} ${styles.open}`}
                     onClick={() => openProject(d)}
                   >
-                    Open
+                    Buka Proyek →
                   </button>
                   <button
                     type="button"
                     className={`${styles.action} ${styles.duplicate}`}
                     onClick={() => handleDuplicate(d.projectId)}
+                    title="Duplikasi draft"
                   >
-                    Duplicate
+                    Salin
                   </button>
                   <button
                     type="button"
                     className={`${styles.action} ${styles.delete}`}
                     onClick={() => handleDelete(d.projectId)}
+                    title="Hapus draft"
                   >
-                    Delete
+                    Hapus
                   </button>
                 </div>
               </article>
