@@ -1,41 +1,17 @@
-// frontend/src/features/agent/components/AgentChat.tsx
-// Chatbot bergaya Google Gemini / ChatGPT:
-// - Belum ada pesan  => judul + input berada di tengah layar (hero section).
-// - Pesan pertama    => input bergeser mulus ke bawah, judul fade-out, dan
-//                       area percakapan muncul di tengah (scrollable).
-// State messages/busy disimpan di store global (useAgentChatStore) sehingga
-// riwayat chat tetap ada saat berpindah antar halaman Live ↔ Agent.
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCanvasUIStore } from "@/store/canvasUI";
 import { useAgentChatStore } from "@/store/agentChat";
 import { computeExecutionRounds, toFlowGraph } from "@/features/canvas/utils/flowLogic";
-
-// [DINONAKTIFKAN SEMENTARA] - Mencegah error TS2307: Cannot find module
-// import { runCanvasAnalysis } from "@/features/canvas/utils/runCanvasAnalysis";
-
+import { askAgent } from "@/features/agent/api/agentChatApi";
 import styles from "./AgentChat.module.css";
 
-async function buildReply(input: string, navigate: ReturnType<typeof useNavigate>): Promise<string> {
-  const s = useCanvasUIStore.getState();
-  const { nodes, edges, analysis } = s;
+/** Answers canvas-local intents (summary, help, navigation) without the backend, or returns null. */
+function localReply(input: string, navigate: ReturnType<typeof useNavigate>): string | null {
+  const { nodes, edges, analysis } = useCanvasUIStore.getState();
   const lower = input.toLowerCase();
 
-  if (/analisis|analisa|analy/.test(lower)) {
-    if (nodes.length === 0) {
-      return "Kanvas masih kosong. Buka halaman Live lalu tambahkan node proses, atau pilih template di Intro.";
-    }
-    
-    // [DINONAKTIFKAN SEMENTARA] - Bypass pemanggilan fungsi yang hilang
-    // const result = await runCanvasAnalysis();
-    // return result.status === "done"
-    //   ? `Analisis AI selesai ✓ ${result.message}`
-    //   : `Analisis AI gagal: ${result.message}`;
-    
-    return "Fitur Analisis AI untuk sementara dinonaktifkan.";
-  }
-
-  if (/ringkas|summary|status|berapa/.test(lower)) {
+  if (/ringkas|summary/.test(lower)) {
     const processes = nodes.filter((n) => n.data.kind === "process");
     const workers = nodes.filter((n) => n.data.kind === "worker");
     const outputs = nodes.filter((n) => n.data.kind === "output");
@@ -53,7 +29,7 @@ async function buildReply(input: string, navigate: ReturnType<typeof useNavigate
       roundsText,
       `• Status analisis terakhir: ${analysis.status}.`,
       "",
-      "Mau saya jalankan analisis AI, atau kamu langsung edit di halaman Live?",
+      "Tanyakan apa saja tentang pabrik, hasil simulasi, atau skenario RL, atau langsung edit di halaman Live.",
     ].join("\n");
   }
 
@@ -61,7 +37,7 @@ async function buildReply(input: string, navigate: ReturnType<typeof useNavigate
     return [
       "Berikut yang bisa saya lakukan:",
       "• 'Ringkas alur produksi' — ringkas node, koneksi, & urutan eksekusi",
-      "• 'Mulai analisis AI' — jalankan analisis dan tandai node di Live (Sedang nonaktif)",
+      "• Pertanyaan bebas — dijawab AI dari digital twin, hasil simulasi, dan skenario RL",
       "• 'Buka Live' — pindah ke halaman Live untuk mengubah kanvas",
       "Kamu juga bisa bolak-balik lewat tombol Live / Agent di atas.",
     ].join("\n");
@@ -72,11 +48,35 @@ async function buildReply(input: string, navigate: ReturnType<typeof useNavigate
     return "Membuka halaman Live agar kamu bisa melihat & mengubah kanvas…";
   }
 
+  return null;
+}
+
+/** Offline reply used when the backend chatbot is unreachable. */
+function fallbackReply(): string {
+  const { nodes, edges } = useCanvasUIStore.getState();
   return [
-    "Pesan diterima. Saat ini saya paling andal untuk menganalisis alur produksi.",
+    "Chatbot AI sedang tidak dapat dihubungi.",
     `Canvas kamu: ${nodes.length} node, ${edges.length} koneksi.`,
-    "Ketik 'Ringkas alur produksi', 'Mulai analisis AI', atau 'Buka Live'.",
+    "Ketik 'Ringkas alur produksi' atau 'Buka Live' untuk sementara.",
   ].join("\n");
+}
+
+/** Sends a message to the backend chatbot with history, unless a local intent handles it. */
+async function buildReply(
+  input: string,
+  navigate: ReturnType<typeof useNavigate>,
+  history: ReturnType<typeof useAgentChatStore.getState>["messages"]
+): Promise<string> {
+  const local = localReply(input, navigate);
+  if (local) return local;
+  try {
+    const { reply } = await askAgent(input, history, {
+      factoryId: useCanvasUIStore.getState().factoryId,
+    });
+    return reply || fallbackReply();
+  } catch {
+    return fallbackReply();
+  }
 }
 
 export function AgentChat() {
@@ -99,11 +99,12 @@ export function AgentChat() {
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
+    const history = useAgentChatStore.getState().messages;
     setInput("");
     pushMessage("user", trimmed);
     setBusy(true);
     try {
-      const reply = await buildReply(trimmed, navigate);
+      const reply = await buildReply(trimmed, navigate, history);
       pushMessage("assistant", reply);
     } finally {
       setBusy(false);

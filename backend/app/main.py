@@ -12,6 +12,7 @@ from app.api.v1.router import api_router
 from app.db.session import engine
 from app.db.create_all import create_all
 from app.services.agent_registry_service import get_agent_registry
+from app.modules.rl_optimization import training_jobs as rl_training_jobs
 
 # [BARU] Import fungsi mark_stale_jobs
 from app.worker.tasks import mark_stale_jobs
@@ -56,8 +57,8 @@ async def lifespan(app: FastAPI):
         logger.info("All agents eagerly loaded")
 
     yield
-    
-    # Menutup koneksi database dengan aman saat shutdown
+
+    rl_training_jobs.shutdown()
     await engine.dispose()
 
 

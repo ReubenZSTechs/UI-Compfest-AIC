@@ -764,7 +764,7 @@ def _main(argv: Iterable[str]) -> int:
     args = list(argv)
     if not args:
         print(__doc__)
-        print(f"pemakaian: python -m backend.app.services.gnn_compatibility_service <factory.json> [checkpoint.pt]")
+        print(f"pemakaian: python -m app.services.gnn_compatibility_service <factory.json> [checkpoint.pt]")
         return 1
 
     factory = json.loads(Path(args[0]).read_text(encoding="utf-8"))

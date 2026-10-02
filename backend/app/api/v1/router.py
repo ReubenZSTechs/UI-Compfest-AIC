@@ -2,6 +2,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    agent_chat,
     digital_twin_ingestion,
     document_parser,
     factories,
@@ -42,3 +43,5 @@ api_router.include_router(
 )
 
 api_router.include_router(node_autofill.router, prefix="/agents", tags=["agents"])
+
+api_router.include_router(agent_chat.router, prefix="/agents", tags=["agents"])

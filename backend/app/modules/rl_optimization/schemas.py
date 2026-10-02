@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -287,6 +287,19 @@ class OptimizationJobStatus(BaseModel):
     error_message: Optional[str] = None
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
+    submitted_at: Optional[datetime] = None
+    total_timesteps: Optional[int] = None
+    has_simulation: Optional[bool] = None
+
+
+class RlOptimizeRequest(BaseModel):
+    """Browser simulation end state plus the last working snapshot used to seed RL."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    end_state: Optional[dict[str, Any]] = None
+    working_state: Optional[dict[str, Any]] = None
+    total_timesteps: Optional[int] = Field(None, ge=512)
 
 
 class BaselineMetrics(BaseModel):

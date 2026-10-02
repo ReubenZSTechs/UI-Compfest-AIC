@@ -6,8 +6,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Any, Callable, Optional, Sequence
 
-from backend.app.services.call_llm_service import LLMOutputTruncatedError, AgentCallError
-from backend.app.services.usage_metrics_service import clone_usage, merge_usage
+from app.services.call_llm_service import LLMOutputTruncatedError, AgentCallError
+from app.services.usage_metrics_service import clone_usage, merge_usage
 
 SCOPED_FIELDS = ("process_stages", "assets", "job_descriptions")
 SINGLETON_FIELDS = ("factory_info", "shifts")

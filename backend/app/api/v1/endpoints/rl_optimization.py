@@ -1,57 +1,24 @@
-# app/api/v1/endpoints/rl_optimization.py
-"""
-Endpoint untuk domain RL Optimization.
-
-Mencakup:
-- Digital Twin snapshot (factory_info, assets, job_descriptions, workers) --
-  Fase Inisialisasi untuk `features/simulation_optimisation` frontend.
-- Trigger & monitoring proses training/inference RL (Maskable PPO) --
-  compute berat yang GENUINELY berjalan di backend (bukan tick simulasi).
-- Hasil skenario optimasi (Pareto-optimal scenarios)
-- Terapkan (apply) skenario terpilih -- menulis ulang posisi staf di DB
-
-REVISI (arsitektur Client-Side Simulation):
-`GET /simulation/live` dan `GET /simulation/live/bottlenecks` SUDAH DIHAPUS.
-Endpoint tersebut dulunya menyiratkan backend menghitung "live simulation
-state" (fatigue/stress/throughput real-time) -- padahal implementasinya
-selalu stub (`NotImplementedError`), dan frontend
-(`features/simulation_optimisation/api/simulationApi.ts` ->
-`fetchLiveSimulationState()`) sudah 100% menjalankan tick simulasi ini
-secara lokal di browser (jitter-based, tanpa network call). Backend hanya
-perlu menyediakan `GET /digital-twin` di bawah sebagai bahan mentah untuk
-initial state, asset config, dan constraint model -- frontend yang
-membangun & menjalankan simulasinya sendiri dari situ.
-"""
-
-from uuid import UUID
+"""RL optimization endpoints: digital twin view, on-demand Maskable PPO training and its scenarios."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_current_user
-from app.modules.rl_optimization import schemas, service
+from app.api.deps import get_db
+from app.core.config import settings
+from app.modules.rl_optimization import schemas, service, training_jobs
+from app.optimization import scenario_store
+from app.optimization.snapshot_from_db import RlInputError
 
 router = APIRouter()
 
 
-# Digital Twin — Single Source of Truth
-
 @router.get(
     "/digital-twin",
     response_model=schemas.DigitalTwinResponse,
-    summary="Ambil snapshot lengkap Digital Twin (factory_info, assets, job_descriptions, workers)",
+    summary="Ambil snapshot Digital Twin dalam bentuk yang dipakai modul RL",
 )
-async def get_digital_twin(
-    factory_id: str,
-    db=Depends(get_db),
-):
-    """
-    Mengambil struktur Digital Twin terkini untuk satu factory:
-    - factory_info (workflow_sequence)
-    - assets (karakteristik hardware)
-    - job_descriptions (tuntutan kualitatif tugas)
-    - workers (demografi & shift context)
-    - llm_compatibility_and_evaluations (matriks kompatibilitas N x M)
-    """
+async def get_digital_twin(factory_id: str, db: AsyncSession = Depends(get_db)):
+    """Return factory_info, assets, job_descriptions, workers and compatibility for a factory."""
     twin = await service.get_digital_twin(db, factory_id=factory_id)
     if twin is None:
         raise HTTPException(
@@ -61,88 +28,63 @@ async def get_digital_twin(
     return twin
 
 
-@router.put(
-    "/digital-twin",
-    response_model=schemas.DigitalTwinResponse,
-    summary="Update / replace Digital Twin (mis. hasil re-parsing dokumen sumber via LLM)",
-)
-async def upsert_digital_twin(
-    payload: schemas.DigitalTwinUpsertRequest,
-    db=Depends(get_db),
-):
-    """
-    Dipakai saat LLM Text Parser menghasilkan JSON digital twin baru
-    (mis. ada perubahan assets/job_descriptions dari dokumen sumber).
-    """
-    return await service.upsert_digital_twin(db, payload=payload)
-
-
-# RL Optimization Job — pola asynchronous (training bisa berjalan lama)
-
 @router.post(
-    "/optimize",
-    response_model=schemas.OptimizationJobAccepted,
+    "/{factory_id}/optimize",
+    response_model=schemas.OptimizationJobStatus,
     status_code=status.HTTP_202_ACCEPTED,
-    summary="Trigger proses training/inference RL (Maskable PPO) secara async",
+    summary="Mulai training RL dari digital twin dan hasil simulasi terakhir",
 )
-async def trigger_optimization(
-    payload: schemas.OptimizationRequest,
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
+async def start_factory_optimization(
+    factory_id: str,
+    payload: schemas.RlOptimizeRequest | None = None,
+    db: AsyncSession = Depends(get_db),
 ):
-    """
-    Tidak menjalankan training secara blocking di request ini.
-    Job didorong ke background worker (Celery/arq), endpoint langsung
-    mengembalikan job_id untuk dipoll lewat GET /optimize/{job_id}.
-    """
-    job = await service.enqueue_optimization_job(
-        db,
-        factory_id=payload.factory_id,
-        constraints=payload.constraints,
-        requested_by=current_user.id,
-    )
-    return job
-
-
-from app.optimization import scenario_store
+    """Map the twin and posted simulation state onto RL inputs and train in the background."""
+    payload = payload or schemas.RlOptimizeRequest()
+    timesteps = payload.total_timesteps
+    if timesteps is not None:
+        timesteps = min(timesteps, settings.RL_MAX_TIMESTEPS)
+    try:
+        job = await training_jobs.enqueue(
+            db,
+            factory_id,
+            end_state=payload.end_state,
+            working_state=payload.working_state,
+            total_timesteps=timesteps,
+        )
+    except LookupError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error)) from error
+    except RlInputError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)
+        ) from error
+    return job.to_dict()
 
 
 @router.get(
-    "/{factory_id}/scenarios",
-    response_model=schemas.RlScenarioBundle,
-    summary="Ambil ketiga skenario hasil training RL untuk satu factory",
+    "/{factory_id}/optimize/status",
+    response_model=schemas.OptimizationJobStatus,
+    summary="Status training RL terakhir untuk satu factory",
 )
-async def get_factory_optimization_scenarios(factory_id: str):
-    """
-    Selalu mengembalikan tiga skenario (scenario_01..03) sekaligus.
-    User tidak memilih skenario di tahap ini.
-    """
-    bundle = scenario_store.load_optimization_result(factory_id)
-    if bundle is None:
+async def get_factory_optimization_status(factory_id: str):
+    """Return queued / running / converged / failed for the latest run of a factory."""
+    job = training_jobs.get_factory_status(factory_id)
+    if job is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=(
-                f"Hasil optimasi RL untuk factory '{factory_id}' belum tersedia. "
-                "Jalankan train_ppo.py terlebih dahulu."
-            ),
+            detail=f"Belum ada training RL untuk factory '{factory_id}'.",
         )
-    return bundle
+    return job
 
 
 @router.get(
     "/optimize/{job_id}",
     response_model=schemas.OptimizationJobStatus,
-    summary="Cek status job optimasi (queued / running / converged / failed)",
+    summary="Status satu job training RL",
 )
-async def get_optimization_job_status(
-    job_id: UUID,
-    db=Depends(get_db),
-):
-    """
-    Status mengikuti siklus training:
-    queued -> running -> converged (RL CONVERGED) / failed
-    """
-    job = await service.get_job_status(db, job_id=job_id)
+async def get_optimization_job_status(job_id: str):
+    """Return the status of a job started by this server process."""
+    job = training_jobs.get_job(job_id)
     if job is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -152,76 +94,16 @@ async def get_optimization_job_status(
 
 
 @router.get(
-    "/optimize/{job_id}/scenarios",
-    response_model=list[schemas.OptimizationScenario],
-    summary="Ambil hasil skenario Pareto-optimal dari job yang sudah selesai",
+    "/{factory_id}/scenarios",
+    response_model=schemas.RlScenarioBundle,
+    summary="Ambil ketiga skenario hasil training RL untuk satu factory",
 )
-async def get_optimization_scenarios(
-    job_id: UUID,
-    db=Depends(get_db),
-):
-    """
-    Mengembalikan 3 skenario (mis. Realokasi SDM Murni, Substitusi Otomasi,
-    Full Optimization), masing-masing dengan metrics before/after,
-    factory_flow_optimal, dan rl_reasoning.
-    """
-    scenarios = await service.get_scenarios(db, job_id=job_id)
-    if not scenarios:
+async def get_factory_optimization_scenarios(factory_id: str):
+    """Return scenario_01..03 exported by the latest finished training of a factory."""
+    bundle = scenario_store.load_optimization_result(factory_id)
+    if bundle is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Belum ada skenario untuk job '{job_id}' (mungkin belum converged).",
+            detail=f"Hasil optimasi RL untuk factory '{factory_id}' belum tersedia.",
         )
-    return scenarios
-
-
-@router.get(
-    "/optimize/{job_id}/scenarios/{scenario_id}",
-    response_model=schemas.OptimizationScenario,
-    summary="Ambil detail satu skenario spesifik",
-)
-async def get_optimization_scenario_detail(
-    job_id: UUID,
-    scenario_id: str,
-    db=Depends(get_db),
-):
-    scenario = await service.get_scenario_detail(
-        db, job_id=job_id, scenario_id=scenario_id
-    )
-    if scenario is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Skenario '{scenario_id}' tidak ditemukan pada job '{job_id}'.",
-        )
-    return scenario
-
-
-# Terapkan skenario terpilih ke kondisi live
-
-@router.post(
-    "/optimize/{job_id}/scenarios/{scenario_id}/apply",
-    response_model=schemas.ApplyScenarioResponse,
-    summary="Terapkan reallocation_moves dari skenario terpilih ke live simulation state",
-)
-async def apply_scenario(
-    job_id: UUID,
-    scenario_id: str,
-    db=Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    """
-    Menulis ulang staff_current_positions sesuai optimal_staff_positions
-    pada skenario terpilih (mis. swap wrk-07 <-> wrk-09 pada scenario_01).
-    Idealnya dibungkus transaksi DB agar atomic.
-    """
-    result = await service.apply_scenario(
-        db,
-        job_id=job_id,
-        scenario_id=scenario_id,
-        applied_by=current_user.id,
-    )
-    if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Skenario tidak valid atau tidak dapat diterapkan.",
-        )
-    return result
+    return bundle

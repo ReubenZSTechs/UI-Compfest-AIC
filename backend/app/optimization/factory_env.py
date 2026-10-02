@@ -7,7 +7,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from backend.app.optimization.reward_function import (
+from app.optimization.reward_function import (
     RewardBreakdown,
     RewardWeights,
     bottleneck_stations,
@@ -15,7 +15,7 @@ from backend.app.optimization.reward_function import (
     compute_terminal_reward,
     throughput_term,
 )
-from backend.app.services.snapshot_builder import (
+from app.services.snapshot_builder import (
     EVALUATION_BOUNDS,
     EVALUATION_FIELDS,
     GLOBAL_FEATURE_COUNT,
