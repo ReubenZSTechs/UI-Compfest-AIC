@@ -67,6 +67,15 @@ class Settings(BaseSettings):
     # Hugging Face Token (untuk akses model LLM, mis. vLLM container)
     HF_TOKEN: str = Field(default="", description="Hugging Face Token untuk akses model LLM (mis. vLLM container).")
 
+    RL_TOTAL_TIMESTEPS: int = 20_000
+    RL_MAX_TIMESTEPS: int = 200_000
+    RL_N_ENVS: int = 1
+    RL_TORCH_THREADS: int = 2
+
+    AGENT_CHAT_TIMEOUT_SECONDS: float = 60.0
+    AGENT_CHAT_HISTORY_TURNS: int = 10
+    AGENT_CHAT_MESSAGE_CHARS: int = 2_000
+
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT == "production"

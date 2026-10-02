@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 import torch
@@ -14,6 +15,7 @@ from sb3_contrib import MaskablePPO
 from sb3_contrib.common.maskable.callbacks import MaskableEvalCallback
 from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
 from sb3_contrib.common.wrappers import ActionMasker
+from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
@@ -23,8 +25,9 @@ from app.optimization.factory_env import (
     HumanFactorsParams,
     ScenarioConstraints,
 )
+from app.optimization import scenario_store
 from app.optimization.reward_function import RewardWeights, pareto_front
-from app.services.snapshot_builder import SnapshotBuilder
+from app.services.snapshot_builder import Baselines, SnapshotBuilder
 
 SCENARIO_ORDER = ("scenario_01", "scenario_02", "scenario_03")
 
@@ -117,7 +120,9 @@ class TrainingConfig:
     eval_freq: int = 20_000
     seed: int = 42
     parallel_scenarios: bool = True
-    output_dir: Path = Path("training/outputs")
+    output_dir: Path = field(default_factory=lambda: scenario_store.rl_dir(None) / "training")
+    tensorboard: bool = False
+    verbose: int = 0
 
 
 def linear_schedule(initial: float):
@@ -221,39 +226,55 @@ def build_model(vector_env, config: TrainingConfig) -> MaskablePPO:
         vf_coef=config.vf_coef,
         max_grad_norm=config.max_grad_norm,
         policy_kwargs=policy_kwargs,
-        tensorboard_log=str(config.output_dir / "tensorboard"),
+        tensorboard_log=str(config.output_dir / "tensorboard") if config.tensorboard else None,
         seed=config.seed,
         device="auto",
-        verbose=1,
+        verbose=config.verbose,
     )
 
 
-def train(snapshot, scenario_id: str, config: TrainingConfig) -> MaskablePPO:
+def train(
+    snapshot,
+    scenario_id: str,
+    config: TrainingConfig,
+    callback: Optional[BaseCallback] = None,
+) -> MaskablePPO:
+    """Train one Maskable PPO policy for a scenario and save it under config.output_dir."""
     set_random_seed(config.seed)
     scenario = SCENARIO_LIBRARY[scenario_id]
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
     train_env = build_vector_env(snapshot, scenario, config, training=True)
-    eval_env = build_vector_env(snapshot, scenario, config, training=False)
-    eval_env.obs_rms = train_env.obs_rms
+    callbacks: list[BaseCallback] = [callback] if callback is not None else []
+    eval_env = None
 
-    callback = MaskableEvalCallback(
-        eval_env,
-        best_model_save_path=str(config.output_dir / scenario_id / "best"),
-        log_path=str(config.output_dir / scenario_id / "eval"),
-        eval_freq=max(config.eval_freq // config.n_envs, 1),
-        n_eval_episodes=10,
-        deterministic=True,
-    )
+    if config.eval_freq > 0:
+        eval_env = build_vector_env(snapshot, scenario, config, training=False)
+        if train_env.norm_obs:
+            eval_env.obs_rms = train_env.obs_rms
+        callbacks.append(
+            MaskableEvalCallback(
+                eval_env,
+                best_model_save_path=str(config.output_dir / scenario_id / "best"),
+                log_path=str(config.output_dir / scenario_id / "eval"),
+                eval_freq=max(config.eval_freq // config.n_envs, 1),
+                n_eval_episodes=10,
+                deterministic=True,
+            )
+        )
 
     model = build_model(train_env, config)
-    model.learn(total_timesteps=config.total_timesteps, callback=callback)
+    model.learn(
+        total_timesteps=config.total_timesteps,
+        callback=CallbackList(callbacks) if callbacks else None,
+    )
 
     model.save(str(config.output_dir / scenario_id / "policy"))
     train_env.save(str(config.output_dir / scenario_id / "vecnormalize.pkl"))
     train_env.close()
-    eval_env.close()
+    if eval_env is not None:
+        eval_env.close()
     return model
 
 
@@ -285,6 +306,37 @@ def rollout(
     info["episode_reward"] = total_reward
     env.close()
     return info
+
+
+def calibrate_baselines(snapshot, seed: int = 0):
+    """Replace snapshot baselines with a do-nothing rollout of the same environment.
+
+    Every worker stays at the current station with no hires or automation for a full
+    shift, so "before" and "after" KPIs come from identical dynamics and units.
+    """
+    env = FactoryOptimizationEnv(
+        snapshot=snapshot,
+        scenario=ScenarioConstraints(),
+        sample_weights=False,
+        randomize_start=False,
+        seed=seed,
+    )
+    env.reset(seed=seed)
+    idle_action = np.array([env.n_workers * (env.n_stations + 2), 0])
+    terminated = False
+    info: dict[str, Any] = {}
+    while not terminated:
+        _, _, terminated, _, info = env.step(idle_action)
+    env.close()
+
+    breakdown = info["breakdown"]
+    baselines = Baselines(
+        cost_per_item=float(breakdown["cost_per_item"]),
+        good_throughput=float(breakdown["good_throughput"]),
+        error_rate=float(breakdown["error_rate"]),
+        line_throughput=float(breakdown["line_throughput"]),
+    )
+    return replace(snapshot, baselines=baselines)
 
 
 def to_station_id(snapshot, index: int) -> Optional[str]:
@@ -563,10 +615,7 @@ def export_scenarios(
         }
     }
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    scenario_store.write_json_atomic(output_path, payload)
     return payload
 
 
@@ -578,12 +627,20 @@ def _train_scenario_task(
 
 
 def train_all_scenarios(
-    snapshot, config: TrainingConfig
+    snapshot,
+    config: TrainingConfig,
+    callback_factory: Optional[Callable[[int, str], BaseCallback]] = None,
 ) -> dict[str, MaskablePPO]:
+    """Train every scenario in SCENARIO_ORDER, sequentially or in a process pool."""
     if not config.parallel_scenarios:
         return {
-            scenario_id: train(snapshot, scenario_id, config)
-            for scenario_id in SCENARIO_ORDER
+            scenario_id: train(
+                snapshot,
+                scenario_id,
+                config,
+                callback_factory(index, scenario_id) if callback_factory else None,
+            )
+            for index, scenario_id in enumerate(SCENARIO_ORDER)
         }
 
     per_scenario = replace(
@@ -608,11 +665,10 @@ def train_all_scenarios(
 
 
 def resolve_output_path(factory_id: Optional[str], explicit: Optional[Path]) -> Path:
+    """Return the explicit output path or the scenario_store artifact path of the factory."""
     if explicit is not None:
         return explicit
-    if factory_id:
-        return Path("outputs/rl") / factory_id / "optimal_state.json"
-    return Path("training/outputs/optimal_state.json")
+    return scenario_store.artifact_path(factory_id)
 
 
 def parse_args() -> argparse.Namespace:
@@ -620,7 +676,7 @@ def parse_args() -> argparse.Namespace:
         description="Latih ketiga skenario RL sekaligus dan ekspor hasilnya."
     )
     parser.add_argument("--factory-id", default=None)
-    parser.add_argument("--input-dir", type=Path, default=Path("outputs"))
+    parser.add_argument("--input-dir", type=Path, default=None)
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--timesteps", type=int, default=None)
     parser.add_argument("--n-envs", type=int, default=None)
@@ -632,7 +688,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    config = TrainingConfig(parallel_scenarios=not args.sequential)
+    config = TrainingConfig(
+        parallel_scenarios=not args.sequential,
+        output_dir=scenario_store.rl_dir(args.factory_id) / "training",
+        tensorboard=importlib.util.find_spec("tensorboard") is not None,
+        verbose=1,
+    )
     if args.timesteps is not None:
         config.total_timesteps = args.timesteps
     if args.n_envs is not None:
@@ -640,13 +701,16 @@ def main() -> None:
     if args.seed is not None:
         config.seed = args.seed
 
+    input_dir = args.input_dir or scenario_store.rl_dir(args.factory_id) / "inputs"
+    simulation_path = input_dir / "simulation_state.json"
     snapshot = load_snapshot(
-        factory_path=args.input_dir / "factory_md.json",
-        worker_path=args.input_dir / "worker_md.json",
-        init_path=args.input_dir / "init_state.json",
-        simulation_path=args.input_dir / "simulation_state.json",
+        factory_path=input_dir / "factory_md.json",
+        worker_path=input_dir / "worker_md.json",
+        init_path=input_dir / "init_state.json",
+        simulation_path=simulation_path if simulation_path.exists() else None,
     )
 
+    snapshot = calibrate_baselines(snapshot, seed=config.seed)
     models = train_all_scenarios(snapshot, config)
 
     export_scenarios(

@@ -1,24 +1,4 @@
-# app/modules/rl_optimization/service.py
-"""
-STUB — implementasi RL training menyusul. Bagian Digital Twin sudah
-diimplementasikan (lihat REVISI di bawah).
-
-REVISI (arsitektur Client-Side Simulation):
-Sebelumnya modul ini punya `get_live_state()` / `get_bottlenecks()` yang
-mengimplikasikan backend "menjalankan" simulasi real-time (endpoint
-`GET /simulation/live`). Endpoint tersebut SUDAH DIHAPUS dari
-`app/api/v1/endpoints/rl_optimization.py` -- frontend
-(`features/simulation_optimisation/api/simulationApi.ts`) sudah
-menjalankan tick simulasi 100% lokal (fungsi `fetchLiveSimulationState`
-murni jitter di browser, tidak pernah memanggil backend).
-
-Yang backend WAJIB sediakan hanyalah data inisialisasi (Fase Inisialisasi):
-`get_digital_twin()` di bawah ini -- dipetakan dari sumber data yang SAMA
-dengan `app/modules/digital_twin_ingestion` (`DigitalTwinService`), supaya
-tidak ada implementasi kedua yang bisa divergen dari yang pertama.
-"""
-
-from uuid import UUID
+"""Digital twin view for the RL module, read from the canonical digital twin tables."""
 
 from app.modules.rl_optimization import schemas
 
@@ -113,37 +93,10 @@ def _to_rl_digital_twin(twin, factory_id: str) -> schemas.DigitalTwinResponse:
 
 
 async def get_digital_twin(db, factory_id: str) -> schemas.DigitalTwinResponse | None:
-    """Fase Inisialisasi -- satu-satunya data yang backend perlu sediakan ke
-    `simulation_optimisation` frontend. Dibaca dari `DigitalTwinService`,
-    sumber data yang sama dengan `GET /digital-twin` (digital_twin_ingestion)
-    dan `GET /simulation/config` (simulation) -- tiga konsumen, satu sumber."""
+    """Return the RL-shaped digital twin of a factory, or None when it has no stages."""
     from app.modules.digital_twin_ingestion.service import DigitalTwinService
 
-    twin = await DigitalTwinService(db).get_full_twin(factory_id=factory_id)
+    twin = await DigitalTwinService(db).get_full_twin(factory_id)
     if not twin.process_stages and not twin.factory_info.workflow_sequence:
         return None
     return _to_rl_digital_twin(twin, factory_id)
-
-
-async def upsert_digital_twin(db, payload: schemas.DigitalTwinUpsertRequest) -> schemas.DigitalTwinResponse:
-    raise NotImplementedError
-
-
-async def enqueue_optimization_job(db, factory_id: str, constraints, requested_by: str) -> schemas.OptimizationJobAccepted:
-    raise NotImplementedError
-
-
-async def get_job_status(db, job_id: UUID) -> schemas.OptimizationJobStatus | None:
-    raise NotImplementedError
-
-
-async def get_scenarios(db, job_id: UUID) -> list[schemas.OptimizationScenario]:
-    raise NotImplementedError
-
-
-async def get_scenario_detail(db, job_id: UUID, scenario_id: str) -> schemas.OptimizationScenario | None:
-    raise NotImplementedError
-
-
-async def apply_scenario(db, job_id: UUID, scenario_id: str, applied_by: str) -> schemas.ApplyScenarioResponse | None:
-    raise NotImplementedError
