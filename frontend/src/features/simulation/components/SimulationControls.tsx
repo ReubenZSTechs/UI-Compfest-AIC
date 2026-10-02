@@ -1,13 +1,11 @@
-// features/simulation/components/SimulationControls.tsx
-
 import { useSimulationRunner } from "../hooks/useSimulationRunner";
 import { useSimulationStore, type SpeedMultiplier } from "../store/simulationStore";
 import styles from "./SimulationControls.module.css";
 
 const SPEED_OPTIONS: SpeedMultiplier[] = [1, 2, 5, 10];
 
-// --- PEMBARUAN: Tambahkan parameter isMock ke dalam Props komponen ---
-export function SimulationControls({ isMock }: { isMock?: boolean }) {
+/** Start, pause, reset and speed controls for the client-side shift simulation. */
+export function SimulationControls() {
   const status = useSimulationStore((s) => s.status);
   const tick = useSimulationStore((s) => s.tick);
   const data = useSimulationStore((s) => s.data);
@@ -17,8 +15,7 @@ export function SimulationControls({ isMock }: { isMock?: boolean }) {
   const reset = useSimulationStore((s) => s.reset);
   const setSpeedMultiplier = useSimulationStore((s) => s.setSpeedMultiplier);
 
-  // --- PEMBARUAN: Teruskan nilai isMock ke dalam runner hook ---
-  useSimulationRunner(isMock);
+  useSimulationRunner();
 
   const error = useSimulationStore((s) => s.error);
   const shiftInfo = data?.live_simulation_state?.shift_info;
@@ -35,7 +32,6 @@ export function SimulationControls({ isMock }: { isMock?: boolean }) {
         </div>
       )}
       <div className={styles.controls}>
-        {/* Tombol Utama */}
         <div className={styles.buttonGroup}>
           {status !== "running" ? (
               <button
@@ -62,7 +58,6 @@ export function SimulationControls({ isMock }: { isMock?: boolean }) {
           </button>
         </div>
 
-        {/* Pengatur Kecepatan Simulasi (1x, 2x, 5x, 10x) */}
         <div className={styles.speedGroup}>
           <span className={styles.speedLabel}>Laju:</span>
           <div className={styles.speedButtons}>
@@ -84,7 +79,6 @@ export function SimulationControls({ isMock }: { isMock?: boolean }) {
           </div>
         </div>
 
-        {/* Indikator Waktu Operasional & Shift */}
         <div className={styles.shiftTimeContainer}>
           <div className={styles.clockDisplay}>
             <span className={styles.clockIcon}></span>
@@ -111,13 +105,12 @@ export function SimulationControls({ isMock }: { isMock?: boolean }) {
           )}
         </div>
 
-        {/* Status Readout */}
         <div className={styles.statusReadout}>
           <span
             className={[
               styles.statusDot,
               status === "running" ? styles.statusDotRunning : "",
-              status === "paused" ? styles.statusDotPaused : "",
+              status === "paused" || status === "completed" ? styles.statusDotPaused : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -125,6 +118,7 @@ export function SimulationControls({ isMock }: { isMock?: boolean }) {
           {status === "running" && `Tick #${tick} (${speedMultiplier}x)`}
           {status === "paused" && "Dijeda"}
           {status === "idle" && "Standby"}
+          {status === "completed" && `Selesai (${tick} tick)`}
         </div>
       </div>
     </div>

@@ -107,3 +107,23 @@ export interface RlScenarioBundle {
   meta: RlBundleMeta;
   scenarios: RlScenario[];
 }
+export type RlJobState = "queued" | "running" | "converged" | "failed";
+
+export interface RlOptimizationJob {
+  job_id: string;
+  factory_id: string;
+  status: RlJobState;
+  progress_pct?: number | null;
+  error_message?: string | null;
+  total_timesteps?: number | null;
+  has_simulation?: boolean | null;
+  submitted_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export interface RlOptimizeRequest {
+  end_state?: unknown;
+  working_state?: unknown;
+  total_timesteps?: number;
+}

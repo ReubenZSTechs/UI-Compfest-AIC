@@ -1,6 +1,4 @@
-// frontend/src/pages/DigitalTwinPage.tsx
-
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useDigitalTwin } from "@/features/digital-twin/hooks/useDigitalTwin";
 import { useDigitalTwinStore } from "@/features/digital-twin/store/digitalTwinStore";
@@ -15,6 +13,8 @@ import { SimulationFlowchart } from "@/features/simulation/components/Simulation
 import { SimulationSummaryPanel } from "@/features/simulation/components/SimulationSummaryPanel";
 import { setSimulationFactoryId } from "@/features/simulation/api/simulationApi";
 import { useSimulationStore } from "@/features/simulation/store/simulationStore";
+import { useRlOptimizationJob } from "@/features/optimization/hooks/useRlOptimizationJob";
+import { useToastStore } from "@/store/toast";
 import simulationSectionStyles from "@/features/simulation/components/SimulationSection.module.css";
 import "@/features/simulation/styles/tokens.css";
 import styles from "./DigitalTwinPage.module.css";
@@ -41,7 +41,6 @@ export function DigitalTwinPage() {
       .catch(() => undefined);
   }, [factoryId]);
 
-  // Validasi keberadaan data hasil parsing
   const hasParsedData = useMemo(() => {
     if (!data) return false;
     const hasFactory = Boolean(
@@ -53,31 +52,72 @@ export function DigitalTwinPage() {
     return hasFactory || hasDesks || hasWorkers || hasAssets;
   }, [data]);
 
-  // Route Guard: Alihkan ke halaman document parser hanya jika proses fetch selesai & data memang kosong/error
   useEffect(() => {
-    // 1. Jika URL tidak memiliki factoryId, langsung redirect
     if (!factoryId) {
       alert("Hasil parsing belum tersedia. Silakan unggah dan proses dokumen terlebih dahulu.");
-      navigate("/document-parser", { replace: true });
+      navigate("/parser", { replace: true });
       return;
     }
 
-    // 2. Tunggu hingga pemanggilan API selesai (isFetched === true dan !isLoading)
-    if (isFetched && !isLoading) {
-      if (error || !hasParsedData) {
-        alert("Hasil parsing belum tersedia. Silakan unggah dan proses dokumen terlebih dahulu.");
-        navigate("/document-parser", { replace: true });
-      }
+    if (isFetched && !isLoading && (error || !hasParsedData)) {
+      alert("Hasil parsing belum tersedia. Silakan unggah dan proses dokumen terlebih dahulu.");
+      navigate("/parser", { replace: true });
     }
   }, [isFetched, isLoading, error, hasParsedData, factoryId, navigate]);
 
-  // Fungsi navigasi ke halaman rekomendasi
-  const handleGoToRecommendations = () => {
-    if (factoryId) {
-      navigate(`/project/${encodeURIComponent(factoryId)}/recommendations`);
-    } else {
-      alert("ID Factory tidak ditemukan untuk melihat rekomendasi.");
+  const simulationStatus = useSimulationStore((s) => s.status);
+  const simulationRunId = useSimulationStore((s) => s.runId);
+  const showToast = useToastStore((s) => s.showToast);
+  const { job: rlJob, isTraining, isStarting, startError, start: startRl } =
+    useRlOptimizationJob(factoryId);
+
+  const startRlFromSimulation = useCallback(() => {
+    const { status, data: simData, lastWorkingData } = useSimulationStore.getState();
+    const finished = status === "completed" && simData;
+    startRl({
+      end_state: finished ? simData.live_simulation_state : undefined,
+      working_state: finished ? lastWorkingData?.live_simulation_state : undefined,
+    });
+  }, [startRl]);
+
+  const submittedRunRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (simulationStatus !== "completed" || !factoryId) return;
+    if (submittedRunRef.current === simulationRunId) return;
+    submittedRunRef.current = simulationRunId;
+    showToast("Simulasi selesai, melatih RL untuk mencari aksi optimal…", "info");
+    startRlFromSimulation();
+  }, [simulationStatus, simulationRunId, factoryId, showToast, startRlFromSimulation]);
+
+  useEffect(() => {
+    if (startError) showToast(`Gagal memulai optimisasi RL: ${startError.message}`, "error");
+  }, [startError, showToast]);
+
+  useEffect(() => {
+    if (rlJob?.status === "failed" && rlJob.error_message) {
+      showToast(`Training RL gagal: ${rlJob.error_message}`, "error");
     }
+  }, [rlJob?.status, rlJob?.error_message, showToast]);
+
+  const rlBusy = isTraining || isStarting;
+  const rlButtonLabel = rlBusy
+    ? `Melatih RL… ${Math.round(rlJob?.progress_pct ?? 0)}%`
+    : rlJob?.status === "converged"
+      ? "Lihat Hasil Optimisasi RL"
+      : rlJob?.status === "failed"
+        ? "Coba Lagi Optimisasi RL"
+        : "Optimisasi Reinforcement Learning";
+
+  const handleRlButton = () => {
+    if (!factoryId) {
+      alert("ID Factory tidak ditemukan untuk melihat rekomendasi.");
+      return;
+    }
+    if (rlJob?.status === "converged") {
+      navigate(`/project/${encodeURIComponent(factoryId)}/recommendations`);
+      return;
+    }
+    startRlFromSimulation();
   };
 
   // State pencarian terpisah untuk masing-masing seksi
@@ -229,11 +269,13 @@ export function DigitalTwinPage() {
             </time>
           </div>
           
-          <button 
-            onClick={handleGoToRecommendations}
+          <button
+            type="button"
+            onClick={handleRlButton}
+            disabled={rlBusy}
             className={styles.recommendationBtn}
           >
-            Optimisasi Reinfocement Learning
+            {rlButtonLabel}
           </button>
         </div>
       </header>

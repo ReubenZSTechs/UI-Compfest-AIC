@@ -218,7 +218,7 @@ async function loadConfig(): Promise<SimulationConfig> {
       .then((config) => {
         configError = null;
         configErrorAt = 0;
-        return config;
+        return normalizeEndpoints(config);
       })
       .catch((error: Error) => {
         configPromise = null;
@@ -229,6 +229,24 @@ async function loadConfig(): Promise<SimulationConfig> {
   }
 
   return configPromise;
+}
+
+/** Maps backend warehouse/output ordinals onto the step ids and stock fields the engine reads. */
+function normalizeEndpoints(config: SimulationConfig): SimulationConfig {
+  const toStepIds = (ordinals?: number[]) =>
+    (ordinals ?? []).map((ordinal) => stepIdFor(ordinal, config));
+  return {
+    ...config,
+    warehouses: (config.warehouses || []).map((source) => ({
+      ...source,
+      target_step_ids: source.target_step_ids ?? toStepIds(source.target_ordinals),
+      current_stock: source.current_stock ?? source.initial_stock ?? source.capacity,
+    })),
+    outputs: (config.outputs || []).map((sink) => ({
+      ...sink,
+      source_step_ids: sink.source_step_ids ?? toStepIds(sink.source_ordinals),
+    })),
+  };
 }
 
 export async function getSimulationConfig(): Promise<SimulationConfig> {
@@ -721,15 +739,24 @@ function statusFor(
 
 function outputSinksFor(ordinal: number, config: SimulationConfig): any[] {
   const stepId = stepIdFor(ordinal, config);
-  return (config.outputs || []).filter((sink) => sink.source_step_id === stepId);
+  return (config.outputs || []).filter((sink) =>
+    (sink.source_step_ids ?? [sink.source_step_id]).includes(stepId)
+  );
 }
 
 function buildOutputStates(config: SimulationConfig): any[] {
-  return (config.outputs || []).map((sink) => ({
-    ...sink,
-    good_units: outputTotals[sink.output_id]?.good ?? 0,
-    defective_units: outputTotals[sink.output_id]?.defective ?? 0,
-  }));
+  return (config.outputs || []).map((sink) => {
+    const good = outputTotals[sink.output_id]?.good ?? 0;
+    return {
+      ...sink,
+      good_units: good,
+      total_output_units: good,
+      defective_units: outputTotals[sink.output_id]?.defective ?? 0,
+      achievement_percentage: sink.target_output_units
+        ? round2((good / sink.target_output_units) * 100)
+        : 0,
+    };
+  });
 }
 
 function buildStepBreakdown(

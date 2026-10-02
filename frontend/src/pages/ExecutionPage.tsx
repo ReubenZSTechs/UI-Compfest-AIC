@@ -11,11 +11,30 @@ import { WhatIfPlayground } from "@/features/optimization/components/WhatIfPlayg
 import { RlFlowSimulation } from "@/features/optimization/components/RlFlowSimulation";
 import { useRlScenarios } from "@/features/optimization/hooks/useRlScenarios";
 import { mapRlScenarioToScenarioData, formatStationLabel } from "@/features/optimization/utils/mapRlScenario";
+import { resolveFactoryContext } from "@/features/optimization/utils/resolveFactory";
 import { useDraftStore } from "@/store/draftStore";
 import { useToastStore } from "@/store/toast";
 import { useDraftAutoSync } from "@/hooks/useDraftAutoSync";
 import styles from "./ExecutionPage.module.css";
 
+/** Picks the scenario index for a URL card id such as scenario_02, rec_2 or a /rec_1 path. */
+function resolveScenarioIndex(
+  scenarios: ScenarioData[],
+  cardId: string | undefined,
+  pathname: string
+): number {
+  const key = (cardId ?? pathname.split("/").filter(Boolean).pop() ?? "").toLowerCase();
+  const exact = scenarios.findIndex((s) => s.id.toLowerCase() === key);
+  if (exact >= 0) return exact;
+  const numbered = key.match(/^rec_(\d)$/) ?? key.match(/^scenario_0?(\d)$/);
+  if (numbered) {
+    const index = Number(numbered[1]) - 1;
+    if (index >= 0 && index < scenarios.length) return index;
+  }
+  return 0;
+}
+
+/** Formats a rupiah amount using Juta / Miliar units. */
 function formatRupiah(value: number): string {
   if (value <= 0) return "Rp 0";
   if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(2)} Miliar`;
@@ -37,15 +56,13 @@ export function ExecutionPage() {
   const effectiveProjectId = projectId || queryProjectId;
 
   const drafts = useDraftStore((s) => s.drafts);
-  const matchedDraft = drafts.find((d) => d.projectId === effectiveProjectId);
-  const draft = matchedDraft || drafts[0]; // display-only fallback (title, cards)
+  const { factoryId, draft: matchedDraft } = resolveFactoryContext(
+    drafts,
+    effectiveProjectId,
+    queryFactoryId
+  );
+  const draft = matchedDraft || drafts[0];
   const generatedCards = draft?.optimizationData?.generatedCards;
-
-  const factoryId =
-    queryFactoryId ||
-    matchedDraft?.factoryId ||
-    effectiveProjectId ||
-    undefined;
 
   const { scenarios: rlScenarios, meta, isLoading, isError, error } = useRlScenarios(factoryId);
 
@@ -61,26 +78,12 @@ export function ExecutionPage() {
     return rlScenarios.map(mapRlScenarioToScenarioData);
   }, [usingRlData, rlScenarios, fallbackScenarios]);
 
-  const activeScenarioId = useMemo(() => {
-    if (cardId) {
-      const match = resolvedScenarios.find(
-        (s) =>
-          s.id.toLowerCase() === cardId.toLowerCase() ||
-          s.shortTitle.toLowerCase().includes(cardId.toLowerCase()) ||
-          s.title.toLowerCase().includes(cardId.toLowerCase())
-      );
-      if (match) return match.id;
-    }
-
-    const path = location.pathname.toLowerCase();
-    if (path.includes("3") || path.includes("skenario-c")) {
-      return resolvedScenarios[2]?.id ?? resolvedScenarios[0]?.id ?? "";
-    }
-    if (path.includes("2") || path.includes("skenario-b")) {
-      return resolvedScenarios[1]?.id ?? resolvedScenarios[0]?.id ?? "";
-    }
-    return resolvedScenarios[0]?.id ?? "";
-  }, [cardId, location.pathname, resolvedScenarios]);
+  const activeScenarioId = useMemo(
+    () =>
+      resolvedScenarios[resolveScenarioIndex(resolvedScenarios, cardId, location.pathname)]?.id ??
+      "",
+    [cardId, location.pathname, resolvedScenarios]
+  );
 
   const [activeTab, setActiveTab] = useState<string>(activeScenarioId);
   const [showGraph, setShowGraph] = useState<boolean>(false);
@@ -716,6 +719,8 @@ export function ExecutionPage() {
         {/* RIGHT COLUMN: AI CHATBOT / WHAT-IF SIMULATOR */}
         <section className={styles.analyticsSidebar}>
           <WhatIfPlayground
+            factoryId={factoryId}
+            scenarioId={currentRlScenario?.scenario_id}
             scenarioNumber={currentScenario.tabNumber}
             scenarioTitle={currentScenario.title}
             scenarioData={currentScenario}

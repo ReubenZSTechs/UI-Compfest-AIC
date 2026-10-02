@@ -1,38 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useDraftStore } from "@/store/draftStore";
 import { useDraftAutoSync } from "@/hooks/useDraftAutoSync";
-import { generateOptimizationCards } from "@/features/optimization/utils/generateCards";
-import type { OptimizationCard } from "@/features/project/types/project.types";
+import { useRlScenarios } from "@/features/optimization/hooks/useRlScenarios";
+import { useRlOptimizationJob } from "@/features/optimization/hooks/useRlOptimizationJob";
+import { resolveFactoryContext } from "@/features/optimization/utils/resolveFactory";
+import type { RlScenario } from "@/features/optimization/types/rlScenario.types";
 import styles from "./RecommendationsPage.module.css";
 
-// ==========================================
-// 1. TAMBAHKAN FLAG & MOCK DATA UNTUK UI TESTING
-// ==========================================
-const USE_MOCK_DATA = true; // Set ke 'false' jika ingin menggunakan data asli kembali
-
-const MOCK_CARDS: Partial<OptimizationCard>[] = [
-  {
-    id: "rec_1",
-    title: "Otomasi Lini Perakitan",
-    budget: 150000000,
-    description: "Mengganti 2 stasiun manual dengan lengan robotik untuk meningkatkan throughput sebesar 15%.",
-  },
-  {
-    id: "rec_2",
-    title: "Penambahan Shift Kerja",
-    budget: 45000000,
-    description: "Menambah shift malam dengan 5 pekerja ekstra untuk mengejar target produksi harian tanpa beli mesin.",
-  },
-  {
-    id: "rec_3",
-    title: "Optimasi Layout Pabrik",
-    budget: 12000000,
-    description: "Menyusun ulang letak stasiun kerja untuk mengurangi bottleneck dan waktu tempuh material antar stasiun.",
-  }
-];
-// ==========================================
-
+/** Formats a rupiah amount without decimals. */
 function formatIdr(value: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -41,6 +17,7 @@ function formatIdr(value: number): string {
   }).format(value);
 }
 
+/** Lists the three RL scenarios of a factory and opens the selected one. */
 export function RecommendationsPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const [searchParams] = useSearchParams();
@@ -48,57 +25,48 @@ export function RecommendationsPage() {
   useDraftAutoSync();
 
   const drafts = useDraftStore((s) => s.drafts);
-  const activeDraftId = useDraftStore((s) => s.activeDraftId);
-  const [generating, setGenerating] = useState(false);
+  const routeId = projectId || searchParams.get("projectId");
+  const { factoryId, draft } = resolveFactoryContext(
+    drafts,
+    routeId,
+    searchParams.get("factoryId")
+  );
 
-  const queryProjectId = searchParams.get("projectId");
-  const effectiveProjectId = projectId || queryProjectId || activeDraftId;
+  const { scenarios, isLoading } = useRlScenarios(factoryId);
+  const { job, isTraining } = useRlOptimizationJob(factoryId);
 
   useEffect(() => {
-    // 2. BYPASS REDIRECT JIKA SEDANG MENGGUNAKAN MOCK DATA
-    if (USE_MOCK_DATA) return; 
-
-    if (!effectiveProjectId) {
+    if (!routeId) {
       navigate("/dashboard", { replace: true });
       return;
     }
-    
-    const ds = useDraftStore.getState();
-    if (ds.getActiveDraft()?.projectId !== effectiveProjectId) {
-      ds.loadDraft(effectiveProjectId);
+    if (draft) {
+      const ds = useDraftStore.getState();
+      if (ds.getActiveDraft()?.projectId !== draft.projectId) {
+        ds.loadDraft(draft.projectId);
+      }
+      ds.setCurrentStep("recommendations");
     }
-    ds.setCurrentStep("recommendations");
+  }, [routeId, draft, navigate]);
 
-    const draft = ds.findDraft(effectiveProjectId);
-    if (draft && draft.optimizationData.generatedCards.length === 0) {
-      setGenerating(true);
-      void (async () => {
-        const cards = await generateOptimizationCards(draft);
-        useDraftStore.getState().setOptimizationCards(cards);
-        setGenerating(false);
-      })();
-    }
-  }, [effectiveProjectId, navigate]);
-
-  const draft = drafts.find((d) => d.projectId === effectiveProjectId) ?? null;
-  
-  // 3. TENTUKAN DATA YANG AKAN DI-RENDER
-  const actualCards = draft?.optimizationData.generatedCards ?? [];
-  const displayCards = (USE_MOCK_DATA ? MOCK_CARDS : actualCards) as OptimizationCard[];
-  const isGenerating = USE_MOCK_DATA ? false : (generating || actualCards.length === 0);
-
-  function openCard(card: OptimizationCard) {
-    navigate(`/project/${encodeURIComponent(effectiveProjectId ?? "mock-project")}/recommendation/${card.id}`);
+  function openScenario(scenario: RlScenario) {
+    navigate(
+      `/project/${encodeURIComponent(routeId ?? "")}/recommendation/${scenario.scenario_id}`
+    );
   }
+
+  const twinLink = factoryId
+    ? `/digital-twin?factoryId=${encodeURIComponent(factoryId)}`
+    : "/dashboard";
 
   return (
     <div className={styles.workspace}>
       <header className={styles.header}>
         <Link
-          to="/dashboard"
+          to={twinLink}
           className={styles.backLink}
-          title="Kembali ke Dashboard"
-          aria-label="Kembali ke Dashboard"
+          title="Kembali ke Digital Twin"
+          aria-label="Kembali ke Digital Twin"
         >
           <svg
             width={18}
@@ -115,10 +83,7 @@ export function RecommendationsPage() {
           </svg>
         </Link>
 
-        {/* Pakai judul mock jika tidak ada draft */}
-        <span className={styles.title}>
-          {USE_MOCK_DATA ? "Proyek Testing UI" : (draft?.title ?? "Proyek Tanpa Judul")}
-        </span>
+        <span className={styles.title}>{draft?.title ?? factoryId ?? "Proyek Tanpa Judul"}</span>
 
         <button
           type="button"
@@ -136,26 +101,42 @@ export function RecommendationsPage() {
       <main className={styles.body}>
         <p className={styles.eyebrow}>Pilih skenario optimasi terbaik</p>
 
-        {/* 4. RENDER BERDASARKAN STATUS GENERATING (MOCK SELALU FALSE) */}
-        {isGenerating ? (
+        {isTraining || (isLoading && scenarios.length === 0) ? (
           <div className={styles.loading}>
             <span className={styles.spinner} aria-hidden="true" />
-            <p>AI sedang menganalisis & menyusun skenario…</p>
+            <p>
+              {isTraining
+                ? `RL sedang mencari aksi optimal… ${Math.round(job?.progress_pct ?? 0)}%`
+                : "Memuat skenario hasil RL…"}
+            </p>
+          </div>
+        ) : scenarios.length === 0 ? (
+          <div className={styles.loading}>
+            <p>
+              {job?.status === "failed"
+                ? `Training RL gagal: ${job.error_message ?? "kesalahan tidak diketahui"}`
+                : "Belum ada hasil optimasi RL untuk pabrik ini. Jalankan simulasi di halaman Digital Twin terlebih dahulu."}
+            </p>
+            <Link to={twinLink} className={styles.cardAction}>
+              Buka Digital Twin →
+            </Link>
           </div>
         ) : (
           <div className={styles.cardsRow}>
-            {displayCards.map((card, i) => (
+            {scenarios.map((scenario, i) => (
               <button
-                key={card.id}
+                key={scenario.scenario_id}
                 type="button"
                 className={styles.card}
                 style={{ animationDelay: `${i * 0.12}s` }}
-                onClick={() => openCard(card)}
+                onClick={() => openScenario(scenario)}
               >
-                <span className={styles.cardBadge}>{card.id.toUpperCase()}</span>
-                <h3 className={styles.cardTitle}>{card.title}</h3>
-                <p className={styles.cardBudget}>{formatIdr(card.budget)}</p>
-                <p className={styles.cardDesc}>{card.description}</p>
+                <span className={styles.cardBadge}>
+                  {scenario.recommended ? "DIREKOMENDASIKAN" : `SKENARIO ${i + 1}`}
+                </span>
+                <h3 className={styles.cardTitle}>{scenario.title}</h3>
+                <p className={styles.cardBudget}>{formatIdr(scenario.constraints.capex_used_rp)}</p>
+                <p className={styles.cardDesc}>{scenario.insight || scenario.description}</p>
                 <span className={styles.cardAction}>Lihat Detail →</span>
               </button>
             ))}

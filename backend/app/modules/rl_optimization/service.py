@@ -4,10 +4,7 @@ from app.modules.rl_optimization import schemas
 
 
 def _to_rl_digital_twin(twin, factory_id: str) -> schemas.DigitalTwinResponse:
-    """Memetakan `digital_twin_ingestion.schemas.DigitalTwin` (sumber data
-    kanonik) ke bentuk `rl_optimization.schemas.DigitalTwinResponse` yang
-    dipakai frontend `simulation_optimisation` untuk membangun initial
-    state-nya sendiri (menggantikan `SEED_STATE` hardcoded)."""
+    """Map the canonical digital twin onto the RL DigitalTwinResponse shape."""
     stage_by_asset_id = {s.asset_id: s for s in twin.process_stages}
 
     assets = []

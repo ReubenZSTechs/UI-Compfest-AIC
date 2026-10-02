@@ -1,14 +1,13 @@
-// frontend/src/features/optimization/components/WhatIfPlayground.tsx
-// AI Chatbot & What-If Simulator:
-// Menggunakan riwayat chat aktual dari useAgentChatStore (single source of truth).
-// Percakapan yang terjadi di sini langsung tersinkronisasi ke ProjectDraft.
 import { useState, useRef, useEffect } from "react";
 import { useAgentChatStore } from "@/store/agentChat";
+import { askAgent } from "@/features/agent/api/agentChatApi";
 import { useDraftStore } from "@/store/draftStore";
 import type { ScenarioData } from "../data/analyticsScenariosData";
 import styles from "./WhatIfPlayground.module.css";
 
 interface Props {
+  factoryId?: string;
+  scenarioId?: string;
   scenarioNumber: number;
   scenarioTitle: string;
   scenarioData?: ScenarioData;
@@ -62,7 +61,10 @@ function generateSmartReply(query: string, scTitle: string, scNum: number, sc?: 
     `Ada simulasi atau parameter operasional lain yang ingin Anda uji?`;
 }
 
+/** Scenario chat panel that asks the backend chatbot with history and falls back to local replies. */
 export function WhatIfPlayground({
+  factoryId,
+  scenarioId,
   scenarioNumber,
   scenarioTitle,
   scenarioData,
@@ -86,6 +88,7 @@ export function WhatIfPlayground({
     const text = (textToSend || input).trim();
     if (!text || busy) return;
 
+    const history = useAgentChatStore.getState().messages;
     setInput("");
     pushMessage("user", text);
     setBusy(true);
@@ -94,15 +97,15 @@ export function WhatIfPlayground({
       onWhatIfSimulated(text);
     }
 
-    // Simulasi respons AI
-    setTimeout(() => {
-      const reply = generateSmartReply(text, scenarioTitle, scenarioNumber, scenarioData);
-      pushMessage("assistant", reply);
+    try {
+      const { reply } = await askAgent(text, history, { factoryId, scenarioId });
+      pushMessage("assistant", reply || generateSmartReply(text, scenarioTitle, scenarioNumber, scenarioData));
+    } catch {
+      pushMessage("assistant", generateSmartReply(text, scenarioTitle, scenarioNumber, scenarioData));
+    } finally {
       setBusy(false);
-
-      // Sinkronkan ke ProjectDraft aktif
       useDraftStore.getState().syncActiveDraft();
-    }, 750);
+    }
   }
 
   function handleClearChat() {
