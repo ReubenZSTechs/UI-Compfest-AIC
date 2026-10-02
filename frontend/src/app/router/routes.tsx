@@ -1,4 +1,3 @@
-// frontend/src/app/router/routes.tsx
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProtectedRoute } from "@/app/router/ProtectedRoute";
@@ -8,17 +7,12 @@ import { CanvasPage } from "@/pages/Canvaspage";
 import { AgentPage } from "@/pages/AgentPage";
 import { RecommendationsPage } from "@/pages/RecommendationsPage";
 import { ExecutionPage } from "@/pages/ExecutionPage";
-
-// Lazy load atau import langsung halaman
 import { DocumentParserPage } from "@/pages/Documentparserpage";
 import { DigitalTwinPage } from "@/pages/DigitalTwinPage";
 import { DashboardPage } from "@/pages/DashboardPage";
-import { HumanFactorsPage } from "@/pages/HumanFactorsPage";
-import { SimulationPage } from "@/pages/SimulationPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
-// 1. Centralized Route Constants (Maintainable & Type-Safe)
 export const ROUTES = {
   LANDING: "/",
   LANDING_ALT: "/landing",
@@ -29,34 +23,28 @@ export const ROUTES = {
   AGENT: "/agent",
   RECOMMENDATIONS: "/project/:projectId/recommendations",
   RECOMMENDATION_DETAIL: "/project/:projectId/recommendation/:cardId",
-  ANALYTICS: "/project/:projectId/analytics",
   PARSER: "/parser",
   DIGITAL_TWIN: "/digital-twin",
   DASHBOARD: "/dashboard",
-  SIMULATION: "/simulation",
-  HUMAN_FACTORS: "/human-factors",
 } as const;
 
-// 2. Router Configuration
 export const router = createBrowserRouter([
   {
     path: ROUTES.LOGIN,
     element: <LoginPage />,
   },
   {
-    // Mengamankan halaman yang membutuhkan otentikasi
     element: <ProtectedRoute />,
     children: [
       {
-        path: "/",
+        path: ROUTES.LANDING,
         element: <LandingPage />,
       },
       {
-        path: "/landing",
+        path: ROUTES.LANDING_ALT,
         element: <LandingPage />,
       },
       {
-        // Alias lama: "/canvas" dialihkan ke halaman Live.
         path: ROUTES.CANVAS,
         element: <Navigate to={ROUTES.LIVE} replace />,
       },
@@ -78,26 +66,14 @@ export const router = createBrowserRouter([
       },
       {
         path: "/recommendations",
-        element: <Navigate to="/dashboard" replace />,
+        element: <Navigate to={ROUTES.DASHBOARD} replace />,
       },
       {
         path: "/recommendation/:cardId",
-        element: <Navigate to="/dashboard" replace />,
+        element: <Navigate to={ROUTES.DASHBOARD} replace />,
       },
       {
         path: "/rec_1",
-        element: <ExecutionPage />,
-      },
-      {
-        path: "/rec_2",
-        element: <ExecutionPage />,
-      },
-      {
-        path: "/rec_3",
-        element: <ExecutionPage />,
-      },
-      {
-        path: ROUTES.ANALYTICS,
         element: <ExecutionPage />,
       },
       {
@@ -105,7 +81,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: ROUTES.INTRO,
-            element: <IntroPage />, // Halaman Introduction
+            element: <IntroPage />,
           },
           {
             path: ROUTES.PARSER,
@@ -118,14 +94,6 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.DASHBOARD,
             element: <DashboardPage />,
-          },
-          {
-            path: ROUTES.SIMULATION,
-            element: <SimulationPage />,
-          },
-          {
-            path: ROUTES.HUMAN_FACTORS,
-            element: <HumanFactorsPage />,
           },
         ],
       },

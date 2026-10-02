@@ -18,13 +18,13 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 
-from backend.app.optimization.factory_env import (
+from app.optimization.factory_env import (
     FactoryOptimizationEnv,
     HumanFactorsParams,
     ScenarioConstraints,
 )
-from backend.app.optimization.reward_function import RewardWeights, pareto_front
-from backend.app.services.snapshot_builder import SnapshotBuilder
+from app.optimization.reward_function import RewardWeights, pareto_front
+from app.services.snapshot_builder import SnapshotBuilder
 
 SCENARIO_ORDER = ("scenario_01", "scenario_02", "scenario_03")
 
